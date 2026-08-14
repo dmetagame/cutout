@@ -119,7 +119,7 @@ POOL_DEPLOYED_AT_BLOCK=8978970    # 2026-04-20
 
 ## Status
 
-**Measurement and threat model complete. Product build starts 22 August.**
+**Registered for the sprint. Measurement and threat model complete. Product build starts 22 August.**
 
 - [x] Full-history pool census, reproducible
 - [x] `THREAT_MODEL.md` v1.2 frozen: five rated signals, numeric constants, holdout, non-claims
