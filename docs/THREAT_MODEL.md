@@ -1,11 +1,11 @@
 # CUTOUT-v1 threat model
 
-**Version 1.2. Frozen 2026-08-14, before any scoring code was written.**
+**Version 1.3. Frozen 2026-08-14, before any scoring code was written.**
 
 Every threshold in this document is a fixed number, here, now. Nothing is
 deferred to a config file "to be declared later"; a rule set that is still
 adjustable is not fixed, and a score produced under an adjustable rule set is
-not worth reporting. `src/engine/model.ts` will contain exactly these constants
+not worth reporting. `src/engine/constants.ts` contains exactly these constants
 and a test asserting they match this document.
 
 If any number below changes, the version changes, and every score states the
@@ -78,8 +78,8 @@ Fixed, and expressed in **time**, never in blocks.
 Starknet block time moved from ~2.60 s to ~1.68 s over this pool's history, so a
 fixed block offset spans different real durations at different points: the
 "±52,048 block" window in a previous draft of this document meant 24 hours
-recently and 37.6 hours in April. Every window below is converted to blocks at
-evaluation time from actual block timestamps.
+recently and 37.6 hours in April. Every window below is evaluated directly
+against actual block timestamps.
 
 | Constant | Value | Meaning |
 |---|---|---|
@@ -90,8 +90,8 @@ evaluation time from actual block timestamps.
 | `K_THIN` | 5 | Candidate cohort at or below this is thin, for S5 |
 | `Q_MIN_ADDRESSES` | 3 | A cohort drawn from fewer distinct depositors than this is not cover |
 | `Q_MAX_TOP_SHARE` | 0.50 | If one address contributed more than half the cohort, it is not cover |
-| `Q_MAX_BURST_SHARE` | 0.60 | If more than this share of an amount's lifetime uses fall in one 24h window, its popularity is a campaign artifact, not standing cover |
-| `Q_MIN_DAYS` | 7 | An amount used on fewer distinct days than this has no durable cover |
+| `Q_MAX_BURST_SHARE` | 0.60 | If more than this share of an amount's uses inside `W_OBSERVATION` fall in one 24h window, its popularity is a campaign artifact, not standing cover |
+| `Q_MIN_DAYS` | 7 | An amount used on fewer distinct UTC dates inside `W_OBSERVATION` has no durable cover |
 | `AMOUNT_TOLERANCE` | 0 | S2 requires **exact** equality. v1 has no fuzzy matching. |
 
 ### 5.1 No lookahead
@@ -106,18 +106,24 @@ clearly labelled. They must never reach the product's rating path.
 
 ### 5.2 Cohort quality, not just cohort count
 
-A count is not cover if one actor produced it. Alongside every candidate cohort,
-Cutout computes and displays:
+A count is not cover if one actor produced it. Cutout separates current cover
+from historical durability rather than forcing every quality measure into the
+same window.
+
+For the live trailing `T_COHORT`, Cutout computes and displays:
 
 - distinct depositor addresses in the cohort
 - distinct transactions
-- distinct days spanned
 - share contributed by the single busiest address
-- largest share falling inside any one 24-hour window
 
-A cohort failing `Q_MIN_ADDRESSES`, or exceeding `Q_MAX_TOP_SHARE` or
-`Q_MAX_BURST_SHARE`, is reported as **low quality** and counts as thin for S5
-regardless of its raw size.
+For the same `(token, amount)` inside `W_OBSERVATION`, Cutout computes:
+
+- distinct UTC dates with at least one deposit
+- the largest share of deposits falling inside any one 24-hour interval
+
+A cohort failing `Q_MIN_ADDRESSES`, exceeding `Q_MAX_TOP_SHARE`, falling below
+`Q_MIN_DAYS`, or exceeding `Q_MAX_BURST_SHARE` is reported as **low quality** and
+counts as thin for S5 regardless of its raw size.
 
 **Empirically, burst is the binding constraint in this pool, not top-address
 share.** Measured over full history, the ten most-used deposit amounts draw from
@@ -128,12 +134,13 @@ hundreds of *different* addresses, all inside a single 24-hour window, and never
 again. That is an airdrop or campaign artifact.
 
 Consequence: an amount's lifetime popularity says almost nothing about whether it
-offers cover today. Only the **live trailing cohort** does, which is why
-recommendation 2 is defined against it and never against historical counts.
+offers cover today. Recommendation 2 therefore requires both a healthy **live
+trailing cohort** and durable use inside the bounded 30-day observation window.
+It never recommends an amount from lifetime counts alone.
 
 ## 6. Signals
 
-Five signals feed the rating. One further signal is held out entirely (§6.1).
+Five signals feed the rating. One further signal is held out entirely (§6.2).
 
 | ID | Signal | Fires when | Evidence shown |
 |---|---|---|---|
@@ -143,6 +150,25 @@ Five signals feed the rating. One further signal is held out entirely (§6.1).
 | **S4** | Channel-open proximity | `ViewingKeySet` or channel-open for this address in the same transaction as, or within `T_CHANNEL` of, the deposit | both blocks and the delta |
 | **S5** | Thin or low-quality candidate cohort | Trailing candidate cohort ≤ `K_THIN`, **or** it fails the quality tests in §5.2 | the cohort count, its quality breakdown, the window, and the traffic cohort as context |
 
+### 6.1 Action applicability
+
+Signals are not silently treated as absent when the proposed action does not
+expose the artifact they measure. They are marked **not applicable**.
+
+The first executable CUTOUT-v1.3 scorer supports **shield preflight** only:
+
+| Signal | Shield preflight |
+|---|---|
+| S1 | Applies to the projected public `Deposit` amount |
+| S2 | Not applicable: a prior withdrawal cannot be funded by a future deposit |
+| S3 | Not applicable for the same causal reason |
+| S4 | Applies when the shielding address recently registered or opened its channel |
+| S5 | Applies to prior deposits in the trailing cohort and 30-day durability window |
+
+Withdrawals, swaps, and private transfers require action-specific causal rules.
+Until those rules are versioned, the engine returns `UNSUPPORTED_ACTION`; it
+does not manufacture a LOW rating from signals that could not fire.
+
 **Bands, assigned by fixed rule over S1–S5 only:**
 
 | Band | Rule |
@@ -151,7 +177,7 @@ Five signals feed the rating. One further signal is held out entirely (§6.1).
 | **MEDIUM** | exactly two fire |
 | **LOW** | zero or one fires |
 
-### 6.1 S6 is fully outside the rating
+### 6.2 S6 is fully outside the rating
 
 **S6, conservation of value:** a set of withdrawals sums exactly to a single
 in-range deposit of the same token.
@@ -188,7 +214,7 @@ Cutout does not claim, anywhere in its interface, README, receipts or pitch:
 constraints limit the circularity: the rule set is frozen and published before
 evaluation (§5, §6); the recommendation policy is a fixed enumerated list (§8),
 not a search over whatever scores best; and S6 is held out of the live path
-(§6.1). None of this makes a LOW rating a guarantee. A LOW rating means the
+(§6.2). None of this makes a LOW rating a guarantee. A LOW rating means the
 published rules did not fire. That is all it has ever meant.
 
 ## 8. Recommendations, and preserving intent
@@ -255,6 +281,7 @@ product must never describe it as free.
 
 | Version | Date | Change |
 |---|---|---|
+| 1.3 | 2026-08-14 | Separated live 24-hour cohort quality from 30-day durability so `Q_MIN_DAYS` is measurable, and limited the first executable scorer to shield preflight. Unsupported action types now fail closed instead of receiving misleading LOW ratings from inapplicable signals. |
 | 1.2 | 2026-08-14 | Added `Q_MAX_BURST_SHARE` and `Q_MIN_DAYS` after the census showed burst concentration, not top-address share, is the binding cohort-quality constraint: four of the ten most-used amounts have 95-100% of their lifetime uses inside a single 24h window despite drawing on 42-109 distinct addresses. |
 | 1.1 | 2026-08-14 | All windows expressed in **time**, not blocks (block time moved 2.60s → 1.68s across pool history, so fixed block offsets were spanning inconsistent durations). `T_COHORT` is now explicitly **trailing**, removing lookahead from the rating path. Added cohort-quality tests (`Q_MIN_ADDRESSES`, `Q_MAX_TOP_SHARE`) so a cohort produced by one actor no longer counts as cover. S5 fires on thin **or** low-quality. Recommendation 2 now minimises deviation against the live trailing cohort rather than pointing at historically popular amounts. |
 | 1.0 | 2026-08-14 | Frozen. Five rated signals with numeric thresholds, S6 fully held out of the live path, candidate cohort separated from traffic cohort, intent-preserving recommendation gating. |
