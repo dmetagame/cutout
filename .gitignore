@@ -8,6 +8,9 @@ docs/FEASIBILITY.md
 .cache/
 
 node_modules/
+dist/
+__pycache__/
+*.pyc
 .next/
 .env
 .env.local

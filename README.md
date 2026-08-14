@@ -18,37 +18,37 @@ privacy, and StarkWare's own documentation is explicit about the gap: deposits
 and withdrawals are public at the edges, and *"a distinctive amount executed
 shortly after a distinctive deposit is correlatable."*
 
-We measured how big that gap actually is. From the pool's full history
-(2026-04-20 to 2026-08-14, 15,656 deposits, [method and numbers
-here](docs/CENSUS.md)):
+We measured how big that gap actually is across the pool's full history. The
+[census](docs/CENSUS.md) separates ambient same-token traffic from exact-amount
+cohorts and records every correction made to the method:
 
-> **At the moment of signing, the median STRK20 deposit has 4 other deposits of
-> the same token and exact amount in the preceding 24 hours. 35% have none at
-> all, inside a window carrying a median of 1,979 same-token deposits.**
+> **At signing time, the median proposed shield has 3 prior deposits of the same
+> token and exact amount in the trailing 24 hours. 35% have no prior match and
+> 55% have five or fewer, inside a window carrying a median of 1,984 same-token
+> deposits.**
 
-The pool is busy. Privacy liquidity is fragmented across amounts, so almost none
-of that activity is reachable as cover. Nothing in the stack tells a user this
-before they sign.
+The pool is busy, but privacy liquidity is fragmented across amounts, so much of
+that activity does not become exact-amount cover. Nothing in the stack tells a
+user this before they sign.
 
 ## What Cutout does
 
-It sits in the signing path. Given a proposed action it returns a band, the
+It sits in the signing path. Given a proposed shield action it returns a band, the
 public signals that fired, the evidence behind each, and the live cohort the
-action would land in:
+action would land in. Illustrative output:
 
 ```
-Proposed: withdraw 4,713.22 USDC
+Proposed: shield 4,713.22 USDC
 
-HIGH LINKABILITY                                    CUTOUT-v1.2
+MEDIUM LINKABILITY                                  CUTOUT-v1.3
 
 Signals that fired:
   S1  amount appears once in the 30-day observation window
-  S2  a deposit of exactly 4,713.22 USDC exists in range
-  S3  that deposit was 11 minutes ago
-  S5  trailing 24h candidate cohort: 1
+  S5  no matching deposit exists in the trailing 24h cohort
 
 Cohort quality:
-  candidate cohort (trailing 24h) ...... 1
+  existing matches (trailing 24h) ...... 0
+  projected cohort after this shield ... 1
   traffic cohort (same token) .......... 2,104   [context only]
 
 Recommendation:
@@ -94,19 +94,21 @@ tools end up lying:
 
 | Path | |
 |---|---|
-| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | CUTOUT-v1.2. Adversary, signals, constants, bands, non-claims. **Read this first.** |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | CUTOUT-v1.3. Adversary, signals, constants, bands, non-claims. **Read this first.** |
 | [`docs/CENSUS.md`](docs/CENSUS.md) | The pool measurement, its method, and its corrections. |
 | [`scripts/pool-scan.py`](scripts/pool-scan.py) | The census. Read-only, no dependencies beyond the standard library. |
+| [`docs/DAY0.md`](docs/DAY0.md) | Mainnet wallet check and receipt-verification procedure. |
+| [`src/engine`](src/engine) | Deterministic CUTOUT-v1.3 shield preflight engine. |
 
 ## Running the census
 
 ```bash
-python3 scripts/pool-scan.py
+CUTOUT_SCAN_HEAD=13277427 python3 scripts/pool-scan.py
 ```
 
 No API key, no wallet, no viewing key. It reads public mainnet data through a
-public RPC and takes roughly fifteen minutes on a cold cache. Every number in
-`docs/CENSUS.md` comes out of this script.
+public RPC. Omit `CUTOUT_SCAN_HEAD` to scan through the latest block. Every
+number in `docs/CENSUS.md` comes out of this script.
 
 ## Network
 
@@ -119,11 +121,12 @@ POOL_DEPLOYED_AT_BLOCK=8978970    # 2026-04-20
 
 ## Status
 
-**Registered for the sprint. Measurement and threat model complete. Product build starts 22 August.**
+**Registered for the sprint. Exact census and threat model complete; product implementation is underway.**
 
-- [x] Full-history pool census, reproducible
-- [x] `THREAT_MODEL.md` v1.2 frozen: five rated signals, numeric constants, holdout, non-claims
-- [ ] Preflight engine implementing exactly those constants
+- [x] Exact-timestamp full-history census, reproducible and fail-closed
+- [x] `THREAT_MODEL.md` v1.3 frozen: numeric constants, action applicability, holdout, non-claims
+- [x] Deterministic shield preflight engine implementing those constants
+- [x] Day 0 checklist and mainnet receipt verifier
 - [ ] Guard in the signing path via the Starknet Wallet API
 - [ ] Guarded mainnet action with a versioned receipt
 - [ ] `@cutout/guard` as an installable package
