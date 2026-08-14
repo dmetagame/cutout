@@ -1,0 +1,15 @@
+# Internal strategy material. Not for the public repo:
+# competitive analysis, project selection, and hackathon planning.
+STRATEGY.md
+docs/strategy-artifact.html
+docs/FEASIBILITY.md
+
+# Census cache (regenerate with scripts/pool-scan.py)
+.cache/
+
+node_modules/
+.next/
+.env
+.env.local
+*.log
+.DS_Store
