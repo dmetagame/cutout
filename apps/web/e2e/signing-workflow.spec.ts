@@ -49,6 +49,32 @@ test("a recommended deposit reaches wallet confirmation without broadcasting", a
   await expect(page.getByText("Transaction submitted", { exact: true })).toHaveCount(0);
 });
 
+test("refreshes the final intent timestamp after a delayed amount choice", async ({ page }) => {
+  await installWalletHarness(page);
+  await page.goto("/");
+
+  const intents: Array<{ readonly evaluationTimestamp: number }> = [];
+  page.on("request", (request) => {
+    if (!request.url().includes("/api/preflight") || request.method() !== "POST") return;
+    const body = request.postDataJSON() as { readonly evaluationTimestamp?: unknown };
+    if (typeof body.evaluationTimestamp === "number") {
+      intents.push({ evaluationTimestamp: body.evaluationTimestamp });
+    }
+  });
+
+  await page.getByRole("button", { name: "Connect wallet" }).click();
+  await page.getByRole("button", { name: "Run Cutout check" }).click();
+  await expect(page.getByRole("heading", { name: "Safer permitted amount" })).toBeVisible();
+  await page.waitForTimeout(6_000);
+  await page.getByRole("button", { name: "Use recommendation" }).click();
+  await expect.poll(() => intents.length).toBe(2);
+  const [initialIntent, finalIntent] = intents;
+  if (initialIntent === undefined || finalIntent === undefined) {
+    throw new Error("Expected initial and final preflight intents.");
+  }
+  expect(finalIntent.evaluationTimestamp).toBeGreaterThan(initialIntent.evaluationTimestamp);
+});
+
 test("the signing decision remains usable on a narrow viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installWalletHarness(page);

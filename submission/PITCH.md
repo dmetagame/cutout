@@ -55,7 +55,7 @@ final release smoke used fresh mainnet data without submitting anything.
 
 The release includes deterministic replay tests, reorg recovery, RPC
 cross-checking and failover, fail-closed freshness rules, an unprivileged
-Docker deployment package, and `@cutout/guard@0.1.0` for integrators. Cutout
+Docker deployment package, and `@cutout/guard@0.1.1` for integrators. Cutout
 does not claim anonymity or untraceability. It reports public candidate-cohort
 evidence under a published passive-public-observer threat model. That honesty
 is part of the product: Cutout helps users make a better-informed signing

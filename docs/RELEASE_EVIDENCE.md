@@ -6,9 +6,10 @@
 
 | Item | Value |
 |---|---|
-| Repository release | `v0.1.0`; the commit resolved by the annotated tag is authoritative |
-| Parent before release | `c10b8cf67761de92c30231477a2d460e2cb4ea9c` |
-| Package | `@cutout/guard@0.1.0` |
+| Repository release candidate | `v0.1.1`; the commit resolved by the annotated tag is authoritative after release |
+| Prior immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Parent before patch | `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Package | `@cutout/guard@0.1.1` |
 | Package API | `CUTOUT_GUARD_API-v1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
@@ -21,7 +22,16 @@
 Configured tokens are USDC, STRK, ETH, and strkBTC at the addresses exported by
 `CUTOUT_MAINNET`.
 
-## Milestone 5 live public-data smoke
+## v0.1.1 patch scope
+
+The patch fixes a browser timing defect without changing the engine, policies,
+indexer, action shape, wallet authority, or submission boundary. The bootstrap
+clock offset is now stable for the lifetime of a bootstrap response, allowing a
+delayed final amount choice to generate a current final-preflight timestamp.
+An E2E regression waits longer than the API's five-second timestamp tolerance
+and proves that the final intent timestamp advances.
+
+## v0.1.0 live public-data smoke
 
 This was a new non-submitting smoke, distinct from the Milestone 3 transaction.
 
@@ -56,7 +66,7 @@ closed. A subsequent supervised sync published no partial snapshot and became
 complete only after both configured providers passed chain and common-block
 checks.
 
-## Verified Milestone 5 live browser simulation
+## Verified v0.1.1 live browser simulation
 
 This used the installed Ready X wallet and stopped before the Cutout submission
 button.
@@ -69,12 +79,15 @@ button.
 | Network | Starknet Mainnet |
 | Account | `0x05854e275d709627eb88a95519326c528f8c5dc402d350d29e72dbcaf48b434f` |
 | Action | one `0.01 STRK` deposit / `0x2386f26fc10000` |
-| Snapshot block | `13,436,600` |
-| Snapshot | `0xf58cf3aca5f33f9588593b0cfe38d48ae6ecd2097fc074fa8add13c63d666234` |
+| Snapshot block | `13,448,562` |
+| Snapshot | `0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8` |
+| RPC head block | `13,448,576` |
+| Source age at final preflight | `54 seconds` |
+| Index lag | `23 seconds` |
 | Final decision | `LOW / ALLOW` |
-| Decision ID | `0x55f252b7f31f8468ccd161e9dd66db16ffac12d2b4294b75194845fe7f3432d2` |
+| Decision ID | `0x9635829c45c3bf5ef1208049e984b0373be7fd3598f14e348a737007b2dab29e` |
 | Simulation | `apply_actions`, 16 calldata felts, completed |
-| Final UI state | `READY FOR CONFIRMATION` |
+| Final UI state | `READY_FOR_CONFIRMATION` |
 | Broadcast request | Not observed |
 | Transaction hash | Not produced |
 | Transaction submitted | No |
@@ -82,12 +95,8 @@ button.
 Captured wallet request types were `wallet_supportedWalletApi`,
 `wallet_requestAccounts`, two chain-ID checks, and
 `wallet_strk20PrepareInvoke` with `simulate: true`. No
-`wallet_strk20InvokeTransaction` request occurred.
-
-During the final release-day smoke, the approved Chromium CDP endpoint did not
-respond and was recorded as `BROWSER_CONTEXT_UNAVAILABLE`. No fresh wallet
-request was made, no confirmation was requested, and the earlier verified
-simulation above was not presented as a new browser run.
+`wallet_strk20InvokeTransaction` request occurred. The visible Cutout
+`Confirm in wallet` control was not activated.
 
 ## Historical Milestone 3 execution evidence
 
@@ -111,11 +120,11 @@ public RPC without invoking a wallet or submitting a transaction.
 | Milestone 4 focused suite | `18 passed, 0 failed` |
 | Milestone 5 focused suite | `5 passed, 0 failed` |
 | Package public-API suite | `3 passed, 0 failed` |
-| Browser E2E suite | `6 passed, 0 failed` |
+| Browser E2E suite | `7 passed, 0 failed` |
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
 | Packed-tarball consumer install/typecheck/run | passed |
-| Package dry run | `34 files`, `17,652 bytes` |
+| Package dry run | `34 files`, `17,654 bytes` |
 | Docker image | `sha256:21386c74b373176f1c45472bf90aad87493a997976f9b808a331379e6950845b` |
 | Container runtime | UID `1000(node)`, all capabilities dropped, `no-new-privileges:true` |
 | Production dependency inspection | TypeScript/Playwright absent; Next/React runtime present |

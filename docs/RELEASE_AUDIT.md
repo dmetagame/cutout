@@ -42,9 +42,16 @@ foundations. No scoring or signing behavior was changed.
    verified. Local production-like Docker evidence is not a public deployment.
 2. Publishing `@cutout/guard` to a registry requires repository-owner package
    credentials and an explicit publish decision. The tarball itself is tested.
-3. The final release-day browser CDP endpoint was unavailable. This did not
-   invalidate the previously completed real Ready X simulation, but no new
-   browser-wallet claim is made for the final smoke.
+
+## v0.1.1 patch verification
+
+The patch corrects a browser-only clock-offset lifetime defect that could make
+a delayed final preflight fail with `INVALID_INTENT`. The offset is memoized per
+bootstrap response rather than recalculated on every React render. A delayed
+E2E regression and a fresh Ready X `5.33.8` / Wallet API `0.10.3` mainnet run
+both reached `READY_FOR_CONFIRMATION`. Only
+`wallet_strk20PrepareInvoke(..., simulate: true)` was observed; no invoke,
+broadcast, transaction hash, or transaction submission occurred.
 
 These blockers must be reported rather than replaced with fabricated browser,
 deployment, or registry evidence.

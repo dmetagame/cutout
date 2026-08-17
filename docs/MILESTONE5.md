@@ -9,7 +9,8 @@ private-data path, or autonomous execution.
 
 ## Implemented release surface
 
-- `@cutout/guard@0.1.0` with one explicit root export.
+- `@cutout/guard@0.1.1` with one explicit root export. `v0.1.0` remains the
+  prior immutable repository release.
 - Package build, exact export-surface tests, packed-tarball install, isolated
   TypeScript consumer typecheck, and executable example.
 - Live canonical mainnet index advancement and non-submitting HTTP preflight
@@ -39,10 +40,10 @@ private-data path, or autonomous execution.
 | Milestone 5 focused suite | 5 passed, 0 failed |
 | Package public-API suite | 3 passed, 0 failed |
 | Packed package consumer | passed installation, typecheck, and execution |
-| Browser E2E | 6 passed, 0 failed |
+| Browser E2E | 7 passed, 0 failed |
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
-| Package dry run | 34 files, 17,652 bytes |
+| Package dry run | 34 files, 17,654 bytes |
 | Docker/Compose build and validation | passed |
 | Production container security | UID 1000; capabilities dropped; no-new-privileges enabled |
 | Runtime dependency inspection | TypeScript and Playwright absent; required Next/React runtime present |
@@ -62,8 +63,10 @@ deterministic `LOW / ALLOW`, produced decision ID
 and made no wallet or broadcast call. No transaction hash was produced and no
 transaction was submitted.
 
-The separate browser smoke used Ready X `5.33.8`, Wallet API `0.10.3`, and one
-`0.01 STRK` action. Simulation completed and the flow stopped at
+The v0.1.1 browser smoke used Ready X `5.33.8`, Wallet API `0.10.3`, and one
+`0.01 STRK` action against snapshot
+`0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8`
+at block `13,448,562`. Simulation completed and the flow stopped at
 `READY_FOR_CONFIRMATION`. No invoke request, transaction hash, broadcast, or
 submission occurred. This is distinct from the already completed Milestone 3
 transaction.

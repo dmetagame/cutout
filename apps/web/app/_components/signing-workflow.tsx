@@ -147,9 +147,12 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     () => (availableBootstrap === null ? null : coreConfig(availableBootstrap)),
     [availableBootstrap],
   );
-  const clockOffset = availableBootstrap === null
-    ? 0
-    : availableBootstrap.serverNow - Math.floor(Date.now() / 1_000);
+  const clockOffset = useMemo(
+    () => availableBootstrap === null
+      ? 0
+      : availableBootstrap.serverNow - Math.floor(Date.now() / 1_000),
+    [availableBootstrap],
+  );
   const [state, setState] = useState<FlowState>(
     availableBootstrap === null ? "PREFLIGHT_UNAVAILABLE" : "DISCONNECTED",
   );

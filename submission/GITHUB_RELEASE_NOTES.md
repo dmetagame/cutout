@@ -1,33 +1,37 @@
-# CUTOUT v0.1.0
+# CUTOUT v0.1.1
 
-Cutout is a deterministic STRK20 signing guard that evaluates public
-exact-amount cohort evidence before a user signs.
+Cutout v0.1.1 is a focused Ready X timing and simulation reliability patch.
+The existing v0.1.0 tag and release remain unchanged.
 
-## Included
+## Fixed
 
-- Frozen deterministic `CUTOUT-v1.3` engine.
-- Fail-closed `FRESHNESS_POLICY-v1` and `GUARD_POLICY-v1`.
-- Incremental public STRK20 indexer with canonical block tracking, deterministic
-  snapshots, reorg recovery, pool class-hash validation, and RPC cross-checking.
-- Single `POST /api/preflight` evidence boundary.
-- Wallet Standard / Wallet API 0.10.3 integration through WalletAccountV6.
-- One supported typed action: STRK20 `deposit`.
-- Mandatory final preflight, simulation, explicit wallet confirmation, and
-  wallet-owned submission flow.
-- Independent public receipt verification bound to account, pool, token, and
-  amount.
-- Production-like SQLite/Docker hardening, health checks, backups, and CI.
-- `@cutout/guard@0.1.0` integrator package with a deliberately narrow root API.
+- Stabilized the browser's server-clock offset for the lifetime of a bootstrap
+  response.
+- Prevented delayed amount review from freezing the final intent timestamp and
+  causing a valid final preflight to fail with `INVALID_INTENT`.
+- Added an E2E regression that waits beyond the API timestamp tolerance and
+  verifies that the final exact intent receives a newer timestamp.
 
-## Mainnet evidence
+No CUTOUT-v1.3 scoring rule, GUARD_POLICY-v1 rule, FRESHNESS_POLICY-v1 rule,
+indexer contract, supported action, or signing authority changed.
 
-Historical controlled transaction:
-`0x50f81ee1b9e90576d51dde9dd73bdd89f481b677ceb9b6d244027cbe0499c9e`
+## Fresh mainnet simulation evidence
 
-The final release smoke was non-submitting and used fresh mainnet snapshot
-`0xf39aafdf488e51701a0531f6ef39a899f96d8b166b2439ee632ba60dec32cecb`
-at block `13,442,541`. No broadcast method was invoked and no transaction hash
-was produced.
+- Ready X `5.33.8`
+- Wallet API `0.10.3`
+- Starknet Mainnet
+- One typed `0.01 STRK` deposit
+- Snapshot block `13,448,562`
+- Snapshot `0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8`
+- CUTOUT-v1.3 result `LOW / ALLOW`
+- Final state `READY_FOR_CONFIRMATION`
+- `wallet_strk20PrepareInvoke(..., simulate: true)` observed
+- No invoke/broadcast method observed
+- No transaction hash produced
+- No transaction submitted
+
+The historical Milestone 3 transaction remains separate evidence:
+`0x50f81ee1b9e90576d51dde9dd73bdd89f481b677ceb9b6d244027cbe0499c9e`.
 
 ## Verification
 
@@ -35,20 +39,10 @@ was produced.
 - 18 Milestone 4 focused tests
 - 5 Milestone 5 focused tests
 - 3 package API tests
-- 6 browser E2E tests
+- 7 browser E2E tests
 - Root/web typechecks and production build
 - Packed consumer verification
-- Docker/Compose validation
-- Dependency audit with 0 vulnerabilities
+- `git diff --check`
 
-## Security boundary and non-claims
-
-The backend cannot sign or broadcast, and Cutout never receives private keys,
-seed phrases, viewing-key payloads, private notes, proofs, or shielded balances.
-Users retain final wallet authority.
-
-Cutout is a signing guard, not a privacy guarantee. It does not claim anonymity,
-untraceability, guaranteed unlinkability, or a probability of deanonymization.
-
-External deployment and npm registry publication are separate release actions
-and are not implied by this GitHub release.
+Cutout remains a signing guard, not a privacy guarantee. The backend cannot
+sign or broadcast, and users retain final wallet authority.

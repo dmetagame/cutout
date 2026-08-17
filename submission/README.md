@@ -28,17 +28,17 @@ Cutout can recommend, but it cannot sign.
 | Item | Value |
 |---|---|
 | Repository | `https://github.com/dmetagame/cutout` |
-| Release tag | `v0.1.0` |
-| Package source | `@cutout/guard@0.1.0` |
+| Release tag | `v0.1.1` |
+| Prior release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Package source | `@cutout/guard@0.1.1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
 | Freshness policy | `FRESHNESS_POLICY-v1` |
 | Network | Starknet Mainnet |
 | STRK20 pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The exact release commit is the commit resolved by the annotated `v0.1.0` tag.
-The parent before the release was
-`c10b8cf67761de92c30231477a2d460e2cb4ea9c`.
+The exact patch commit is the commit resolved by the annotated `v0.1.1` tag.
+The existing `v0.1.0` tag and GitHub release remain unchanged.
 
 ## Architecture
 
@@ -90,12 +90,14 @@ receipt path:
 | Block | `13,427,531` |
 | Receipt artifact | `0x09adfe7664898666360052a35a9e3551e1c343c14fff37ea6d6fafb9046d643c` |
 
-The final release smoke was a separate, non-submitting mainnet observation at
-block `13,442,541`, snapshot
-`0xf39aafdf488e51701a0531f6ef39a899f96d8b166b2439ee632ba60dec32cecb`.
-It produced deterministic `LOW / ALLOW`, decision ID
-`0x4120452d92d03142a467cf89ceef28ac4d10016f6a604576b404a1584eaad085`,
-and no wallet call, transaction hash, or submission.
+The v0.1.1 release smoke was a separate, non-submitting Ready X simulation on
+fresh mainnet snapshot
+`0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8`
+at block `13,448,562`. It produced deterministic `LOW / ALLOW`, decision ID
+`0x9635829c45c3bf5ef1208049e984b0373be7fd3598f14e348a737007b2dab29e`,
+and reached `READY_FOR_CONFIRMATION` through
+`wallet_strk20PrepareInvoke(..., simulate: true)`. No confirmation,
+invoke/broadcast method, transaction hash, or submission occurred.
 
 ## Demo
 
@@ -117,7 +119,7 @@ mainnet transaction.
 | Milestone 4 focused | 18 passed |
 | Milestone 5 focused | 5 passed |
 | Package public API | 3 passed |
-| Browser E2E | 6 passed |
+| Browser E2E | 7 passed |
 | TypeScript and production build | passed |
 | Packed consumer | passed |
 | Docker/Compose validation | passed |
@@ -125,7 +127,7 @@ mainnet transaction.
 
 ## External availability
 
-- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.0`
+- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.1`
 - Deployment URL: not available until a target host, persistent volume, and
   HTTPS endpoint are configured and verified.
 - npm URL: not available until repository-owner npm authentication and

@@ -134,6 +134,14 @@ Reproduce the full public receipt binding through an independent RPC:
 npm run verify:milestone3-receipt
 ```
 
+The v0.1.1 release verification separately used Ready X `5.33.8`, Wallet API
+`0.10.3`, and fresh mainnet snapshot
+`0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8`
+at block `13,448,562`. One `0.01 STRK` deposit was prepared with
+`wallet_strk20PrepareInvoke(..., simulate: true)` and reached
+`READY_FOR_CONFIRMATION`. No confirmation, invoke/broadcast method,
+transaction hash, or transaction submission occurred.
+
 ## Wallet-native security boundary
 
 - Cutout never receives private keys, seed phrases, viewing keys, private
@@ -150,7 +158,7 @@ See [SECURITY.md](docs/SECURITY.md) and
 
 ## Integrator package
 
-`packages/guard` builds `@cutout/guard@0.1.0`. Its single root
+`packages/guard` builds `@cutout/guard@0.1.1`. Its single root
 export contains only stable action, preflight, guard, amount, version, and
 public receipt interfaces. It does not export wallet submission, the indexer,
 SQLite, RPC ingestion, or operational runtime modules.
