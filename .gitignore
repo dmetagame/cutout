@@ -6,13 +6,23 @@ docs/FEASIBILITY.md
 
 # Census cache (regenerate with scripts/pool-scan.py)
 .cache/
+data/
+coverage/
 
 node_modules/
 dist/
 __pycache__/
 *.pyc
+*.sqlite
+*.sqlite-*
+*.tgz
 .next/
 .env
-.env.local
+.env.*
+!.env.example
+.npmrc
 *.log
+*.tsbuildinfo
+playwright-report/
+test-results/
 .DS_Store

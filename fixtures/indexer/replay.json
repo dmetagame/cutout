@@ -1,0 +1,176 @@
+{
+  "fixtureVersion": "CUTOUT_INDEXER_REPLAY-v1",
+  "chainId": "0x534e5f4d41494e",
+  "poolAddress": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+  "classHash": "0x67dddd89d80fedadc06b6f160798f94800a4a70164e5a24301cd0d6076b554d",
+  "depositSelector": "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+  "viewingKeySetSelector": "0x1321a492485b4f19851fb787ab3800a0030b595332cba93cd5fe40dfb5a4daf",
+  "token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+  "account": "0x0111",
+  "branches": {
+    "canonical": {
+      "blocks": [
+        { "blockNumber": 8978969, "blockHash": "0x0fff", "parentHash": "0x0ffe", "timestamp": 1997407099, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978970, "blockHash": "0x1000", "parentHash": "0x0fff", "timestamp": 1997407100, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978971, "blockHash": "0x1001", "parentHash": "0x1000", "timestamp": 1999999400, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978972, "blockHash": "0x1002", "parentHash": "0x1001", "timestamp": 1999999500, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978973, "blockHash": "0x1003", "parentHash": "0x1002", "timestamp": 1999999600, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978974, "blockHash": "0x1004", "parentHash": "0x1003", "timestamp": 1999999700, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978975, "blockHash": "0x1005", "parentHash": "0x1004", "timestamp": 1999999800, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978976, "blockHash": "0x1006", "parentHash": "0x1005", "timestamp": 1999999850, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978977, "blockHash": "0x1007", "parentHash": "0x1006", "timestamp": 1999999900, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978978, "blockHash": "0x1008", "parentHash": "0x1007", "timestamp": 1999999950, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978979, "blockHash": "0x1009", "parentHash": "0x1008", "timestamp": 2000000000, "status": "ACCEPTED_ON_L2" }
+      ],
+      "events": [
+        {
+          "ordinal": 0,
+          "block_hash": "0x1002",
+          "block_number": 8978972,
+          "transaction_hash": "0x0a2",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0222",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 1,
+          "block_hash": "0x1003",
+          "block_number": 8978973,
+          "transaction_hash": "0x0a3",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0333",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 2,
+          "block_hash": "0x1003",
+          "block_number": 8978973,
+          "transaction_hash": "0x0a3",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0333",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 3,
+          "block_hash": "0x1004",
+          "block_number": 8978974,
+          "transaction_hash": "0x0a4",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x1321a492485b4f19851fb787ab3800a0030b595332cba93cd5fe40dfb5a4daf",
+            "0x0111",
+            "0x0feed"
+          ],
+          "data": ["0x0abc", "0x0def", "0x0123"]
+        },
+        {
+          "ordinal": 4,
+          "block_hash": "0x1007",
+          "block_number": 8978977,
+          "transaction_hash": "0x0a7",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0444",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0xc8"]
+        }
+      ]
+    },
+    "reorg": {
+      "blocks": [
+        { "blockNumber": 8978969, "blockHash": "0x0fff", "parentHash": "0x0ffe", "timestamp": 1997407099, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978970, "blockHash": "0x1000", "parentHash": "0x0fff", "timestamp": 1997407100, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978971, "blockHash": "0x1001", "parentHash": "0x1000", "timestamp": 1999999400, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978972, "blockHash": "0x1002", "parentHash": "0x1001", "timestamp": 1999999500, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978973, "blockHash": "0x1003", "parentHash": "0x1002", "timestamp": 1999999600, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978974, "blockHash": "0x1004", "parentHash": "0x1003", "timestamp": 1999999700, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978975, "blockHash": "0x1005", "parentHash": "0x1004", "timestamp": 1999999800, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978976, "blockHash": "0x2006", "parentHash": "0x1005", "timestamp": 1999999851, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978977, "blockHash": "0x2007", "parentHash": "0x2006", "timestamp": 1999999901, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978978, "blockHash": "0x2008", "parentHash": "0x2007", "timestamp": 1999999951, "status": "ACCEPTED_ON_L2" },
+        { "blockNumber": 8978979, "blockHash": "0x2009", "parentHash": "0x2008", "timestamp": 2000000001, "status": "ACCEPTED_ON_L2" }
+      ],
+      "events": [
+        {
+          "ordinal": 0,
+          "block_hash": "0x1002",
+          "block_number": 8978972,
+          "transaction_hash": "0x0a2",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0222",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 1,
+          "block_hash": "0x1003",
+          "block_number": 8978973,
+          "transaction_hash": "0x0a3",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0333",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 2,
+          "block_hash": "0x1003",
+          "block_number": 8978973,
+          "transaction_hash": "0x0a3",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0333",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x64"]
+        },
+        {
+          "ordinal": 3,
+          "block_hash": "0x1004",
+          "block_number": 8978974,
+          "transaction_hash": "0x0a4",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x1321a492485b4f19851fb787ab3800a0030b595332cba93cd5fe40dfb5a4daf",
+            "0x0111",
+            "0x0feed"
+          ],
+          "data": ["0x0abc", "0x0def", "0x0123"]
+        },
+        {
+          "ordinal": 4,
+          "block_hash": "0x2007",
+          "block_number": 8978977,
+          "transaction_hash": "0x0b7",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+            "0x0555",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x12c"]
+        }
+      ]
+    }
+  }
+}

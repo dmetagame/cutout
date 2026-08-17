@@ -1,0 +1,32 @@
+{
+  "name": "@cutout/guard",
+  "version": "0.1.0",
+  "description": "Fail-closed STRK20 deposit guard, preflight client, and public receipt verifier",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.5.0 <23"
+  },
+  "main": "./dist/guard-package.js",
+  "types": "./dist/guard-package.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/guard-package.d.ts",
+      "import": "./dist/guard-package.js",
+      "default": "./dist/guard-package.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "starknet": "10.4.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "prepack": "npm run build"
+  }
+}

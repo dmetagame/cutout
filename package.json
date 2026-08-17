@@ -1,17 +1,58 @@
 {
-  "name": "@cutout/guard",
+  "name": "cutout-repository",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Deterministic STRK20 privacy preflight engine",
+  "workspaces": [
+    "packages/guard"
+  ],
+  "engines": {
+    "node": ">=22.5.0 <23"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test dist/tests/*.test.js",
+    "test:milestone2": "npm run build && node dist/tests/milestone2.test.js",
     "check": "npm run build && npm test",
-    "verify:transactions": "node scripts/verify-transactions.mjs"
+    "indexer:once": "npm run build && node dist/scripts/indexer.js --once",
+    "indexer:run": "npm run build && node dist/scripts/indexer.js",
+    "api:preflight": "npm run build && node dist/scripts/preflight-api.js",
+    "db:backup": "npm run build && node dist/scripts/backup-database.js",
+    "spike:mainnet": "npm run build && node dist/scripts/mainnet-spike.js",
+    "smoke:mainnet": "npm run build && node dist/scripts/release-smoke.js",
+    "fixture:milestone3": "npm run build && node dist/scripts/seed-milestone3.js",
+    "web:dev": "next dev apps/web --webpack",
+    "web:build": "next build apps/web --webpack",
+    "web:start": "next start apps/web",
+    "web:typecheck": "tsc -p apps/web/tsconfig.json --noEmit",
+    "package:build": "npm run build --workspace @cutout/guard",
+    "package:test": "npm run test --workspace @cutout/guard",
+    "package:consumer": "npm run package:build && node scripts/test-package-consumer.mjs",
+    "package:verify": "npm run package:test && npm run package:consumer",
+    "pretest:e2e": "npm run fixture:milestone3",
+    "test:e2e": "playwright test --config apps/web/playwright.config.ts",
+    "verify:transactions": "node scripts/verify-transactions.mjs",
+    "verify:milestone3-receipt": "npm run build && node dist/scripts/verify-release-receipt.js",
+    "test:milestone4": "npm run build && node dist/tests/milestone4.test.js",
+    "test:milestone5": "npm run build && node dist/tests/milestone5.test.js",
+    "ci:verify": "npm run check && npm run test:milestone4 && npm run test:milestone5 && npm run typecheck && npm run package:verify && npm run web:typecheck && npm run web:build && npm run test:e2e && git diff --check"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/node": "^22.18.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@starknet-io/get-starknet-discovery": "6.0.2",
+    "@starknet-io/get-starknet-wallet-standard": "6.0.2",
+    "lucide-react": "1.31.0",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "starknet": "10.4.0"
   }
 }

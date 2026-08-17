@@ -1,0 +1,42 @@
+name: Cutout CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CUTOUT_RUNTIME_MODE: fixture
+      CUTOUT_DB_PATH: data/milestone3-fixture.sqlite
+      CUTOUT_FIXED_NOW: "2000000000"
+      CUTOUT_BROWSER_RPC_URL: https://cutout-rpc.invalid
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run test:milestone4
+      - run: npm run test:milestone5
+      - run: npm run typecheck
+      - run: npm run package:verify
+      - run: npm run web:typecheck
+      - run: npm run web:build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: CUTOUT_ENV_FILE=.env.example docker compose config --quiet
+      - run: docker build --tag cutout-ci:latest .
+      - run: npm audit --omit=dev --audit-level=high
+      - run: git diff --check
+      - run: git diff --check HEAD^ HEAD

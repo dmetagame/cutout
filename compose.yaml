@@ -1,0 +1,46 @@
+services:
+  indexer:
+    build: .
+    init: true
+    command: ["node", "dist/scripts/indexer.js"]
+    env_file: ${CUTOUT_ENV_FILE:-.env}
+    environment:
+      CUTOUT_DB_PATH: /var/lib/cutout/cutout.sqlite
+    volumes:
+      - cutout-data:/var/lib/cutout
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  api:
+    build: .
+    init: true
+    command: ["npm", "run", "web:start", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+    env_file: ${CUTOUT_ENV_FILE:-.env}
+    environment:
+      CUTOUT_DB_PATH: /var/lib/cutout/cutout.sqlite
+    volumes:
+      # SQLite WAL readers need directory access for the shared-memory sidecar.
+      # The API still opens the database with readOnly + PRAGMA query_only.
+      - cutout-data:/var/lib/cutout
+    ports:
+      - "3000:3000"
+    depends_on:
+      - indexer
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  cutout-data:
