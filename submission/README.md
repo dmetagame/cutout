@@ -28,17 +28,23 @@ Cutout can recommend, but it cannot sign.
 | Item | Value |
 |---|---|
 | Repository | `https://github.com/dmetagame/cutout` |
-| Release tag | `v0.1.1` |
-| Prior release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Package source | `@cutout/guard@0.1.1` |
+| Release tag | `v0.1.2` |
+| Prior release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Package source | `@cutout/guard@0.1.2` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
 | Freshness policy | `FRESHNESS_POLICY-v1` |
 | Network | Starknet Mainnet |
 | STRK20 pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The exact patch commit is the commit resolved by the annotated `v0.1.1` tag.
-The existing `v0.1.0` tag and GitHub release remain unchanged.
+The exact patch commit is the commit resolved by the annotated `v0.1.2` tag.
+The existing `v0.1.1` and `v0.1.0` tags and releases remain unchanged.
+
+v0.1.2 is a presentation-only patch. It adds a clearer Propose -> Verify ->
+Review -> Sign flow, stronger evidence hierarchy, an explicit simulation versus
+signing boundary, responsive receipt presentation, visible focus treatment, and
+reduced-motion behavior. No deterministic, API, indexer, receipt-verification,
+or wallet-execution contract changed.
 
 ## Architecture
 
@@ -127,7 +133,7 @@ mainnet transaction.
 
 ## External availability
 
-- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.1`
+- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.2`
 - Deployment URL: not available until a target host, persistent volume, and
   HTTPS endpoint are configured and verified.
 - npm URL: not available until repository-owner npm authentication and

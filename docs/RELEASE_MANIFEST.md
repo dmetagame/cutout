@@ -1,17 +1,18 @@
-# Cutout v0.1.1 Release Manifest
+# Cutout v0.1.2 Release Manifest
 
-**Prepared:** 2026-08-17
-**Release identity:** `v0.1.1`; after release, the commit resolved by the
+**Prepared:** 2026-08-18
+**Release identity:** `v0.1.2`; after release, the commit resolved by the
 annotated tag is authoritative.
 
 ## Identity
 
 | Field | Value |
 |---|---|
-| Prior immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Parent commit before patch | `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Repository tag | `v0.1.1` |
-| Package | `@cutout/guard@0.1.1` |
+| Prior immutable release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Earlier immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Parent commit before patch | `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Repository tag | `v0.1.2` |
+| Package | `@cutout/guard@0.1.2` |
 | Package API | `CUTOUT_GUARD_API-v1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
@@ -20,43 +21,47 @@ annotated tag is authoritative.
 | Network | Starknet Mainnet (`0x534e5f4d41494e`) |
 | Pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The existing `v0.1.0` tag and GitHub release are unchanged. The v0.1.1 commit
-is intentionally identified by its annotated tag rather than embedded in this
-file, because changing a file to contain its own commit hash changes that hash.
-Resolve it with `git rev-parse v0.1.1^{commit}` after tagging.
+The `v0.1.0` and `v0.1.1` tags and releases are immutable prior releases and
+are not rewritten. The v0.1.2 commit is intentionally identified by its
+annotated tag rather than embedding its own commit hash in this file, because
+changing a file to contain that hash would change the commit. Resolve it with
+`git rev-parse v0.1.2^{commit}` after tagging.
 
 ## Patch scope
 
-v0.1.1 fixes one Ready X browser timing defect. The server/bootstrap clock
-offset is memoized per bootstrap response instead of being recalculated on each
-React render. This keeps a final preflight current when the user spends more
-than five seconds reviewing or selecting an amount. A delayed E2E regression
-proves that the final intent timestamp advances.
+v0.1.2 is a presentation-only patch for the signing decision and public receipt
+surfaces. It improves the Propose -> Verify -> Review -> Sign hierarchy,
+progressive evidence disclosure, recommendation comparison, explicit
+simulation-versus-signing language, responsive layouts, visible focus states,
+receipt navigation, and reduced-motion behavior. The flow rail was corrected so
+connected and wallet-error states do not appear to be ready to sign.
 
-No CUTOUT-v1.3 rule, frozen policy, indexer behavior, action shape, wallet
-authority, receipt verification rule, or transaction path changed.
+The exact UI source files are:
 
-## Fresh non-submitting simulation
+```text
+apps/web/app/_components/signing-workflow.tsx
+apps/web/app/_components/receipt-view.tsx
+apps/web/app/globals.css
+```
 
-This is v0.1.1 verification evidence. It is separate from the historical
-Milestone 3 submitted transaction.
+No CUTOUT-v1.3 rule, GUARD_POLICY-v1 rule, FRESHNESS_POLICY-v1 rule, API
+contract, indexer behavior, database schema, guard validation, receipt
+verification, wallet adapter, supported action, or transaction semantics
+changed. No new wallet confirmation or Starknet transaction was performed.
+
+## Live evidence boundary
+
+The latest live wallet evidence remains the v0.1.1 non-submitting Ready X run;
+it is retained here for release context and is not a v0.1.2 smoke test.
 
 | Field | Value |
 |---|---|
 | Browser/wallet | Chrome 151 / Ready X `5.33.8` |
 | Wallet API | `0.10.3` |
 | Chain | Starknet Mainnet (`0x534e5f4d41494e`) |
-| Account | `0x05854e275d709627eb88a95519326c528f8c5dc402d350d29e72dbcaf48b434f` |
 | Action | One `0.01 STRK` deposit (`0x2386f26fc10000`) |
-| Observed/indexed block | `13,448,562` |
-| Observed/indexed hash | `0x5a5eeec148606b872fdba346240d47e4473a65b824d048736cf7d984699ee50` |
-| Observed/indexed timestamp | `1786991235` |
-| RPC head block | `13,448,576` |
-| RPC head hash | `0x6f4200bca38350b442499991c60b5c7f2098a282083318371315a39a871e3a8` |
-| RPC head timestamp | `1786991258` |
+| Snapshot block | `13,448,562` |
 | Snapshot hash | `0x494e624cf0afd9ba4d2abd52ab61ded11f597052ec782cc42836b7cde54e1cb8` |
-| Index lag | `23 seconds` |
-| Source age at final preflight | `54 seconds` |
 | Decision | `LOW / ALLOW` |
 | Decision ID | `0x9635829c45c3bf5ef1208049e984b0373be7fd3598f14e348a737007b2dab29e` |
 | Wallet method | `wallet_strk20PrepareInvoke`, `simulate: true` |
@@ -64,6 +69,10 @@ Milestone 3 submitted transaction.
 | Invoke/broadcast method | Not called |
 | Transaction hash | Not produced |
 | Transaction submission | None |
+
+The v0.1.2 browser verification used the deterministic fixture/harness for UI,
+responsive, receipt, focus, and reduced-motion checks. It did not claim fresh
+mainnet data and did not call confirmation or submission.
 
 ## Historical Milestone 3 transaction
 
@@ -76,8 +85,8 @@ Milestone 3 submitted transaction.
 | Snapshot | `0xbe131fcf5f63309e40b8e3656465e56bac7f5b8a1b8d5336974071bfabc34acf` |
 | Receipt artifact | `0x09adfe7664898666360052a35a9e3551e1c343c14fff37ea6d6fafb9046d643c` |
 
-This transaction is historical evidence only. No transaction was confirmed or
-submitted during v0.1.1 verification.
+This is historical execution evidence only. It is not reused as a v0.1.2
+transaction.
 
 ## Verification record
 
@@ -87,11 +96,16 @@ submitted during v0.1.1 verification.
 | Milestone 4 focused suite | `18 passed, 0 failed` |
 | Milestone 5 focused suite | `5 passed, 0 failed` |
 | Package public API suite | `3 passed, 0 failed` |
-| Packed consumer install/typecheck/run | Passed |
 | Browser E2E | `7 passed, 0 failed` |
 | Root/web typechecks | Passed |
 | Next.js production build | Passed |
+| Packed consumer install/typecheck/run | Passed |
+| Visual fixture harness | Passed |
+| Desktop/mobile layout and 390px overflow checks | Passed |
+| Keyboard focus and reduced-motion checks | Passed |
+| Dependency audit | `0 vulnerabilities` |
 | `git diff --check` | Passed |
+| Wallet harness boundary | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 
 ## Patch commit file set
 
@@ -101,11 +115,11 @@ browser profiles is excluded.
 
 ```text
 README.md
+apps/web/app/_components/receipt-view.tsx
 apps/web/app/_components/signing-workflow.tsx
-apps/web/e2e/signing-workflow.spec.ts
+apps/web/app/globals.css
 docs/FINAL_SECURITY_REVIEW.md
 docs/INTEGRATOR.md
-docs/MILESTONE5.md
 docs/RELEASE_AUDIT.md
 docs/RELEASE_EVIDENCE.md
 docs/RELEASE_MANIFEST.md
@@ -120,19 +134,21 @@ submission/README.md
 
 ## External release state
 
-- GitHub commit, tag, release, and remote CI are completed only after their
-  identities are verified from the remote.
+- Git commit and annotated tag are owner-controlled local Git actions and are
+  complete only after their object IDs are verified.
+- GitHub publication requires the authenticated repository owner and remote CI
+  verification.
 - npm publication remains separate and requires authenticated `@cutout` scope
-  authorization.
+  authorization; this environment is not assumed to be authenticated.
 - External deployment remains separate and requires a configured target host,
   persistent volume, HTTPS endpoint, and credentials.
 
 ## Release procedure
 
 ```text
-git commit -m "Prepare Cutout v0.1.1 patch release"
-git tag -a v0.1.1 -m "Cutout v0.1.1"
+git commit -m "Polish Cutout signing workflow UI"
+git tag -a v0.1.2 -m "Cutout v0.1.2"
 ```
 
-Verify with `git rev-parse v0.1.1^{commit}` and
-`git rev-parse v0.1.1^{tag}`. Do not move or rewrite `v0.1.0`.
+Verify with `git rev-parse v0.1.2^{commit}` and
+`git rev-parse v0.1.2^{tag}`. Do not move or rewrite `v0.1.0` or `v0.1.1`.

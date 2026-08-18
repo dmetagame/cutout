@@ -1,6 +1,6 @@
 # Final adversarial security review
 
-**Release:** `v0.1.1`
+**Release:** `v0.1.2`
 **Model:** `CUTOUT-v1.3`
 **Policies:** `GUARD_POLICY-v1`, `FRESHNESS_POLICY-v1`
 

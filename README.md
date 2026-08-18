@@ -142,6 +142,12 @@ at block `13,448,562`. One `0.01 STRK` deposit was prepared with
 `READY_FOR_CONFIRMATION`. No confirmation, invoke/broadcast method,
 transaction hash, or transaction submission occurred.
 
+The v0.1.2 patch is presentation-only. It improves the Propose -> Verify ->
+Review -> Sign hierarchy, evidence disclosure, receipt presentation, responsive
+layout, focus states, and reduced-motion behavior. It does not change the
+engine, policies, API, indexer, guard, receipt verifier, or wallet execution
+boundary, and it submits no new transaction.
+
 ## Wallet-native security boundary
 
 - Cutout never receives private keys, seed phrases, viewing keys, private
@@ -158,7 +164,7 @@ See [SECURITY.md](docs/SECURITY.md) and
 
 ## Integrator package
 
-`packages/guard` builds `@cutout/guard@0.1.1`. Its single root
+`packages/guard` builds `@cutout/guard@0.1.2`. Its single root
 export contains only stable action, preflight, guard, amount, version, and
 public receipt interfaces. It does not export wallet submission, the indexer,
 SQLite, RPC ingestion, or operational runtime modules.

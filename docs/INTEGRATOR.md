@@ -1,12 +1,13 @@
 # @cutout/guard integrator contract
 
-**Package:** `@cutout/guard@0.1.1`
+**Package:** `@cutout/guard@0.1.2`
 **API:** `CUTOUT_GUARD_API-v1`
 
-The current repository patch release is identified by `v0.1.1`; `v0.1.0`
-remains the prior immutable release. Until registry publication is
-independently verified, integrators should use the tested workspace build or
-packed tarball and must not infer that `npm install @cutout/guard@0.1.1` is
+The current repository patch release is identified by `v0.1.2`; `v0.1.1`
+remains the prior immutable release and `v0.1.0` remains unchanged. Until
+registry publication is independently verified, integrators should use the
+tested workspace build or
+packed tarball and must not infer that `npm install @cutout/guard@0.1.2` is
 available publicly.
 
 The package is a pure integration boundary around the frozen Cutout signing

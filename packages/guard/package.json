@@ -1,6 +1,6 @@
 {
   "name": "@cutout/guard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Fail-closed STRK20 deposit guard, preflight client, and public receipt verifier",
   "type": "module",
   "license": "Apache-2.0",

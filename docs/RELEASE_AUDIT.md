@@ -1,6 +1,6 @@
 # Final release and security audit
 
-**Review date:** 2026-08-17
+**Review date:** 2026-08-18
 
 This review treats CUTOUT-v1.3, FRESHNESS_POLICY-v1, GUARD_POLICY-v1, the
 canonical indexer, WalletAccountV6 flow, and receipt binding as frozen
@@ -42,6 +42,27 @@ foundations. No scoring or signing behavior was changed.
    verified. Local production-like Docker evidence is not a public deployment.
 2. Publishing `@cutout/guard` to a registry requires repository-owner package
    credentials and an explicit publish decision. The tarball itself is tested.
+
+## v0.1.2 presentation patch review
+
+The v0.1.2 candidate changes only the signing workflow and receipt presentation
+surfaces in `apps/web/app/_components/signing-workflow.tsx`,
+`apps/web/app/_components/receipt-view.tsx`, and `apps/web/app/globals.css`, plus
+release metadata and judge-facing documentation. The audit found no change to
+the engine, policies, API, indexer, database, guard validation, receipt
+verification, wallet adapter, or transaction semantics.
+
+| Area | Result | Evidence |
+|---|---|---|
+| Wallet execution boundary | PASS | Existing wallet callbacks and call counts are unchanged; the release UI only presents simulation and confirmation state. |
+| Security/API behavior | PASS | No server, API, guard, indexer, database, or dependency source file is in the UI patch. |
+| Evidence hierarchy | PASS | Snapshot, freshness, model, policy, signal, recommendation, and exact-action details remain available through the UI. |
+| Receipt presentation | PASS | Verified public receipt state, receipt ID copy, and explorer navigation are presentation additions; verification logic is unchanged. |
+| Responsive/accessibility behavior | PASS | Desktop and 390px fixture checks pass; keyboard focus and reduced-motion checks pass. |
+| Repository hygiene | PASS | No secrets, local paths, generated artifacts, databases, profiles, or screenshots are tracked. |
+
+The latest live wallet evidence remains the v0.1.1 non-submitting Ready X
+simulation. v0.1.2 introduces no wallet confirmation and submits no transaction.
 
 ## v0.1.1 patch verification
 

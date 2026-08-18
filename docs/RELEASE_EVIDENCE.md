@@ -1,15 +1,16 @@
 # Cutout release evidence
 
-**Candidate date:** 2026-08-17
+**Candidate date:** 2026-08-18
 
 ## Identity
 
 | Item | Value |
 |---|---|
-| Repository release candidate | `v0.1.1`; the commit resolved by the annotated tag is authoritative after release |
-| Prior immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Parent before patch | `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Package | `@cutout/guard@0.1.1` |
+| Repository release candidate | `v0.1.2`; the commit resolved by the annotated tag is authoritative after release |
+| Prior immutable release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Earlier immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Parent before patch | `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Package | `@cutout/guard@0.1.2` |
 | Package API | `CUTOUT_GUARD_API-v1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
@@ -21,6 +22,27 @@
 
 Configured tokens are USDC, STRK, ETH, and strkBTC at the addresses exported by
 `CUTOUT_MAINNET`.
+
+## v0.1.2 patch scope
+
+The candidate is a presentation-only patch. It changes the signing workflow
+rail, evidence hierarchy, loading and fail-closed state presentation,
+recommendation comparison, final-review disclosure, receipt presentation,
+responsive layout, visible focus treatment, and reduced-motion behavior. The
+flow-step mapper also keeps connected and wallet-error states before signing.
+
+The exact UI source files are:
+
+```text
+apps/web/app/_components/signing-workflow.tsx
+apps/web/app/_components/receipt-view.tsx
+apps/web/app/globals.css
+```
+
+No CUTOUT-v1.3 rule, GUARD_POLICY-v1 rule, FRESHNESS_POLICY-v1 rule, API
+contract, indexer behavior, database schema, guard validation, receipt
+verification, wallet adapter, or transaction semantics changed. No new live
+wallet simulation or transaction was performed for this patch.
 
 ## v0.1.1 patch scope
 
@@ -65,6 +87,8 @@ primary-provider ingestion attempts returned `RPC_UNAVAILABLE` and failed
 closed. A subsequent supervised sync published no partial snapshot and became
 complete only after both configured providers passed chain and common-block
 checks.
+
+The following evidence is retained from v0.1.1 and is not a new v0.1.2 smoke:
 
 ## Verified v0.1.1 live browser simulation
 
@@ -124,8 +148,8 @@ public RPC without invoking a wallet or submitting a transaction.
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
 | Packed-tarball consumer install/typecheck/run | passed |
-| Package dry run | `34 files`, `17,654 bytes` |
-| Docker image | `sha256:21386c74b373176f1c45472bf90aad87493a997976f9b808a331379e6950845b` |
+| Package dry run | `34 files`, `17,653 bytes` |
+| Prior v0.1.1 Docker image evidence | `sha256:21386c74b373176f1c45472bf90aad87493a997976f9b808a331379e6950845b` |
 | Container runtime | UID `1000(node)`, all capabilities dropped, `no-new-privileges:true` |
 | Production dependency inspection | TypeScript/Playwright absent; Next/React runtime present |
 | Compose validation | passed |
@@ -135,6 +159,10 @@ public RPC without invoking a wallet or submitting a transaction.
 | Dependency audit | `0 vulnerabilities` |
 | Diff whitespace check | passed |
 | Historical receipt replay | passed through independent public RPC |
+| v0.1.2 visual fixture harness | passed |
+| v0.1.2 390px overflow check | passed |
+| v0.1.2 reduced-motion check | passed |
+| v0.1.2 security boundary smoke | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 
 Deployment status is `NOT DEPLOYED TO A TARGET HOST`. Docker/Compose remains a
 production-like local deployment package until a real host, persistent volume,
@@ -148,7 +176,7 @@ tested package tarball.
 ## Security review
 
 See [RELEASE_AUDIT.md](RELEASE_AUDIT.md). No private STRK20 state was introduced,
-and no Milestone 5 transaction was submitted.
+and no v0.1.2 transaction was submitted.
 
 The exact release identity, evidence, and commit file set are
 recorded in [RELEASE_MANIFEST.md](RELEASE_MANIFEST.md).

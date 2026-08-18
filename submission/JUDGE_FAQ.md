@@ -66,7 +66,7 @@ transaction hash, or submission.
 
 ## What is shipped for integrators?
 
-`@cutout/guard@0.1.1` exposes the stable action, preflight, guard, amount,
+`@cutout/guard@0.1.2` exposes the stable action, preflight, guard, amount,
 version, and public receipt interfaces. It does not expose wallet submission,
 the engine evaluator, RPC ingestion, the indexer, or SQLite.
 
