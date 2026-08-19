@@ -5,6 +5,17 @@
 Cutout is a wallet-native signing guard that uses deterministic public STRK20
 evidence to help users avoid predictable deposit amounts before they sign.
 
+## 30-45 second judge pitch
+
+STRK20 protects private state, but the deposit amount is still public when a
+user enters the pool. Cutout checks that exact amount before the wallet signs.
+It builds a fresh canonical snapshot from public Starknet data, runs the frozen
+CUTOUT-v1.3 model, explains the evidence, and can recommend a healthier amount
+only inside the user's permitted range. The final action is checked again and
+simulated in the user's wallet. Cutout cannot hold keys, sign, or broadcast. A
+real `0.01 STRK` mainnet deposit independently verified the receipt path, while
+the live demo remains strictly non-submitting.
+
 ## 100-150 words
 
 STRK20 protects private state, but deposits remain public at the edge. An exact
@@ -55,11 +66,13 @@ final release smoke used fresh mainnet data without submitting anything.
 
 The release includes deterministic replay tests, reorg recovery, RPC
 cross-checking and failover, fail-closed freshness rules, an unprivileged
-Docker deployment package, and `@cutout/guard@0.1.2` for integrators. Cutout
+Docker deployment package, and `@cutout/guard@0.1.3` for integrators. Cutout
 does not claim anonymity or untraceability. It reports public candidate-cohort
 evidence under a published passive-public-observer threat model. That honesty
 is part of the product: Cutout helps users make a better-informed signing
 choice without pretending to control the wallet or guarantee privacy.
+
+The current `v0.1.3` application is live at `https://cutout.rouma.online`.
 
 ## Why this should win
 

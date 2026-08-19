@@ -6,6 +6,7 @@ another.
 
 ## Prerequisites
 
+- Production application available at `https://cutout.rouma.online`.
 - Node.js `22.22.0` and `npm ci` completed.
 - Ready X `5.33.8` installed, unlocked, and connected to Starknet Mainnet.
 - Two configured Starknet mainnet RPC URLs.
@@ -16,7 +17,7 @@ another.
 | Time | Presenter action and language |
 |---|---|
 | 0:00-0:20 | "Cutout is a wallet-native signing guard. It checks public exact-amount STRK20 cover before the user signs. It can recommend, but it cannot sign." |
-| 0:20-0:45 | Show `/api/health`, the current block/hash, source age, index lag, and snapshot hash. State that stale or uncertain evidence stops the flow. |
+| 0:20-0:45 | Open `https://cutout.rouma.online/api/health`; show the current block/hash, source age, index lag, and snapshot hash. State that stale or uncertain evidence stops the flow. |
 | 0:45-1:15 | Enter one deposit amount, run preflight, and expand the deterministic CUTOUT-v1.3 signals and candidate cohort. Do not promise a particular band. |
 | 1:15-1:35 | If a permitted recommendation exists, compare it with the original and select one. Otherwise show `NO_SAFER_EXECUTION`. Emphasize that the user controls the bounds. |
 | 1:35-2:00 | Show the mandatory final exact-amount preflight, then the exact token, amount, account, pool, network, snapshot, and policy versions. |
@@ -78,7 +79,13 @@ recommendation/refusal. The exact band is data-dependent. Do not promise
 
 ## E-F. Ready X simulation and confirmation boundary
 
-Start the application against the same database:
+Use the production application:
+
+```text
+https://cutout.rouma.online
+```
+
+For a local fallback against the same database:
 
 ```bash
 npm run web:build
@@ -86,7 +93,7 @@ CUTOUT_DB_PATH=data/cutout-mainnet.sqlite \
   npm run web:start -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open `http://127.0.0.1:3000` and:
+Open the selected production or local URL and:
 
 1. Connect Ready X and verify Wallet API `0.10.3+` and Starknet Mainnet.
 2. Select one supported token and enter a deliberately small amount.

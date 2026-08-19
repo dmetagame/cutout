@@ -148,6 +148,13 @@ layout, focus states, and reduced-motion behavior. It does not change the
 engine, policies, API, indexer, guard, receipt verifier, or wallet execution
 boundary, and it submits no new transaction.
 
+The v0.1.3 patch retains that workflow and adds strict client-side receipt
+artifact structure validation plus receipt-ID recomputation before verified
+evidence can render. It also adds mutation-rejection and narrow-viewport receipt
+tests and refreshes the production/demo documentation. The independent public
+receipt verifier and every signing, policy, API, indexer, and transaction
+boundary remain unchanged.
+
 ## Wallet-native security boundary
 
 - Cutout never receives private keys, seed phrases, viewing keys, private
@@ -164,7 +171,7 @@ See [SECURITY.md](docs/SECURITY.md) and
 
 ## Integrator package
 
-`packages/guard` builds `@cutout/guard@0.1.2`. Its single root
+`packages/guard` builds `@cutout/guard@0.1.3`. Its single root
 export contains only stable action, preflight, guard, amount, version, and
 public receipt interfaces. It does not export wallet submission, the indexer,
 SQLite, RPC ingestion, or operational runtime modules.
@@ -201,9 +208,13 @@ docker compose up --build -d
 curl --fail-with-body http://127.0.0.1:3000/api/health
 ```
 
-The repository has passed production-like local deployment verification. No
-external target host is currently recorded, so this repository does not claim
-that a public deployment is live. See [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+The current production deployment is live at
+[`https://cutout.rouma.online`](https://cutout.rouma.online), serving the
+`v0.1.3` application release. The endpoint is HTTPS-terminated, exposes the
+read-only API through the reverse proxy, and has been verified with a current
+complete snapshot and a non-submitting public preflight. See
+[DEPLOYMENT.md](docs/DEPLOYMENT.md) for the host architecture and verification
+boundary.
 
 ## Testing
 
@@ -232,8 +243,9 @@ The command must end with `NO TRANSACTION WAS SUBMITTED.`
   decentralized or malicious-provider-proof infrastructure.
 - Cutout does not protect against private wallet, exchange, browser, or RPC
   telemetry outside the published threat model.
-- Registry publication and external deployment are separate release actions;
-  neither is inferred from a tested Git tag or local container.
+- Registry publication remains a separate release action and is not inferred
+  from the tested Git tag or local container. The current public deployment is
+  recorded independently at `https://cutout.rouma.online`.
 
 ## Documentation
 

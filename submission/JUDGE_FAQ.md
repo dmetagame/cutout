@@ -66,12 +66,13 @@ transaction hash, or submission.
 
 ## What is shipped for integrators?
 
-`@cutout/guard@0.1.2` exposes the stable action, preflight, guard, amount,
+`@cutout/guard@0.1.3` exposes the stable action, preflight, guard, amount,
 version, and public receipt interfaces. It does not expose wallet submission,
 the engine evaluator, RPC ingestion, the indexer, or SQLite.
 
 ## What remains operationally incomplete?
 
-An external deployment requires a target host, persistent volume, HTTPS, and
-post-deploy verification. Public npm availability requires owner credentials
-and registry verification. Neither is inferred from the GitHub release.
+The production demo is live at `https://cutout.rouma.online` and has current
+health/preflight verification. Public npm availability still requires owner
+credentials and registry verification; it is not inferred from the GitHub
+release or deployment.

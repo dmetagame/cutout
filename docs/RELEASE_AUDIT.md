@@ -1,6 +1,6 @@
 # Final release and security audit
 
-**Review date:** 2026-08-18
+**Review date:** 2026-08-19
 
 This review treats CUTOUT-v1.3, FRESHNESS_POLICY-v1, GUARD_POLICY-v1, the
 canonical indexer, WalletAccountV6 flow, and receipt binding as frozen
@@ -36,16 +36,38 @@ foundations. No scoring or signing behavior was changed.
 - The package's only runtime dependency is the already-pinned
   `starknet@10.4.0`, used for canonical Starknet address validation.
 
-## Release blockers outside code
+## Release-time blockers outside code
 
-1. No external deployment target host or HTTPS endpoint has been configured or
-   verified. Local production-like Docker evidence is not a public deployment.
+1. At the v0.1.2 release audit, no external deployment target or HTTPS endpoint
+   had been verified. Local Docker evidence was not treated as a public
+   deployment.
 2. Publishing `@cutout/guard` to a registry requires repository-owner package
    credentials and an explicit publish decision. The tarball itself is tested.
 
+The deployment blocker was resolved after the release audit. The current
+production deployment is independently verified at
+`https://cutout.rouma.online` for release `v0.1.3`. Deployment health and
+freshness remain time-dependent operational facts; the live endpoint is not
+evidence of npm publication.
+
+## v0.1.3 final patch review
+
+The v0.1.3 patch adds a client-only integrity check before a
+session-stored receipt artifact can render the verified receipt view. It
+validates the artifact schema and recomputes the existing deterministic receipt
+ID over the displayed fields. This does not replace or modify
+`verifyDepositReceipt`; independent public receipt lookup and event binding
+remain authoritative. Browser storage remains client-controlled under the
+documented compromised-frontend residual risk.
+
+The patch also adds focused receipt mutation, mobile overflow, explorer-link,
+and keyboard-focus E2E coverage and updates deployment and submission
+documentation. It changes no engine, policy, API, indexer, database, guard,
+wallet adapter, or transaction semantics. `v0.1.2` remains immutable.
+
 ## v0.1.2 presentation patch review
 
-The v0.1.2 candidate changes only the signing workflow and receipt presentation
+The v0.1.2 release changes only the signing workflow and receipt presentation
 surfaces in `apps/web/app/_components/signing-workflow.tsx`,
 `apps/web/app/_components/receipt-view.tsx`, and `apps/web/app/globals.css`, plus
 release metadata and judge-facing documentation. The audit found no change to
@@ -61,8 +83,11 @@ verification, wallet adapter, or transaction semantics.
 | Responsive/accessibility behavior | PASS | Desktop and 390px fixture checks pass; keyboard focus and reduced-motion checks pass. |
 | Repository hygiene | PASS | No secrets, local paths, generated artifacts, databases, profiles, or screenshots are tracked. |
 
-The latest live wallet evidence remains the v0.1.1 non-submitting Ready X
-simulation. v0.1.2 introduces no wallet confirmation and submits no transaction.
+The latest real-wallet evidence remains the v0.1.1 non-submitting Ready X
+simulation. The v0.1.2 production browser smoke used a simulation-only Wallet
+Standard harness and reached `READY_FOR_CONFIRMATION` with `connectCalls=1`,
+`prepareCalls=1`, and `invokeCalls=0`; it introduced no wallet confirmation,
+transaction hash, or submission.
 
 ## v0.1.1 patch verification
 
@@ -74,8 +99,8 @@ both reached `READY_FOR_CONFIRMATION`. Only
 `wallet_strk20PrepareInvoke(..., simulate: true)` was observed; no invoke,
 broadcast, transaction hash, or transaction submission occurred.
 
-These blockers must be reported rather than replaced with fabricated browser,
-deployment, or registry evidence.
+Any unresolved external blocker must be reported rather than replaced with
+fabricated browser, deployment, or registry evidence.
 
 The detailed final adversarial matrix is in
 [FINAL_SECURITY_REVIEW.md](FINAL_SECURITY_REVIEW.md). It records implemented

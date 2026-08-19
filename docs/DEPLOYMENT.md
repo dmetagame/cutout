@@ -4,9 +4,16 @@
 **Target:** hackathon/demo mainnet deployment package
 **Execution authority:** browser wallet only
 
-**Current external deployment status:** no target host has been configured or
-verified. The repository has passed production-like local deployment checks;
-it does not claim a public deployment is live.
+**Current external deployment status:** LIVE and verified.
+
+Production endpoint: [`https://cutout.rouma.online`](https://cutout.rouma.online)
+
+The endpoint serves the `v0.1.3` application release behind HTTPS termination.
+The deployment uses one supervised indexer writer and one read-only Next.js/API
+process sharing a persistent SQLite volume. Public verification has confirmed
+HTTP-to-HTTPS redirect behavior, `GET /api/health` readiness, a current
+complete snapshot, a successful non-submitting preflight, and no externally
+reachable application port `3000`.
 
 Cutout deploys as two processes sharing one persistent public read model:
 
@@ -102,13 +109,33 @@ Both containers run as the unprivileged Node user, drop Linux capabilities,
 set `no-new-privileges`, and use an init process for signal forwarding. The
 runtime image prunes development dependencies.
 
-## Remaining host step
+## Production verification record
 
-To claim an actual deployment, the repository owner must provide a target host
-or platform with a persistent volume and HTTPS edge, configure the reviewed
-environment, deploy the immutable candidate revision, and record live health,
-restart, backup, and rollback evidence from that host. None of those host facts
-can be inferred from local Docker verification.
+The latest public verification observed:
+
+| Check | Result |
+|---|---|
+| URL | `https://cutout.rouma.online` |
+| Release | `v0.1.3`; the annotated tag resolves the deployed commit |
+| Health | HTTP `200`, `HEALTHY`, `ready: true` |
+| Snapshot | `CURRENT_COMPLETE_SNAPSHOT`, block `13,541,163` |
+| Snapshot hash | `0xb7ec9edaba17a71d8fa54f229f3d02cbc336f46d26a40086149f2204efa1bb2c` |
+| Freshness | source age `24s`, index lag `9s` at observation |
+| Preflight | `AVAILABLE / ALLOW / LOW` for exact `0.01 STRK` |
+| Decision ID | `0x1650b56113899f86bd650a40a41785f29845e07dad670e1a52032e36e48b1ecd` |
+| Wallet boundary | no wallet call, no transaction hash, no submission |
+
+Snapshot values are time-dependent and must be refreshed before a live demo.
+The production smoke is public-data-only; it does not confirm or submit a
+wallet transaction.
+
+## Ongoing host operations
+
+The deployment owner must continue to retain persistent-volume backups, verify
+restart and rollback procedures, monitor fail-closed health transitions, and
+restrict administrative SSH ingress to the operator's current IP range.
+Those are infrastructure operations, separate from the browser wallet's
+execution authority.
 
 Stop without deleting the persistent volume:
 

@@ -1,6 +1,6 @@
 # Final adversarial security review
 
-**Release:** `v0.1.2`
+**Release:** `v0.1.3`
 **Model:** `CUTOUT-v1.3`
 **Policies:** `GUARD_POLICY-v1`, `FRESHNESS_POLICY-v1`
 
@@ -25,6 +25,7 @@ not mean the residual risk is eliminated or outside systems are trusted.
 | Frontend compromise | PASS | Wallet confirmation remains mandatory and the package validates the exact action before wallet calls. | A malicious frontend can misdisplay evidence or request an unwanted supported deposit; users must inspect the wallet prompt. |
 | Wallet compromise | PASS | Cutout never receives wallet secrets and does not claim to secure a compromised wallet. | A compromised wallet can sign or lie about the action; this is outside Cutout's authority. |
 | Receipt spoofing | PASS | Receipt lookup uses an independent public RPC and requires successful inclusion plus the reviewed Deposit event. | Colluding RPC infrastructure can affect public observations; cross-provider verification can be expanded later. |
+| Session receipt mutation | PASS | The receipt page validates the exact artifact structure and recomputes the receipt ID before displaying a verified record. | Browser storage remains client-controlled; this check does not replace independent public receipt verification. |
 | Transaction/account mismatch | PASS | Receipt verification binds transaction, account/depositor, pool, token, amount, block, and selector. | Protocol event semantics remain dependent on the reviewed ABI. |
 | Token or pool mismatch | PASS | Frozen mainnet config is checked in intent, plan, wallet identity, and receipt. | A future pool or token requires explicit configuration and review. |
 | Arbitrary calldata | PASS | There is no supported arbitrary invoke or calldata input path. | Browser extensions or unrelated dApps remain outside Cutout. |

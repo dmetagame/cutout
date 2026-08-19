@@ -28,23 +28,25 @@ Cutout can recommend, but it cannot sign.
 | Item | Value |
 |---|---|
 | Repository | `https://github.com/dmetagame/cutout` |
-| Release tag | `v0.1.2` |
-| Prior release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
-| Package source | `@cutout/guard@0.1.2` |
+| Release tag | `v0.1.3` |
+| Prior release | `v0.1.2` / `e9595295314932aad20d9f04933ade1e3ee212bc` |
+| Package source | `@cutout/guard@0.1.3` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
 | Freshness policy | `FRESHNESS_POLICY-v1` |
 | Network | Starknet Mainnet |
 | STRK20 pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The exact patch commit is the commit resolved by the annotated `v0.1.2` tag.
-The existing `v0.1.1` and `v0.1.0` tags and releases remain unchanged.
+The exact patch commit is the commit resolved by the annotated `v0.1.3` tag.
+The existing `v0.1.2`, `v0.1.1`, and `v0.1.0` tags and releases remain
+unchanged.
 
-v0.1.2 is a presentation-only patch. It adds a clearer Propose -> Verify ->
-Review -> Sign flow, stronger evidence hierarchy, an explicit simulation versus
-signing boundary, responsive receipt presentation, visible focus treatment, and
-reduced-motion behavior. No deterministic, API, indexer, receipt-verification,
-or wallet-execution contract changed.
+v0.1.3 retains the v0.1.2 Propose -> Verify -> Review -> Sign polish and adds a
+strict client-side check before session-stored receipt evidence can render as
+verified. The artifact structure and existing receipt-ID binding are validated,
+and focused E2E coverage rejects mutation while checking mobile overflow,
+explorer navigation, focus, and reduced motion. No deterministic, API, indexer,
+independent receipt-verification, or wallet-execution contract changed.
 
 ## Architecture
 
@@ -105,6 +107,12 @@ and reached `READY_FOR_CONFIRMATION` through
 `wallet_strk20PrepareInvoke(..., simulate: true)`. No confirmation,
 invoke/broadcast method, transaction hash, or submission occurred.
 
+The current production smoke is separate again: it verifies live HTTPS,
+health, snapshot freshness, and deterministic preflight against
+`https://cutout.rouma.online`. A simulation-only browser harness reached
+`READY_FOR_CONFIRMATION` with `connectCalls=1`, `prepareCalls=1`, and
+`invokeCalls=0`. It did not create a transaction hash or submit a transaction.
+
 ## Demo
 
 - Reproducible command runbook: [`docs/DEMO_RUNBOOK.md`](../docs/DEMO_RUNBOOK.md)
@@ -125,7 +133,7 @@ mainnet transaction.
 | Milestone 4 focused | 18 passed |
 | Milestone 5 focused | 5 passed |
 | Package public API | 3 passed |
-| Browser E2E | 7 passed |
+| Browser E2E | 9 passed |
 | TypeScript and production build | passed |
 | Packed consumer | passed |
 | Docker/Compose validation | passed |
@@ -133,14 +141,15 @@ mainnet transaction.
 
 ## External availability
 
-- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.2`
-- Deployment URL: not available until a target host, persistent volume, and
-  HTTPS endpoint are configured and verified.
+- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.3`
+- Production deployment: `https://cutout.rouma.online` (`v0.1.3`), with HTTPS,
+  persistent SQLite storage, supervised indexing, and current public health
+  verification.
 - npm URL: not available until repository-owner npm authentication and
   publication are completed and verified from the public registry.
 
-These statuses are intentionally separate. A Git tag does not prove deployment
-or npm publication.
+These statuses are intentionally separate. The live deployment is verified
+independently from the Git tag, and npm publication is not claimed.
 
 ## Known limitations and non-claims
 

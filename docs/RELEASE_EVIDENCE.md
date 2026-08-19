@@ -1,16 +1,17 @@
 # Cutout release evidence
 
-**Candidate date:** 2026-08-18
+**Candidate date:** 2026-08-19
 
 ## Identity
 
 | Item | Value |
 |---|---|
-| Repository release candidate | `v0.1.2`; the commit resolved by the annotated tag is authoritative after release |
+| Repository release | `v0.1.3`; the commit resolved by the annotated tag is authoritative |
+| Prior patch release | `v0.1.2` / `e9595295314932aad20d9f04933ade1e3ee212bc` |
 | Prior immutable release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
 | Earlier immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Parent before patch | `72cc32d3637af589486eda28c1dee2cdba7f3474` |
-| Package | `@cutout/guard@0.1.2` |
+| Parent before patch | `e9595295314932aad20d9f04933ade1e3ee212bc` |
+| Package | `@cutout/guard@0.1.3` |
 | Package API | `CUTOUT_GUARD_API-v1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
@@ -23,26 +24,34 @@
 Configured tokens are USDC, STRK, ETH, and strkBTC at the addresses exported by
 `CUTOUT_MAINNET`.
 
-## v0.1.2 patch scope
+## v0.1.3 patch scope
 
-The candidate is a presentation-only patch. It changes the signing workflow
-rail, evidence hierarchy, loading and fail-closed state presentation,
-recommendation comparison, final-review disclosure, receipt presentation,
-responsive layout, visible focus treatment, and reduced-motion behavior. The
-flow-step mapper also keeps connected and wallet-error states before signing.
+The release is a narrow presentation/integrity patch on top of v0.1.2. It
+validates the exact structure of session-stored receipt artifacts and
+recomputes the existing deterministic receipt ID before rendering verified
+evidence. It also adds focused receipt E2E coverage and current deployment/demo
+documentation.
 
-The exact UI source files are:
+The exact application/test source files are:
 
 ```text
-apps/web/app/_components/signing-workflow.tsx
 apps/web/app/_components/receipt-view.tsx
-apps/web/app/globals.css
+apps/web/e2e/receipt-view.spec.ts
 ```
 
 No CUTOUT-v1.3 rule, GUARD_POLICY-v1 rule, FRESHNESS_POLICY-v1 rule, API
-contract, indexer behavior, database schema, guard validation, receipt
-verification, wallet adapter, or transaction semantics changed. No new live
-wallet simulation or transaction was performed for this patch.
+contract, indexer behavior, database schema, independent receipt verification,
+wallet adapter, or transaction semantics changed. No new wallet confirmation
+or Starknet transaction was performed for this patch.
+
+## v0.1.2 presentation patch scope
+
+The prior release improved the Propose -> Verify -> Review -> Sign rail,
+evidence hierarchy, loading and fail-closed presentation, recommendation
+comparison, final-review disclosure, receipt presentation, responsive layout,
+visible focus treatment, and reduced-motion behavior. Its exact UI source files
+were `signing-workflow.tsx`, `receipt-view.tsx`, and `globals.css`; those
+historical changes remain part of the v0.1.3 baseline.
 
 ## v0.1.1 patch scope
 
@@ -88,7 +97,7 @@ closed. A subsequent supervised sync published no partial snapshot and became
 complete only after both configured providers passed chain and common-block
 checks.
 
-The following evidence is retained from v0.1.1 and is not a new v0.1.2 smoke:
+The following evidence is retained from v0.1.1 and is not a new v0.1.3 smoke:
 
 ## Verified v0.1.1 live browser simulation
 
@@ -144,7 +153,7 @@ public RPC without invoking a wallet or submitting a transaction.
 | Milestone 4 focused suite | `18 passed, 0 failed` |
 | Milestone 5 focused suite | `5 passed, 0 failed` |
 | Package public-API suite | `3 passed, 0 failed` |
-| Browser E2E suite | `7 passed, 0 failed` |
+| Browser E2E suite | `9 passed, 0 failed` |
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
 | Packed-tarball consumer install/typecheck/run | passed |
@@ -163,20 +172,28 @@ public RPC without invoking a wallet or submitting a transaction.
 | v0.1.2 390px overflow check | passed |
 | v0.1.2 reduced-motion check | passed |
 | v0.1.2 security boundary smoke | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| v0.1.3 receipt mutation rejection | passed |
+| v0.1.3 receipt mobile overflow, explorer, and focus checks | passed |
 
-Deployment status is `NOT DEPLOYED TO A TARGET HOST`. Docker/Compose remains a
-production-like local deployment package until a real host, persistent volume,
-HTTPS endpoint, health record, backup, restart, and rollback are verified.
+At v0.1.2 tag and release verification time, external deployment was still an
+owner-controlled follow-up and was not claimed from local Docker evidence.
+Production was subsequently deployed and independently verified at
+`https://cutout.rouma.online`. The endpoint now serves the `v0.1.3` application
+release behind HTTPS, with a persistent SQLite volume, a supervised indexer,
+and a read-only API process. The latest public verification returned HTTP
+`200`, a current complete snapshot, and a non-submitting
+`AVAILABLE / ALLOW / LOW` preflight. Current snapshot values are time-dependent
+and are recorded in `docs/DEPLOYMENT.md` and the GitHub release evidence.
 
-This evidence does not claim an external target-host deployment or npm registry
-publication. Those remain separately verifiable owner-controlled actions and
-must not be inferred from the repository tag, local Docker verification, or
-tested package tarball.
+This evidence does not claim npm registry publication. That remains a separate
+owner-controlled action and must not be inferred from the repository tag,
+deployment, or tested package tarball.
 
 ## Security review
 
 See [RELEASE_AUDIT.md](RELEASE_AUDIT.md). No private STRK20 state was introduced,
-and no v0.1.2 transaction was submitted.
+and no v0.1.3 transaction was submitted. The historical Milestone 3 transaction
+is retained separately above.
 
 The exact release identity, evidence, and commit file set are
 recorded in [RELEASE_MANIFEST.md](RELEASE_MANIFEST.md).
