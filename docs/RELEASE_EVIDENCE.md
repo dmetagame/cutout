@@ -175,15 +175,33 @@ public RPC without invoking a wallet or submitting a transaction.
 | v0.1.3 receipt mutation rejection | passed |
 | v0.1.3 receipt mobile overflow, explorer, and focus checks | passed |
 
-At v0.1.2 tag and release verification time, external deployment was still an
-owner-controlled follow-up and was not claimed from local Docker evidence.
-Production was subsequently deployed and independently verified at
-`https://cutout.rouma.online`. The endpoint now serves the `v0.1.3` application
-release behind HTTPS, with a persistent SQLite volume, a supervised indexer,
-and a read-only API process. The latest public verification returned HTTP
-`200`, a current complete snapshot, and a non-submitting
-`AVAILABLE / ALLOW / LOW` preflight. Current snapshot values are time-dependent
-and are recorded in `docs/DEPLOYMENT.md` and the GitHub release evidence.
+## v0.1.3 production verification
+
+| Item | Observed value |
+|---|---|
+| Verification timestamp | `2026-08-19T18:23:43Z` |
+| Deployment URL | `https://cutout.rouma.online` |
+| Deployed release | `v0.1.3` |
+| Deployed commit | `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.1.3` |
+| HTTPS / redirect | valid HTTPS; HTTP returns `308` to HTTPS |
+| Health | HTTP `200`, `HEALTHY`, `ready: true` |
+| Snapshot | `CURRENT_COMPLETE_SNAPSHOT`, block `13,507,736` |
+| Snapshot hash | `0x6882ed209f767598bf68c7848e7fc333748fee1fe17ff549591816818fbaa14b` |
+| Source age / index lag | `35s` / `22s` at health observation |
+| Preflight | exact `0.01 STRK`, `AVAILABLE / ALLOW / LOW` |
+| Decision ID | `0x4f883d819251014c9c395380a537b08f456026008d5c616284c160c10ec9c0c6` |
+| Wallet simulation | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction state | no hash, confirmation, broadcast, or submission |
+
+The production restart briefly failed closed with `503 / STALE_SNAPSHOT /
+SNAPSHOT_UNAVAILABLE` while the indexer re-established a stable complete range,
+then recovered. No uncertain snapshot produced `ALLOW`.
+
+The endpoint uses the existing persistent SQLite volume, one supervised indexer
+writer, a read-only API process, and HTTPS termination. Public port `3000` was
+not externally reachable during verification. The container runtime remained
+unprivileged with all capabilities dropped and `no-new-privileges` enabled.
 
 This evidence does not claim npm registry publication. That remains a separate
 owner-controlled action and must not be inferred from the repository tag,

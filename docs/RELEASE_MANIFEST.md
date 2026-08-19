@@ -158,6 +158,21 @@ submission/README.md
 - Ongoing backup, restart, rollback, and administrative access controls remain
   host-operator responsibilities.
 
+The tagged revision was deployed and verified at `2026-08-19T18:23:43Z`:
+
+- deployed commit `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba`;
+- `HEALTHY / CURRENT_COMPLETE_SNAPSHOT` at block `13,507,736` with snapshot
+  `0x6882ed209f767598bf68c7848e7fc333748fee1fe17ff549591816818fbaa14b`;
+- exact `0.01 STRK` preflight `AVAILABLE / ALLOW / LOW`, decision ID
+  `0x4f883d819251014c9c395380a537b08f456026008d5c616284c160c10ec9c0c6`;
+- simulation-only wallet smoke `connectCalls=1`, `prepareCalls=1`,
+  `invokeCalls=0`, with no transaction hash, confirmation, broadcast, or
+  submission.
+
+Detailed time-dependent production evidence is retained in
+`docs/DEPLOYMENT.md` and `docs/RELEASE_EVIDENCE.md`. This post-deploy record does
+not move or replace the annotated `v0.1.3` release tag.
+
 ## Release procedure
 
 ```text

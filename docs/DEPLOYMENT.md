@@ -116,18 +116,28 @@ The latest public verification observed:
 | Check | Result |
 |---|---|
 | URL | `https://cutout.rouma.online` |
-| Release | `v0.1.3`; the annotated tag resolves the deployed commit |
+| Verification timestamp | `2026-08-19T18:23:43Z` |
+| Release | `v0.1.3` / `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.1.3` |
 | Health | HTTP `200`, `HEALTHY`, `ready: true` |
-| Snapshot | `CURRENT_COMPLETE_SNAPSHOT`, block `13,541,163` |
-| Snapshot hash | `0xb7ec9edaba17a71d8fa54f229f3d02cbc336f46d26a40086149f2204efa1bb2c` |
-| Freshness | source age `24s`, index lag `9s` at observation |
+| Snapshot | `CURRENT_COMPLETE_SNAPSHOT`, block `13,507,736` |
+| Snapshot hash | `0x6882ed209f767598bf68c7848e7fc333748fee1fe17ff549591816818fbaa14b` |
+| Snapshot block hash | `0x5e1e8684b0ab12c6938ae4fbe6d8b5a434b4321f0f6b71f7f07e18cc3a286d6` |
+| Freshness | source age `35s` at health observation, index lag `22s` |
 | Preflight | `AVAILABLE / ALLOW / LOW` for exact `0.01 STRK` |
-| Decision ID | `0x1650b56113899f86bd650a40a41785f29845e07dad670e1a52032e36e48b1ecd` |
-| Wallet boundary | no wallet call, no transaction hash, no submission |
+| Decision ID | `0x4f883d819251014c9c395380a537b08f456026008d5c616284c160c10ec9c0c6` |
+| Wallet boundary | simulation-only smoke: `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction state | no hash, confirmation, broadcast, or submission |
 
 Snapshot values are time-dependent and must be refreshed before a live demo.
-The production smoke is public-data-only; it does not confirm or submit a
-wallet transaction.
+The recorded production smoke was public-data-only plus a simulation-only
+browser wallet harness; it did not confirm or submit a wallet transaction.
+
+During the v0.1.3 restart, the public health endpoint briefly returned
+`503 / STALE_SNAPSHOT / SNAPSHOT_UNAVAILABLE` while the single indexer writer
+re-established a stable range. It recovered to the complete snapshot recorded
+above. This is the intended fail-closed transition, not an `ALLOW` decision
+from uncertain state.
 
 ## Ongoing host operations
 
