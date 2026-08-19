@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import type { PreflightApiResponse } from "@cutout/api/types";
@@ -55,6 +55,7 @@ import {
 } from "@cutout/starknet/wallet";
 import { RpcProvider } from "starknet";
 import type { WebBootstrap, AvailableWebBootstrap } from "@web/lib/types";
+import { useWorkflowMotion } from "./motion-system";
 
 type FlowState =
   | "DISCONNECTED"
@@ -207,6 +208,7 @@ function emptyStateCopy(state: FlowState): { readonly title: string; readonly bo
 
 export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   const router = useRouter();
+  const motionScope = useRef<HTMLElement>(null);
   const availableBootstrap = bootstrap.status === "AVAILABLE" ? bootstrap : null;
   const config = useMemo(
     () => (availableBootstrap === null ? null : coreConfig(availableBootstrap)),
@@ -238,6 +240,8 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   const [simulation, setSimulation] = useState<SimulatedDepositPlan | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [warningAcknowledged, setWarningAcknowledged] = useState(false);
+
+  useWorkflowMotion(motionScope, state);
 
   const selectedToken = availableBootstrap?.config.tokens.find(
     (candidate) => candidate.address === tokenAddress,
@@ -469,14 +473,14 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     return (
       <>
         <Header runtimeMode={bootstrap.runtimeMode} walletLabel="Unavailable" />
-        <main className="page-shell unavailable-page">
-          <section className="unavailable-shell" aria-labelledby="unavailable-title">
+        <main ref={motionScope} className="page-shell unavailable-page motion-root">
+          <section className="unavailable-shell" aria-labelledby="unavailable-title" data-state-reveal>
             <div className="state-icon state-icon-error"><CircleX size={22} /></div>
-            <p className="eyebrow">Evidence unavailable</p>
+            <p className="eyebrow" data-motion-item>Evidence unavailable</p>
             <h1 id="unavailable-title">Public evidence is unavailable.</h1>
-            <p className="lede">Cutout has stopped the signing flow because the canonical public snapshot could not be established.</p>
-            <div className="error-meta"><span className="error-code">{bootstrap.error.code}</span><span>Fail-closed boundary</span></div>
-            <p className="unavailable-detail">{bootstrap.error.message}</p>
+            <p className="lede" data-motion-item>Cutout cannot safely make this decision from the current public state.</p>
+            <div className="error-meta" data-motion-item><span className="error-code">{bootstrap.error.code}</span><span>Fail-closed boundary</span></div>
+            <p className="unavailable-detail" data-motion-item>{bootstrap.error.message}</p>
             <button className="button button-secondary" type="button" onClick={() => window.location.reload()}><RefreshCw size={16} /> Refresh snapshot</button>
           </section>
         </main>
@@ -495,33 +499,39 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   return (
     <>
       <Header runtimeMode={bootstrap.runtimeMode} walletLabel={walletLabel} />
-      <main className="page-shell" aria-labelledby="page-title">
-        <section className="hero reveal">
+      <main ref={motionScope} className="page-shell motion-root" aria-labelledby="page-title" data-workflow-state={state}>
+        <section className="hero editorial-entry" data-motion-section>
           <div className="hero-copy">
-            <div className="eyebrow-row"><p className="eyebrow">Signing decision</p><span className="live-label"><Activity size={13} /> Public evidence only</span></div>
-            <h1 id="page-title">Protect your STRK20 deposit before you sign.</h1>
-            <p className="lede">Cutout checks the proposed exact amount against current public candidate-cohort evidence.</p>
+            <div className="eyebrow-row" data-motion-intro><p className="eyebrow">Signing decision</p><span className="live-label"><Activity size={13} /> Public evidence only</span></div>
+            <h1 id="page-title" className="hero-title" data-motion-intro>Protect your STRK20 deposit before you sign.</h1>
+            <p className="lede" data-motion-intro>Cutout checks the proposed exact amount against current public candidate-cohort evidence.</p>
+            <div className="hero-boundary" data-motion-intro>
+              <InlineProofMark />
+              <div><strong>Cutout decides. Your wallet signs.</strong><span>Connecting a wallet does not authorize a transaction.</span></div>
+            </div>
           </div>
-          <SnapshotStamp snapshot={bootstrap.snapshot} runtimeMode={bootstrap.runtimeMode} />
+          <div className="hero-aside" data-motion-intro>
+            <SnapshotStamp snapshot={bootstrap.snapshot} runtimeMode={bootstrap.runtimeMode} />
+            <p className="hero-aside-note">A canonical public snapshot is the boundary for every decision.</p>
+          </div>
         </section>
 
-        <FlowRail state={state} />
-
-        <div className="trust-strip reveal reveal-delay-1" aria-label="Cutout guarantees">
-          <div className="trust-item"><Database size={16} /><span>Canonical snapshot</span><strong>{bootstrap.snapshot.engineVersion}</strong></div>
-          <div className="trust-item"><Clock3 size={16} /><span>Source freshness</span><strong>{bootstrap.snapshot.observedBlock.toLocaleString()} observed block</strong></div>
-          <div className="trust-item"><LockKeyhole size={16} /><span>Signing boundary</span><strong>Wallet-owned</strong></div>
+        <div className="flow-rail-shell" data-motion-intro>
+          <FlowRail state={state} />
         </div>
 
-        <div className="workflow-grid">
-          <section className="surface workflow-surface reveal reveal-delay-2" aria-labelledby="intent-title">
+        <div className="workflow-stage">
+          <TrustMarquee bootstrap={bootstrap} />
+
+          <div className="workflow-grid">
+          <section className="surface workflow-surface" aria-labelledby="intent-title" data-motion-section>
             <SurfaceHeader id="intent-title" index="01 / Propose" title="Proposed shield" description="One token, one deposit action, one final user decision." badge="ONE ACTION" />
             <div className="surface-body">
-              <div className={`wallet-row ${capability === null ? "wallet-row-disconnected" : "wallet-row-connected"}`}>
+              <div className={`wallet-row ${capability === null ? "wallet-row-disconnected" : "wallet-row-connected"}`} data-motion-item>
                 <div className="wallet-status-icon"><WalletCards size={18} /></div>
                 <div className="wallet-copy">
                   <strong>{capability === null ? "Wallet disconnected" : "Wallet connected"}</strong>
-                  <span>{capability === null ? "Connect a supported Starknet wallet" : shortHash(capability.accountAddress)}</span>
+                  <span>{capability === null ? "Connect a supported Starknet wallet" : `${shortHash(capability.accountAddress)} · Connection only`}</span>
                 </div>
                 {capability === null ? (
                   <button className="button button-secondary" type="button" onClick={connectWallet} disabled={state === "CONNECTING"}>
@@ -533,7 +543,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                 )}
               </div>
 
-              <div className="field-stack form-fields">
+              <div className="field-stack form-fields" data-motion-item>
                 <label className="field">
                   <span className="field-label"><span>Token</span><span className="field-hint">STRK20 asset</span></span>
                   <select className="select" aria-label="Token" value={tokenAddress} onChange={(event) => setTokenAddress(event.target.value)} disabled={state === "PREFLIGHT_LOADING"}>
@@ -572,7 +582,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                 <div className="alert alert-error" role="alert"><CircleX size={17} /><span><strong>{error.code}</strong><br />{error.message}</span></div>
               ) : null}
 
-              <div className="button-row form-actions">
+              <div className="button-row form-actions" data-motion-item>
                 <button className="button button-primary" type="button" onClick={runInitialPreflight} disabled={capability === null || state === "PREFLIGHT_LOADING" || state === "CONNECTING"}>
                   {state === "PREFLIGHT_LOADING" ? <LoaderCircle size={16} className="spinner" /> : <ShieldCheck size={16} />}
                   {state === "PREFLIGHT_LOADING" ? "Checking public evidence" : "Run Cutout check"}
@@ -583,20 +593,23 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
             </div>
           </section>
 
-          <section className="surface evidence-surface reveal reveal-delay-3" aria-labelledby="evidence-title">
+          <section className="surface evidence-surface" aria-labelledby="evidence-title" data-motion-section>
             <SurfaceHeader id="evidence-title" index="02 / Verify" title="Cutout check" description="Deterministic public evidence for the exact intent." badge={<StateBadge state={state} />} />
             {currentDecision === null ? (
               <EmptyEvidence state={state} />
             ) : (
-              <>
-                <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`}>
+              <div data-state-reveal>
+                <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`} data-motion-item>
                   <div className="decision-hero-top"><span className="decision-kicker"><CheckCircle2 size={14} /> Deterministic result</span><span className="decision-model">{currentDecision.modelVersion}</span></div>
                   <div className="decision-mainline"><span className={`decision-band ${bandClass(currentDecision.riskBand)}`}>{currentDecision.riskBand}</span><div className="decision-copy"><strong>{currentDecision.decision}</strong><span>Operational guard decision under GUARD_POLICY-v1</span></div></div>
                 </div>
-                <div className="evidence-grid">
-                  <div className="evidence-cell"><span className="section-kicker">Exact matches</span><strong className="evidence-value">{currentDecision.candidateCohort.existingMatches}</strong><span className="evidence-subvalue">trailing 24h</span></div>
-                  <div className="evidence-cell"><span className="section-kicker">Projected cohort</span><strong className="evidence-value">{currentDecision.candidateCohort.projectedCohort}</strong><span className="evidence-subvalue">after this deposit</span></div>
+                <div className="decision-why" data-motion-item><InlineProofMark /><p><strong>Why this result?</strong><span>The decision is bound to the exact amount, a complete snapshot, freshness thresholds, and the published guard policy.</span></p></div>
+                <div className="evidence-grid grid-flow-dense" data-motion-item>
+                  <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Exact matches</span><strong className="evidence-value">{currentDecision.candidateCohort.existingMatches}</strong><span className="evidence-subvalue">trailing 24h</span></div>
+                  <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Projected cohort</span><strong className="evidence-value">{currentDecision.candidateCohort.projectedCohort}</strong><span className="evidence-subvalue">after this deposit</span></div>
                   <div className="evidence-cell"><span className="section-kicker">Address diversity</span><strong className="evidence-value">{currentDecision.cohortQuality.distinctAddresses}</strong><span className="evidence-subvalue">distinct public addresses</span></div>
+                  <div className="evidence-cell"><span className="section-kicker">Source age</span><strong className="evidence-value">{currentDecision.freshness.sourceAgeSeconds}s</strong><span className="evidence-subvalue">freshness window</span></div>
+                  <div className="evidence-cell"><span className="section-kicker">Index lag</span><strong className="evidence-value">{currentDecision.freshness.indexLagSeconds}s</strong><span className="evidence-subvalue">observed block {currentDecision.freshness.observedBlock.toLocaleString()}</span></div>
                 </div>
                 {hasRecommendation && selection === null && response?.status === "AVAILABLE" ? <RecommendationBlock response={response} token={selectedToken} onChoose={(nextSelection) => void chooseSelection(nextSelection)} /> : null}
                 {initialIntent !== null && response?.status === "AVAILABLE" && !hasRecommendation && selection === null ? (
@@ -611,19 +624,19 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                     {currentDecision.signals.map((signal) => <div className="signal-row" key={signal.id}><span className="signal-id">{signal.id}</span><span className={`signal-status ${signal.status === "FIRED" ? "signal-fired" : signal.status === "CLEAR" ? "signal-clear" : "signal-na"}`}>{signal.status}</span><span className="signal-summary">{signal.summary}</span></div>)}
                   </div>
                 </details>
-                <div className="freshness-panel"><div><span className="section-kicker">Freshness</span><strong>{currentDecision.freshness.sourceAgeSeconds}s source age</strong></div><div><span className="section-kicker">Observed block</span><strong>{currentDecision.freshness.observedBlock.toLocaleString()}</strong></div><div><span className="section-kicker">Index lag</span><strong>{currentDecision.freshness.indexLagSeconds}s</strong></div></div>
                 <details className="evidence-disclosure technical-disclosure">
                   <summary><span><span className="summary-kicker">Technical</span> Snapshot provenance</span><span className="summary-meta">Hashes and policies <ChevronDown size={15} /></span></summary>
                   <dl className="provenance-grid"><dt>Snapshot</dt><dd>{shortHash(currentDecision.snapshotHash)}</dd><dt>Observed block hash</dt><dd>{shortHash(bootstrap.snapshot.observedBlockHash)}</dd><dt>Indexed-through</dt><dd>{bootstrap.snapshot.indexedThroughBlock.toLocaleString()} · {shortHash(bootstrap.snapshot.indexedThroughHash)}</dd><dt>Engine</dt><dd>{currentDecision.modelVersion}</dd><dt>Freshness policy</dt><dd>{bootstrap.snapshot.freshnessPolicyVersion}</dd></dl>
                 </details>
                 <details className="evidence-disclosure nonclaims-disclosure"><summary><span><span className="summary-kicker">Scope</span> Published non-claims</span><span className="summary-meta">Read carefully <ChevronDown size={15} /></span></summary><ul className="nonclaims-list">{currentDecision.nonClaims.map((claim) => <li key={claim}>{claim}</li>)}</ul></details>
-              </>
+              </div>
             )}
           </section>
+          </div>
         </div>
 
         {state === "PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode={selection === null ? "preflight" : "final"} /> : null}
-        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert"><AlertTriangle size={17} /><span><strong>Evidence unavailable: {error.code}</strong><br />{error.message}</span><button className="button button-quiet" type="button" onClick={() => window.location.reload()}>Refresh</button></div> : null}
+        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert" data-state-reveal><AlertTriangle size={17} /><span><strong>Evidence unavailable: {error.code}</strong><br />Cutout cannot safely make this decision from the current public state.<br />{error.message}</span><button className="button button-quiet" type="button" onClick={() => window.location.reload()}>Refresh</button></div> : null}
         {state === "FINAL_REVIEW" && plan !== null && finalResponse?.status === "AVAILABLE" ? <ReviewPanel plan={plan} response={finalResponse} token={selectedToken} onSimulate={() => void simulate()} /> : null}
         {state === "SIMULATING" ? <WorkflowProgressPanel mode="simulation" /> : null}
         {state === "READY_FOR_CONFIRMATION" && plan !== null && simulation !== null ? <ConfirmationPanel plan={plan} simulation={simulation} token={selectedToken} acknowledged={warningAcknowledged} onAcknowledged={setWarningAcknowledged} onSubmit={() => void submit()} /> : null}
@@ -644,6 +657,41 @@ function Header({ runtimeMode, walletLabel }: { readonly runtimeMode: "MAINNET" 
   );
 }
 
+function InlineProofMark() {
+  return (
+    <span className="inline-proof-mark" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+function TrustMarquee({ bootstrap }: { readonly bootstrap: AvailableWebBootstrap }) {
+  const items = [
+    { icon: <Database size={15} />, label: "Canonical snapshot", value: bootstrap.snapshot.engineVersion },
+    { icon: <Clock3 size={15} />, label: "Observed block", value: bootstrap.snapshot.observedBlock.toLocaleString() },
+    { icon: <LockKeyhole size={15} />, label: "Signing boundary", value: "Wallet-owned" },
+    { icon: <ShieldCheck size={15} />, label: "Decision source", value: "Public evidence" },
+  ];
+
+  return (
+    <div className="trust-marquee" aria-label="Cutout guarantees" data-motion-section>
+      <div className="trust-marquee-viewport">
+        <div className="trust-marquee-track">
+          {items.map((item) => (
+            <div className="trust-marquee-item" key={item.label}>
+              <span className="trust-marquee-icon">{item.icon}</span>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SnapshotStamp({
   snapshot,
   runtimeMode,
@@ -652,7 +700,7 @@ function SnapshotStamp({
   readonly runtimeMode: "MAINNET" | "FIXTURE";
 }) {
   return (
-    <div className="snapshot-stamp" aria-label="Canonical snapshot">
+    <div className="snapshot-stamp" aria-label="Canonical snapshot" data-motion-item>
       <div className="stamp-heading"><span className="stamp-label">Canonical snapshot</span><span className={`stamp-live stamp-live-${runtimeMode.toLowerCase()}`}><span className="status-dot" /> {runtimeMode === "FIXTURE" ? "FIXTURE" : "MAINNET"}</span></div>
       <span className="stamp-value">{shortHash(snapshot.snapshotHash)}</span>
       <span className="stamp-value">block {snapshot.observedBlock.toLocaleString()}</span>
@@ -663,14 +711,20 @@ function SnapshotStamp({
 function FlowRail({ state }: { readonly state: FlowState }) {
   const active = flowStep(state);
   return (
-    <nav className="flow-rail" aria-label="Signing flow progress">
-      {FLOW_STEPS.map((step, index) => (
-        <div className={`flow-step ${index < active ? "is-complete" : index === active ? "is-active" : ""}`} key={step}>
+    <nav className="flow-rail-nav" aria-label="Signing flow progress">
+      <ol className="flow-rail">
+        {FLOW_STEPS.map((step, index) => (
+        <li
+          className={`flow-step ${index < active ? "is-complete" : index === active ? "is-active" : ""}`}
+          key={step}
+          aria-current={index === active ? "step" : undefined}
+        >
           <span className="flow-step-marker">{index < active ? <Check size={13} /> : String(index + 1).padStart(2, "0")}</span>
           <span className="flow-step-label">{step}</span>
-          {index < FLOW_STEPS.length - 1 ? <span className="flow-step-line" aria-hidden="true" /> : null}
-        </div>
-      ))}
+          {index < FLOW_STEPS.length - 1 ? <span className="flow-step-line" aria-hidden="true"><span className="flow-step-progress" /></span> : null}
+        </li>
+        ))}
+      </ol>
     </nav>
   );
 }
@@ -706,11 +760,11 @@ function StateBadge({ state }: { readonly state: FlowState }) {
 function EmptyEvidence({ state }: { readonly state: FlowState }) {
   const copy = emptyStateCopy(state);
   return (
-    <div className="empty-state evidence-empty" aria-live="polite">
+    <div className="empty-state evidence-empty" aria-live="polite" data-state-reveal>
       <div className={`empty-icon empty-icon-${stateTone(state)}`}><ShieldCheck size={21} /></div>
-      <strong>{copy.title}</strong>
-      <span>{copy.body}</span>
-      {state === "DISCONNECTED" ? <span className="empty-hint">Your wallet remains the only signing authority.</span> : null}
+      <strong data-motion-item>{copy.title}</strong>
+      <span data-motion-item>{copy.body}</span>
+      {state === "DISCONNECTED" ? <span className="empty-hint" data-motion-item>Your wallet remains the only signing authority.</span> : null}
     </div>
   );
 }
@@ -728,10 +782,18 @@ function WorkflowProgressPanel({
     simulation: { label: "Building a wallet simulation", sublabel: "Preparing one typed deposit · no transaction is being submitted" },
     receipt: { label: "Verifying public receipt", sublabel: detail ?? "Waiting for independent public inclusion evidence" },
   }[mode];
+  const sequence = mode === "simulation"
+    ? ["Prepare one typed action", "Check wallet simulation", "Stop before confirmation"]
+    : mode === "receipt"
+      ? ["Read public inclusion", "Match the expected event", "Bind the receipt artifact"]
+      : ["Read public state", "Validate freshness", "Evaluate policy"];
   return (
-    <section className="progress-panel" aria-live="polite" aria-busy="true">
-      <div className="progress-icon"><LoaderCircle size={19} className="spinner" /></div>
-      <div className="progress-copy"><strong>{content.label}</strong><span>{content.sublabel}</span></div>
+    <section className="progress-panel" aria-live="polite" aria-busy="true" data-state-reveal>
+      <div className="progress-icon" data-motion-item><LoaderCircle size={19} className="spinner" /></div>
+      <div className="progress-copy" data-motion-item><strong>{content.label}</strong><span>{content.sublabel}</span></div>
+      <ol className="progress-sequence" aria-label="Current workflow sequence">
+        {sequence.map((step) => <li key={step} data-motion-item>{step}</li>)}
+      </ol>
       <div className="progress-track" aria-hidden="true"><span /></div>
     </section>
   );
@@ -750,17 +812,21 @@ function RecommendationBlock({
   if (recommendation === null || recommendation.kind !== "CHANGE_AMOUNT" || token === undefined) return null;
   const decimals = token.decimals;
   return (
-    <div className="recommendation">
+    <div className="recommendation" data-state-reveal>
       <div className="recommendation-header"><span className="section-kicker">Within your permitted range</span><span className="recommendation-badge"><CheckCircle2 size={13} /> Deterministic</span></div>
       <h3>Safer permitted amount</h3>
-      <div className="amount-comparison"><span>{formatTokenAmount(recommendation.from, decimals)} {token.symbol}</span><ArrowRight size={18} /><strong className="recommendation-amount">{formatTokenAmount(recommendation.to, decimals)} {token.symbol}</strong></div>
+      <div className="recommendation-comparison" aria-label="Current proposal compared with Cutout recommendation">
+        <div className="comparison-side comparison-current" data-motion-item><span>Current proposal</span><strong>{formatTokenAmount(recommendation.from, decimals)} {token.symbol}</strong><small>Evaluated against current public evidence</small></div>
+        <div className="comparison-arrow" aria-hidden="true"><ArrowRight size={18} /></div>
+        <div className="comparison-side comparison-recommended" data-motion-item><span>Cutout recommendation</span><strong className="recommendation-amount">{formatTokenAmount(recommendation.to, decimals)} {token.symbol}</strong><small>Inside your permitted range</small></div>
+      </div>
       <p>Smallest allowed deviation with healthier public exact-amount evidence.</p>
-      <div className="quality-grid">
+      <div className="quality-grid" data-motion-item>
         <div><strong>{recommendation.cohort.existingMatches}</strong><span>prior matches</span></div>
         <div><strong>{recommendation.cohort.distinctAddresses}</strong><span>addresses</span></div>
         <div><strong>{recommendation.cohort.activeDays}</strong><span>active days</span></div>
       </div>
-      <div className="button-row">
+      <div className="button-row" data-motion-item>
         <button className="button button-primary" type="button" onClick={() => onChoose({ source: "RECOMMENDATION", action: "shield", token: token.address, amount: recommendation.to })}>Use recommendation <ArrowRight size={15} /></button>
         <button className="button button-secondary" type="button" onClick={() => onChoose({ source: "ORIGINAL", action: "shield", token: token.address, amount: recommendation.from })}>Keep proposed amount</button>
       </div>
@@ -780,10 +846,10 @@ function ReviewPanel({
   readonly onSimulate: () => void;
 }) {
   return (
-    <section className="surface review-surface" aria-labelledby="review-title">
+    <section className="surface review-surface" aria-labelledby="review-title" data-state-reveal>
       <SurfaceHeader id="review-title" index="03 / Review" title="Final review" description="The exact action below is the only action eligible for wallet simulation." badge="FINAL INTENT" />
-      <div className="review-hero"><div><span className="section-kicker">Shield amount</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong></div><div className="review-decision"><span className={`decision-band ${bandClass(response.riskBand)}`}>{response.riskBand}</span><span className="review-decision-label">{response.decision} | {response.riskBand}</span></div></div>
-      <div className="review-block">
+      <div className="review-hero" data-motion-item><div><span className="section-kicker">Exact action</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong></div><div className="review-decision"><span className={`decision-band ${bandClass(response.riskBand)}`}>{response.riskBand}</span><span className="review-decision-label">{response.decision} | {response.riskBand}</span></div></div>
+      <div className="review-block" data-motion-item>
         <dl className="review-list">
           <dt>Action</dt><dd>Shield · one deposit</dd>
           <dt>Token</dt><dd>{token === undefined ? plan.action.token : `${token.symbol} · ${plan.action.token}`}</dd>
@@ -795,6 +861,7 @@ function ReviewPanel({
         <div className="freshness-line"><span>decision {shortHash(plan.decisionId)}</span><span>model {plan.modelVersion}</span><span>policy {plan.guardPolicyVersion}</span></div>
       </div>
       <details className="action-disclosure"><summary>View exact base-unit action <ChevronDown size={15} /></summary><pre>{JSON.stringify(plan.action, null, 2)}</pre></details>
+      <div className="review-boundary" data-motion-item><LockKeyhole size={16} /><div><strong>Cutout does not sign or broadcast this transaction.</strong><span>The next step asks the connected wallet to simulate this exact action.</span></div></div>
       <div className="review-actions"><button className="button button-primary" type="button" onClick={onSimulate}><ClipboardCheck size={16} /> Simulate in wallet</button><span className="action-note"><LockKeyhole size={14} /> Simulation only. The wallet still controls confirmation.</span></div>
     </section>
   );
@@ -816,10 +883,11 @@ function ConfirmationPanel({
   readonly onSubmit: () => void;
 }) {
   return (
-    <section className="surface confirmation-surface" aria-labelledby="confirmation-title">
+    <section className="surface confirmation-surface" aria-labelledby="confirmation-title" data-state-reveal>
       <SurfaceHeader id="confirmation-title" index="04 / Sign" title="Wallet confirmation" description="Review the exact single deposit action before the wallet opens its confirmation." badge="READY FOR CONFIRMATION" />
-      <div className="confirmation-hero"><div className="confirmation-icon"><CheckCircle2 size={24} /></div><div><span className="section-kicker">Simulation passed</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong><span>One typed deposit · {simulation.simulation.entryPoint}</span></div></div>
-      <div className="review-block">
+      <div className="confirmation-hero" data-motion-item><div className="confirmation-icon"><CheckCircle2 size={24} /></div><div><span className="section-kicker">Simulation complete</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong><span>One typed deposit · {simulation.simulation.entryPoint}</span></div></div>
+      <div className="confirmation-status-grid" data-motion-item><div><strong>Simulation passed</strong><span>Final action checked</span></div><div><strong>No submission</strong><span>No transaction hash exists</span></div><div><strong>User wallet</strong><span>Only authority to confirm</span></div></div>
+      <div className="review-block" data-motion-item>
         <dl className="review-list">
           <dt>Action</dt><dd>{plan.action.type}</dd>
           <dt>Token</dt><dd>{token === undefined ? plan.action.token : `${token.symbol} · ${plan.action.token}`}</dd>
@@ -836,7 +904,8 @@ function ConfirmationPanel({
           <span className="toggle-copy"><strong>I understand this is a WARN decision.</strong><span>The wallet remains the signing authority.</span></span>
         </label>
       ) : null}
-      <div className="review-actions"><button className="button button-primary" type="button" onClick={onSubmit} disabled={plan.warningAcknowledgementRequired && !acknowledged}><WalletCards size={16} /> Confirm in wallet</button><span className="action-note"><LockKeyhole size={14} /> Cutout cannot sign on your behalf.</span></div>
+      <div className="review-boundary confirmation-boundary" data-motion-item><LockKeyhole size={16} /><div><strong>Ready for your confirmation</strong><span>Cutout cannot approve, broadcast, or confirm on your behalf.</span></div></div>
+      <div className="review-actions"><button className="button button-primary" type="button" onClick={onSubmit} disabled={plan.warningAcknowledgementRequired && !acknowledged}><WalletCards size={16} /> Confirm in wallet</button><span className="action-note"><LockKeyhole size={14} /> No transaction has been submitted.</span></div>
     </section>
   );
 }

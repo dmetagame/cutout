@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
+import "lenis/dist/lenis.css";
 import "./globals.css";
+
+import { MotionProvider } from "./_components/motion-provider";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body><MotionProvider>{children}</MotionProvider></body>
     </html>
   );
 }

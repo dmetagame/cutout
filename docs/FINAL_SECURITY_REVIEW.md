@@ -1,11 +1,16 @@
 # Final adversarial security review
 
-**Release:** `v0.1.3`
+**Release:** `v0.1.4` (UI-only patch inheriting the v0.1.3 security boundary)
 **Model:** `CUTOUT-v1.3`
 **Policies:** `GUARD_POLICY-v1`, `FRESHNESS_POLICY-v1`
 
 `PASS` means the implemented release enforces the documented boundary. It does
 not mean the residual risk is eliminated or outside systems are trusted.
+
+The v0.1.4 patch changes only the presentation layer and its motion/test
+dependencies. Lenis is disabled for reduced-motion users, GSAP timelines are
+gated by a positive motion preference, and no wallet, API, receipt, snapshot,
+engine, or policy behavior changed.
 
 | Scenario | Result | Implemented control | Residual risk |
 |---|---|---|---|

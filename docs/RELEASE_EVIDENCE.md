@@ -1,17 +1,18 @@
 # Cutout release evidence
 
-**Candidate date:** 2026-08-19
+**Candidate date:** 2026-08-20
 
 ## Identity
 
 | Item | Value |
 |---|---|
-| Repository release | `v0.1.3`; the commit resolved by the annotated tag is authoritative |
-| Prior patch release | `v0.1.2` / `e9595295314932aad20d9f04933ade1e3ee212bc` |
-| Prior immutable release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
-| Earlier immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
-| Parent before patch | `e9595295314932aad20d9f04933ade1e3ee212bc` |
-| Package | `@cutout/guard@0.1.3` |
+| Repository release | `v0.1.4`; the commit resolved by the annotated tag is authoritative |
+| Prior patch release | `v0.1.3` / `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba` |
+| Prior immutable release | `v0.1.2` / `e9595295314932aad20d9f04933ade1e3ee212bc` |
+| Earlier immutable release | `v0.1.1` / `72cc32d3637af589486eda28c1dee2cdba7f3474` |
+| Initial immutable release | `v0.1.0` / `ac0516e2114134c8aa878de032c958a9b94bb6ee` |
+| Parent before patch | `376ab53ec5eeb62831bbb7a069b611606e7b0f54` |
+| Package | `@cutout/guard@0.1.4` |
 | Package API | `CUTOUT_GUARD_API-v1` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
@@ -23,6 +24,34 @@
 
 Configured tokens are USDC, STRK, ETH, and strkBTC at the addresses exported by
 `CUTOUT_MAINNET`.
+
+## v0.1.4 patch scope
+
+The release is a presentation-only motion and workflow-polish patch on top of
+v0.1.3. It adds Lenis `1.3.26`, GSAP `3.15.0`, and `@gsap/react` `2.1.2`, with
+client-only lifecycle handling, positive reduced-motion gating, clearer
+Propose -> Verify -> Review -> Simulate -> User Wallet progression, improved
+evidence and receipt hierarchy, and responsive/focus coverage.
+
+The exact UI/dependency/test source files are:
+
+```text
+apps/web/app/_components/motion-provider.tsx
+apps/web/app/_components/motion-system.ts
+apps/web/app/_components/receipt-view.tsx
+apps/web/app/_components/signing-workflow.tsx
+apps/web/app/globals.css
+apps/web/app/layout.tsx
+apps/web/e2e/receipt-view.spec.ts
+apps/web/e2e/signing-workflow.spec.ts
+package.json
+package-lock.json
+```
+
+No signing authority, autonomous execution, or transaction semantics were
+added. CUTOUT-v1.3, GUARD_POLICY-v1, FRESHNESS_POLICY-v1, the indexer,
+preflight API, snapshot generation, database, receipt verification, and wallet
+execution semantics are unchanged.
 
 ## v0.1.3 patch scope
 

@@ -155,6 +155,14 @@ tests and refreshes the production/demo documentation. The independent public
 receipt verifier and every signing, policy, API, indexer, and transaction
 boundary remain unchanged.
 
+The v0.1.4 patch is presentation-only. It adds Lenis `1.3.26` smooth scrolling,
+GSAP `3.15.0` with `@gsap/react` `2.1.2`, a reusable motion system, clearer
+Propose -> Verify -> Review -> Simulate -> User Wallet progression, stronger
+evidence and receipt hierarchy, and responsive, keyboard-focus, and
+reduced-motion improvements. No signing authority, autonomous execution, or
+transaction semantics were added, and CUTOUT-v1.3, GUARD_POLICY-v1, and
+FRESHNESS_POLICY-v1 remain unchanged.
+
 ## Wallet-native security boundary
 
 - Cutout never receives private keys, seed phrases, viewing keys, private
@@ -171,7 +179,7 @@ See [SECURITY.md](docs/SECURITY.md) and
 
 ## Integrator package
 
-`packages/guard` builds `@cutout/guard@0.1.3`. Its single root
+`packages/guard` builds `@cutout/guard@0.1.4`. Its single root
 export contains only stable action, preflight, guard, amount, version, and
 public receipt interfaces. It does not export wallet submission, the indexer,
 SQLite, RPC ingestion, or operational runtime modules.
@@ -210,7 +218,7 @@ curl --fail-with-body http://127.0.0.1:3000/api/health
 
 The current production deployment is live at
 [`https://cutout.rouma.online`](https://cutout.rouma.online), serving the
-`v0.1.3` application release. The endpoint is HTTPS-terminated, exposes the
+`v0.1.4` application release. The endpoint is HTTPS-terminated, exposes the
 read-only API through the reverse proxy, and has been verified with a current
 complete snapshot and a non-submitting public preflight. See
 [DEPLOYMENT.md](docs/DEPLOYMENT.md) for the host architecture and verification

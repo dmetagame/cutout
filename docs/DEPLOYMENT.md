@@ -8,7 +8,7 @@
 
 Production endpoint: [`https://cutout.rouma.online`](https://cutout.rouma.online)
 
-The endpoint serves the `v0.1.3` application release behind HTTPS termination.
+The endpoint serves the `v0.1.4` application release behind HTTPS termination.
 The deployment uses one supervised indexer writer and one read-only Next.js/API
 process sharing a persistent SQLite volume. Public verification has confirmed
 HTTP-to-HTTPS redirect behavior, `GET /api/health` readiness, a current

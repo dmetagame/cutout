@@ -28,18 +28,18 @@ Cutout can recommend, but it cannot sign.
 | Item | Value |
 |---|---|
 | Repository | `https://github.com/dmetagame/cutout` |
-| Release tag | `v0.1.3` |
-| Prior release | `v0.1.2` / `e9595295314932aad20d9f04933ade1e3ee212bc` |
-| Package source | `@cutout/guard@0.1.3` |
+| Release tag | `v0.1.4` |
+| Prior release | `v0.1.3` / `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba` |
+| Package source | `@cutout/guard@0.1.4` |
 | Engine | `CUTOUT-v1.3` |
 | Guard policy | `GUARD_POLICY-v1` |
 | Freshness policy | `FRESHNESS_POLICY-v1` |
 | Network | Starknet Mainnet |
 | STRK20 pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The exact patch commit is the commit resolved by the annotated `v0.1.3` tag.
-The existing `v0.1.2`, `v0.1.1`, and `v0.1.0` tags and releases remain
-unchanged.
+The exact patch commit is the commit resolved by the annotated `v0.1.4` tag.
+The existing `v0.1.3`, `v0.1.2`, `v0.1.1`, and `v0.1.0` tags and releases
+remain unchanged.
 
 v0.1.3 retains the v0.1.2 Propose -> Verify -> Review -> Sign polish and adds a
 strict client-side check before session-stored receipt evidence can render as
@@ -47,6 +47,12 @@ verified. The artifact structure and existing receipt-ID binding are validated,
 and focused E2E coverage rejects mutation while checking mobile overflow,
 explorer navigation, focus, and reduced motion. No deterministic, API, indexer,
 independent receipt-verification, or wallet-execution contract changed.
+
+v0.1.4 retains that security boundary and adds Lenis smooth scrolling, a GSAP
+motion system, clearer Propose -> Verify -> Review -> Simulate -> User Wallet
+progression, stronger evidence and receipt hierarchy, responsive/mobile polish,
+keyboard-focus coverage, and reduced-motion handling. No signing authority,
+autonomous execution, or transaction semantics changed.
 
 ## Architecture
 
@@ -141,8 +147,8 @@ mainnet transaction.
 
 ## External availability
 
-- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.3`
-- Production deployment: `https://cutout.rouma.online` (`v0.1.3`), with HTTPS,
+- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.4`
+- Production deployment: `https://cutout.rouma.online` (`v0.1.4`), with HTTPS,
   persistent SQLite storage, supervised indexing, and current public health
   verification.
 - npm URL: not available until repository-owner npm authentication and

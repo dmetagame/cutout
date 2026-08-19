@@ -36,8 +36,7 @@ async function installReceiptArtifact(
   });
 }
 
-test("verified receipt evidence remains usable on a narrow viewport", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("verified receipt evidence remains usable across responsive viewports", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installReceiptArtifact(page, RECEIPT_ARTIFACT);
   await page.goto(`/receipt/${RECEIPT_ID}`);
@@ -48,17 +47,27 @@ test("verified receipt evidence remains usable on a narrow viewport", async ({ p
     `https://starkscan.co/tx/${RECEIPT_ARTIFACT.transactionHash}`,
   );
   await expect(page.getByText(RECEIPT_ID, { exact: true })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
+  expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
 
-  await page.keyboard.press("Tab");
   const disclosure = page.locator("summary");
+  await page.keyboard.press("Tab");
   await expect(disclosure).toBeFocused();
   expect(await disclosure.evaluate((element) => getComputedStyle(element).outlineWidth)).not.toBe("0px");
 
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  for (const viewport of [
+    { width: 768, height: 1024 },
+    { width: 430, height: 932 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+    await expect(page.getByRole("link", { name: "Open explorer" })).toBeVisible();
+  }
 });
 
 test("receipt data with a stale ID binding cannot display a verified claim", async ({ page }) => {
