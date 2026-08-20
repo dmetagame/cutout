@@ -1,4 +1,50 @@
-# Cutout v0.1.3 Release Manifest
+# Cutout Release Manifests
+
+## Current release: v0.1.4
+
+**Prepared:** 2026-08-20
+
+| Field | Value |
+|---|---|
+| Release | `v0.1.4` |
+| Release commit | `315f61a1a55fa771337eb633ecd564b2097aee1a` |
+| Annotated tag object | `6c651d20cb3a2ab66f376521f0a11412c245fd9a` |
+| Parent commit | `376ab53ec5eeb62831bbb7a069b611606e7b0f54` |
+| Package | `@cutout/guard@0.1.4` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.1.4` |
+| Production | `https://cutout.rouma.online` |
+| Engine/policies | `CUTOUT-v1.3` / `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1` |
+| npm publication | Not published; `npm whoami` returned `401 Unauthorized` |
+
+The v0.1.4 release is a presentation-only Lenis/GSAP and workflow-polish
+patch. The annotated `v0.1.3` tag remains unchanged. No engine, policy,
+indexer, snapshot, database, preflight, receipt, transaction, or wallet
+execution semantics changed.
+
+The release commit contains only the reviewed UI/dependency/test and release
+documentation files. The post-release production evidence update is committed
+separately and does not move or recreate the `v0.1.4` tag.
+
+### v0.1.4 production smoke
+
+| Check | Result |
+|---|---|
+| Exact action | `0.01 STRK` |
+| Preflight | `AVAILABLE / ALLOW / LOW` |
+| Snapshot block/hash | `13,563,714` / `0xc445314dcf3faf4db17205d762e805ae0960b9ac9adea4c998fd3383e7a7197c` |
+| Source age / index lag | `19s` / `3s` |
+| Decision ID | `0x3199d68b4c25137a2076ce0b2fa644f1705344e3ed2ae62f598b19473811377d` |
+| Browser smoke | 1440, 1024, 768, 430, and 390px; Lenis/GSAP/reduced-motion/focus/receipt/fail-closed checks passed |
+| Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction | No hash, confirmation, broadcast, or submission |
+
+The historical Milestone 3 transaction remains separate evidence and is not a
+v0.1.4 deployment transaction.
+
+## Historical release: v0.1.3
+
+The complete v0.1.3 manifest below is retained without changing its release
+identity or historical evidence.
 
 **Prepared:** 2026-08-19
 **Release identity:** `v0.1.3`; after release, the commit resolved by the

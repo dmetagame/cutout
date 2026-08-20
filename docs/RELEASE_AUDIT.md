@@ -1,6 +1,6 @@
 # Final release and security audit
 
-**Review date:** 2026-08-19
+**Review date:** 2026-08-20
 
 This review treats CUTOUT-v1.3, FRESHNESS_POLICY-v1, GUARD_POLICY-v1, the
 canonical indexer, WalletAccountV6 flow, and receipt binding as frozen
@@ -46,9 +46,37 @@ foundations. No scoring or signing behavior was changed.
 
 The deployment blocker was resolved after the release audit. The current
 production deployment is independently verified at
-`https://cutout.rouma.online` for release `v0.1.3`. Deployment health and
+`https://cutout.rouma.online` for release `v0.1.4`. Deployment health and
 freshness remain time-dependent operational facts; the live endpoint is not
 evidence of npm publication.
+
+## v0.1.4 final patch review
+
+The v0.1.4 patch is presentation-only. It adds Lenis `1.3.26`, GSAP `3.15.0`,
+and `@gsap/react` `2.1.2` behind client-only lifecycle boundaries. Enhanced
+motion is gated by `prefers-reduced-motion: no-preference`; reduced-motion
+users receive native scrolling, no hidden information, and the same signing
+states. The motion system animates entrances, workflow transitions, evidence
+reveals, and receipt presentation without changing the underlying state
+machine.
+
+The release diff was reviewed against the frozen security boundary. It changes
+no CUTOUT-v1.3 scoring, GUARD_POLICY-v1, FRESHNESS_POLICY-v1, indexer or
+snapshot semantics, preflight API behavior, database behavior, receipt
+verification, transaction construction, or wallet execution semantics. The
+wallet fixture still reports `connectCalls=1`, `prepareCalls=1`,
+`invokeCalls=0` and produces no transaction hash.
+
+The production UI smoke covered Propose, Verify, Review, simulation,
+`READY_FOR_CONFIRMATION`, receipt, unavailable/fail-closed, responsive, focus,
+and reduced-motion states at 1440, 1024, 768, 430, and 390px. No console
+errors, failed requests, or horizontal overflow were observed. During live
+RPC synchronization, the service correctly exposed unavailable states without
+a decision or risk band, then recovered after a complete snapshot stabilized.
+
+No release-blocking security defect was found. npm publication remains an
+owner-authorized external action and was not attempted because `npm whoami`
+returned `401 Unauthorized`.
 
 ## v0.1.3 final patch review
 

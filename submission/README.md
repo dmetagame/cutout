@@ -139,11 +139,13 @@ mainnet transaction.
 | Milestone 4 focused | 18 passed |
 | Milestone 5 focused | 5 passed |
 | Package public API | 3 passed |
-| Browser E2E | 9 passed |
+| Browser E2E | 12 passed |
 | TypeScript and production build | passed |
 | Packed consumer | passed |
 | Docker/Compose validation | passed |
 | Dependency audit | 0 vulnerabilities |
+| Production UI smoke | passed at 1440, 1024, 768, 430, and 390px |
+| Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 
 ## External availability
 

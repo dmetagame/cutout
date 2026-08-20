@@ -53,6 +53,45 @@ added. CUTOUT-v1.3, GUARD_POLICY-v1, FRESHNESS_POLICY-v1, the indexer,
 preflight API, snapshot generation, database, receipt verification, and wallet
 execution semantics are unchanged.
 
+## v0.1.4 production verification
+
+The tagged release was deployed to the existing production host and verified
+without submitting a wallet transaction.
+
+| Item | Observed value |
+|---|---|
+| Verification URL | `https://cutout.rouma.online` |
+| Deployed release | `v0.1.4` |
+| Deployed commit | `315f61a1a55fa771337eb633ecd564b2097aee1a` |
+| Annotated tag | `v0.1.4` / tag object `6c651d20cb3a2ab66f376521f0a11412c245fd9a` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.1.4` |
+| HTTPS / redirect | valid certificate; HTTP returns `308` to HTTPS |
+| Stable health sample | HTTP `200`, `HEALTHY`, `ready: true`, complete snapshot at block `13,562,835` |
+| Stable snapshot hash | `0x7c5800573aefb165033b06285610517ffe44cc6864a11f2d04af2e82feef6b12` |
+| Stable freshness | source age `23s`, index lag `2s` |
+| Browser smoke timestamp | `2026-08-20T00:40:15Z` |
+| Exact preflight | `0.01 STRK`, `AVAILABLE / ALLOW / LOW` |
+| Preflight block | `13,563,714` |
+| Preflight snapshot hash | `0xc445314dcf3faf4db17205d762e805ae0960b9ac9adea4c998fd3383e7a7197c` |
+| Preflight freshness | source age `19s`, index lag `3s`, `sourceComplete: true` |
+| Decision ID | `0x3199d68b4c25137a2076ce0b2fa644f1705344e3ed2ae62f598b19473811377d` |
+| UI smoke | 1440, 1024, 768, 430, and 390px; no horizontal overflow, console errors, or failed requests |
+| Motion smoke | Lenis active; GSAP transitions and desktop pinning active; reduced motion disables Lenis and preserves content/focus |
+| Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction state | no transaction hash, confirmation, broadcast, or submission |
+| Public port `3000` | externally closed/filtered |
+| Runtime security | unprivileged `node` containers, `CapDrop=ALL`, `no-new-privileges`, read-only API database |
+
+The same production window included expected synchronization uncertainty:
+health returned `DEGRADED`/`SYNCING` and, during an unavailable interval,
+`503 / SNAPSHOT_UNAVAILABLE`; preflight returned
+`NO_CONFIDENT_RECOMMENDATION` without a decision or risk band. After the
+canonical snapshot stabilized, the live browser smoke recovered to the exact
+`ALLOW / LOW` result above. No uncertain snapshot produced `ALLOW`.
+
+This record is a current non-submitting production/demo verification. It is
+separate from the historical Milestone 3 transaction recorded below.
+
 ## v0.1.3 patch scope
 
 The release is a narrow presentation/integrity patch on top of v0.1.2. It
@@ -182,7 +221,7 @@ public RPC without invoking a wallet or submitting a transaction.
 | Milestone 4 focused suite | `18 passed, 0 failed` |
 | Milestone 5 focused suite | `5 passed, 0 failed` |
 | Package public-API suite | `3 passed, 0 failed` |
-| Browser E2E suite | `9 passed, 0 failed` |
+| Browser E2E suite | `12 passed, 0 failed` |
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
 | Packed-tarball consumer install/typecheck/run | passed |
@@ -203,6 +242,10 @@ public RPC without invoking a wallet or submitting a transaction.
 | v0.1.2 security boundary smoke | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 | v0.1.3 receipt mutation rejection | passed |
 | v0.1.3 receipt mobile overflow, explorer, and focus checks | passed |
+| v0.1.4 production UI smoke | passed at 1440, 1024, 768, 430, and 390px |
+| v0.1.4 Lenis/GSAP and reduced-motion smoke | passed |
+| v0.1.4 wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| GitHub Actions for release commit | passed: `Cutout CI` |
 
 ## v0.1.3 production verification
 
@@ -239,8 +282,8 @@ deployment, or tested package tarball.
 ## Security review
 
 See [RELEASE_AUDIT.md](RELEASE_AUDIT.md). No private STRK20 state was introduced,
-and no v0.1.3 transaction was submitted. The historical Milestone 3 transaction
-is retained separately above.
+and no v0.1.4 transaction was submitted. The historical Milestone 3 transaction
+is retained separately above and was not reused as deployment evidence.
 
 The exact release identity, evidence, and commit file set are
 recorded in [RELEASE_MANIFEST.md](RELEASE_MANIFEST.md).

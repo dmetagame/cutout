@@ -109,9 +109,50 @@ Both containers run as the unprivileged Node user, drop Linux capabilities,
 set `no-new-privileges`, and use an init process for signal forwarding. The
 runtime image prunes development dependencies.
 
-## Production verification record
+## v0.1.4 production verification record
 
-The latest public verification observed:
+The current deployment is the annotated `v0.1.4` release. The observations
+below deliberately separate a stable health sample, the later live browser
+preflight, and transient synchronization states.
+
+| Check | Result |
+|---|---|
+| URL | `https://cutout.rouma.online` |
+| Release | `v0.1.4` / `315f61a1a55fa771337eb633ecd564b2097aee1a` |
+| Annotated tag | `v0.1.4` / tag object `6c651d20cb3a2ab66f376521f0a11412c245fd9a` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.1.4` |
+| HTTPS / redirect | valid certificate; HTTP returns `308` to HTTPS |
+| Stable health sample | HTTP `200`, `HEALTHY`, `ready: true`; complete snapshot at block `13,562,835` |
+| Stable snapshot hash | `0x7c5800573aefb165033b06285610517ffe44cc6864a11f2d04af2e82feef6b12` |
+| Stable freshness | source age `23s`, index lag `2s` |
+| Browser smoke timestamp | `2026-08-20T00:40:15Z` |
+| Preflight | exact `0.01 STRK`, `AVAILABLE / ALLOW / LOW` |
+| Preflight block | `13,563,714` |
+| Preflight snapshot hash | `0xc445314dcf3faf4db17205d762e805ae0960b9ac9adea4c998fd3383e7a7197c` |
+| Preflight freshness | source age `19s`, index lag `3s`, complete source |
+| Decision ID | `0x3199d68b4c25137a2076ce0b2fa644f1705344e3ed2ae62f598b19473811377d` |
+| Browser UI smoke | 1440, 1024, 768, 430, and 390px; no overflow, console errors, or failed requests |
+| Motion/accessibility | Lenis active, GSAP transitions/pinning active, reduced motion disables Lenis and preserves information/focus |
+| Wallet boundary | simulation-only fixture: `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction state | no hash, confirmation, broadcast, or submission |
+| Runtime security | containers run as `node`, `CapDrop=ALL`, `no-new-privileges`, API database read-only |
+| Public port `3000` | closed/filtered externally; only HTTPS is publicly reachable |
+
+During the same operational window, RPC synchronization correctly produced
+`DEGRADED`/`SYNCING` health observations and a `503 / SNAPSHOT_UNAVAILABLE`
+sample. The API and UI exposed no decision or risk band from those uncertain
+states. Once the canonical snapshot stabilized, health and preflight recovered.
+This is the intended fail-closed behavior.
+
+The production browser smoke was public-data-only plus a simulation-only wallet
+harness. It stopped at `READY_FOR_CONFIRMATION` and did not confirm or submit a
+wallet transaction. The historical Milestone 3 transaction remains separate
+execution evidence.
+
+## Historical v0.1.3 production verification
+
+The following record is retained for release chronology and is not a claim
+about the current deployment:
 
 | Check | Result |
 |---|---|
@@ -128,10 +169,6 @@ The latest public verification observed:
 | Decision ID | `0x4f883d819251014c9c395380a537b08f456026008d5c616284c160c10ec9c0c6` |
 | Wallet boundary | simulation-only smoke: `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 | Transaction state | no hash, confirmation, broadcast, or submission |
-
-Snapshot values are time-dependent and must be refreshed before a live demo.
-The recorded production smoke was public-data-only plus a simulation-only
-browser wallet harness; it did not confirm or submit a wallet transaction.
 
 During the v0.1.3 restart, the public health endpoint briefly returned
 `503 / STALE_SNAPSHOT / SNAPSHOT_UNAVAILABLE` while the single indexer writer
