@@ -220,7 +220,9 @@ npm run db:backup
 ```
 
 The backup command refuses to overwrite an existing file. Verify a backup by
-opening it read-only and checking `/api/health` or the SQLite `quick_check`.
+opening it read-only, running SQLite `quick_check` against that copy, and
+checking `/api/health` with the restored runtime. The live request-time health
+path does not run a deep database scan.
 
 To restore, stop both processes, retain the failed database files for forensic
 inspection, place the selected backup at `CUTOUT_DB_PATH`, then start the

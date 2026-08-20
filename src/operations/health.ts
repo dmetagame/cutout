@@ -1,6 +1,9 @@
 import { CUTOUT_MODEL } from "../engine/constants.js";
 import type { Address } from "../engine/types.js";
-import { DataLayerError } from "../indexer/errors.js";
+import {
+  DataLayerError,
+  isTransientSnapshotAvailabilityError,
+} from "../indexer/errors.js";
 import type { CanonicalStore } from "../indexer/store.js";
 import type {
   IndexerState,
@@ -40,6 +43,7 @@ export interface OperationalHealthReport {
   readonly database: {
     readonly status: "HEALTHY";
     readonly integrity: "ok";
+    readonly checkScope: "ACTIVE_PATH";
     readonly mode: "read-only" | "read-write";
   };
   readonly rpc: {
@@ -133,7 +137,10 @@ function operationalStatus(
   if (state.lastErrorCode === "POOL_SCHEMA_MISMATCH" && state.status === "ERROR") {
     return "SCHEMA_MISMATCH";
   }
-  if (state.status === "ERROR" || state.status === "EMPTY") return "UNAVAILABLE";
+  if (
+    (state.status === "ERROR" && !isTransientSnapshotAvailabilityError(state.lastErrorCode)) ||
+    state.status === "EMPTY"
+  ) return "UNAVAILABLE";
   if (state.status !== "COMPLETE" || snapshotStatus !== "CURRENT_COMPLETE_SNAPSHOT") {
     return snapshotStatus === "NO_USABLE_SNAPSHOT" ? "UNAVAILABLE" : "DEGRADED";
   }
@@ -150,16 +157,11 @@ export function buildOperationalHealthReport(input: {
   readonly store: CanonicalStore;
   readonly config: StarknetSpikeConfig;
   readonly abi: ReviewedPoolAbi;
-  readonly now: number;
+  readonly now: number | (() => number);
   readonly apiMetrics: ApiOperationalMetrics;
 }): OperationalHealthReport {
-  const { store, config, abi, now, apiMetrics } = input;
-  if (!Number.isSafeInteger(now) || now < 0) {
-    throw new DataLayerError("INDEX_CORRUPT", "Health evaluation timestamp is invalid.");
-  }
-  if (store.databaseIntegrity() !== "ok") {
-    throw new DataLayerError("INDEX_CORRUPT", "SQLite integrity check failed.");
-  }
+  const { store, config, abi, apiMetrics } = input;
+  const resolveNow = (): number => typeof input.now === "function" ? input.now() : input.now;
   const state = store.getState();
   const providerRows = store.getRpcProviderStates();
   const primary = providerRows.find((provider) => provider.provider === "primary") ?? emptyProvider("primary");
@@ -167,20 +169,36 @@ export function buildOperationalHealthReport(input: {
   const providers = [primary, secondary] as const;
 
   let latest: PublicSnapshot | null = null;
+  let currentCandidate: PublicSnapshot | null = null;
+  let activeLoadError: string | null = null;
+  try {
+    currentCandidate = store.loadCompleteSnapshot();
+    latest = currentCandidate;
+  } catch (error) {
+    activeLoadError = healthErrorCode(error);
+    try {
+      latest = store.loadLatestPersistedSnapshot();
+    } catch (latestError) {
+      activeLoadError = healthErrorCode(latestError);
+    }
+  }
+
+  const now = resolveNow();
+  if (!Number.isSafeInteger(now) || now < 0) {
+    throw new DataLayerError("INDEX_CORRUPT", "Health evaluation timestamp is invalid.");
+  }
   let current: PublicSnapshot | null = null;
   let snapshotStatus: SnapshotOperationalStatus = "NO_USABLE_SNAPSHOT";
-  let reasonCode: string | null = "SNAPSHOT_UNAVAILABLE";
-  try {
-    latest = store.loadLatestPersistedSnapshot();
-  } catch (error) {
-    reasonCode = healthErrorCode(error);
-  }
-  if (latest !== null) {
-    snapshotStatus = "STALE_SNAPSHOT";
-    reasonCode = state.status === "COMPLETE" ? "SNAPSHOT_UNAVAILABLE" : `INDEXER_${state.status}`;
+  let reasonCode: string | null = activeLoadError ?? "SNAPSHOT_UNAVAILABLE";
+  if (currentCandidate !== null) {
     try {
-      current = store.loadCompleteSnapshot();
-      validatePublicSnapshot(current, validationIntent(current, config, now), config, abi);
+      validatePublicSnapshot(
+        currentCandidate,
+        validationIntent(currentCandidate, config, now),
+        config,
+        abi,
+      );
+      current = currentCandidate;
       snapshotStatus = "CURRENT_COMPLETE_SNAPSHOT";
       reasonCode = null;
     } catch (error) {
@@ -189,6 +207,11 @@ export function buildOperationalHealthReport(input: {
       snapshotStatus = isStaleCode(code) || state.status !== "COMPLETE"
         ? "STALE_SNAPSHOT"
         : "NO_USABLE_SNAPSHOT";
+    }
+  } else if (latest !== null) {
+    snapshotStatus = "STALE_SNAPSHOT";
+    if (reasonCode === "SNAPSHOT_UNAVAILABLE" && state.status !== "COMPLETE") {
+      reasonCode = `INDEXER_${state.status}`;
     }
   }
 
@@ -219,6 +242,7 @@ export function buildOperationalHealthReport(input: {
     database: {
       status: "HEALTHY",
       integrity: "ok",
+      checkScope: "ACTIVE_PATH",
       mode: store.readOnly ? "read-only" : "read-write",
     },
     rpc: {

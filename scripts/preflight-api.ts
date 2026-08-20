@@ -29,7 +29,7 @@ const server = createPreflightHttpServer(
       store,
       config,
       abi,
-      now: Math.floor(Date.now() / 1_000),
+      now: () => Math.floor(Date.now() / 1_000),
       apiMetrics: metrics.snapshot(),
     });
     return { statusCode: report.ready ? 200 : 503, body: report };

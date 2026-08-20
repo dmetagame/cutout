@@ -25,6 +25,12 @@ Providers are never mixed inside one ingestion attempt. A runtime provider
 failure aborts that attempt. The next attempt may select the validated
 secondary.
 
+Ordinary forward catch-up does not withdraw the prior complete snapshot before
+its atomic replacement is ready. A transient `RPC_UNAVAILABLE` failure may
+leave that immutable snapshot active only while its own source age and index lag
+continue to satisfy `FRESHNESS_POLICY-v1`. Reorg, schema, identity, incomplete
+history, and corruption failures withdraw it immediately.
+
 `SIGINT` and `SIGTERM` stop the supervisor, interrupt an active poll/backoff
 sleep, allow the current RPC/database operation to settle, and close SQLite.
 The supervisor retries failures with bounded exponential backoff. A successful
@@ -56,6 +62,10 @@ The cursor, retained canonical headers, events, batches, snapshots, provider
 health, and operational counters survive restart. A committed range is either
 fully present with its cursor or absent.
 
+Snapshot JSON retention is bounded to the active snapshot plus two recent
+operational predecessors. This history supports diagnosis and rollback without
+duplicating the full canonical snapshot on every 15-second cycle indefinitely.
+
 ## RPC outage and failover
 
 Primary transport failure, invalid JSON/shape, wrong chain ID, or failed probe
@@ -66,10 +76,12 @@ If both providers are healthy, Cutout compares block hash, parent hash, and
 timestamp at their highest common block. Disagreement produces
 `INCONSISTENT_BLOCK_DATA`; Cutout does not guess which provider is correct.
 
-If both providers are unavailable, the indexer records `RPC_UNAVAILABLE`,
-backs off, and keeps retrying. The API never labels the old snapshot current.
-When either provider recovers, the next successful attempt validates
-canonicality and publishes a new complete snapshot.
+If both providers are unavailable, the indexer records `RPC_UNAVAILABLE`, backs
+off, and keeps retrying. The last independently complete snapshot remains
+eligible only until the frozen 120-second source-age check fails; health reports
+`DEGRADED` while it is still current and returns 503 once it is stale. When
+either provider recovers, the next successful attempt validates canonicality
+and atomically publishes a new complete snapshot.
 
 ## Reorg recovery
 

@@ -18,7 +18,7 @@ export async function GET(): Promise<Response> {
       store: runtimeState.store,
       config: runtimeState.config,
       abi: runtimeState.abi,
-      now: runtimeNow(),
+      now: runtimeNow,
       apiMetrics: metrics.snapshot(),
     });
     return Response.json(report, {

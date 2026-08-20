@@ -318,6 +318,147 @@ test("supervision retries with bounded backoff and recovers the persisted cursor
   assert.ok((state.lastSyncDurationMs ?? -1) >= 0);
 });
 
+test("routine catch-up and transient RPC failure retain only fresh complete evidence", async (t) => {
+  const path = join(temporaryDirectory(t), "cutout.sqlite");
+  const rpc = new ReplayRpc(replay, 8_978_976);
+  let clock = blockTimestamp(replay, rpc.headBlock) + 1;
+  const store = openStore(path, () => clock);
+  t.after(() => store.close());
+  const initial = await createIndexer(rpc, store, () => clock).syncOnce(requiredFrom(clock));
+
+  rpc.headBlock = 8_978_978;
+  clock = blockTimestamp(replay, rpc.headBlock) + 1;
+  let releaseHead: (() => void) | undefined;
+  const headReleased = new Promise<void>((resolve) => {
+    releaseHead = resolve;
+  });
+  let announceHead: (() => void) | undefined;
+  const headRequested = new Promise<void>((resolve) => {
+    announceHead = resolve;
+  });
+  let gateFirstHead = true;
+  const gatedRpc: PublicRpc = {
+    getChainId: () => rpc.getChainId(),
+    getBlockNumber: async () => {
+      if (gateFirstHead) {
+        gateFirstHead = false;
+        announceHead?.();
+        await headReleased;
+      }
+      return rpc.getBlockNumber();
+    },
+    getBlock: (blockNumber) => rpc.getBlock(blockNumber),
+    getBlocks: (blockNumbers) => rpc.getBlocks(blockNumbers),
+    getEvents: (filter) => rpc.getEvents(filter),
+    getClassHashAt: (blockNumber, contractAddress) =>
+      rpc.getClassHashAt(blockNumber, contractAddress),
+    getClass: (classHash, blockNumber) => rpc.getClass(classHash, blockNumber),
+  };
+  const commitBatch = store.commitBatch.bind(store);
+  let checkedCommittedBatch = false;
+  store.commitBatch = (batch) => {
+    commitBatch(batch);
+    assert.equal(store.getState().activeSnapshotHash, initial.snapshotHash);
+    const afterBatchCommit = new PreflightService(store, config, abi, { now: () => clock })
+      .preflight(wireIntent(initial.snapshot, clock));
+    assert.equal(afterBatchCommit.status, "AVAILABLE");
+    checkedCommittedBatch = true;
+  };
+  const catchingUp = createIndexer(gatedRpc, store, () => clock).syncOnce(requiredFrom(clock));
+  await headRequested;
+
+  assert.equal(store.getState().status, "SYNCING");
+  assert.equal(store.getState().activeSnapshotHash, initial.snapshotHash);
+  const duringSync = new PreflightService(store, config, abi, { now: () => clock })
+    .preflight(wireIntent(initial.snapshot, clock));
+  assert.equal(duringSync.status, "AVAILABLE");
+
+  releaseHead?.();
+  const updated = await catchingUp;
+  assert.equal(checkedCommittedBatch, true);
+  assert.notEqual(updated.snapshotHash, initial.snapshotHash);
+
+  rpc.unavailable = true;
+  clock += 1;
+  await assert.rejects(
+    () => createIndexer(rpc, store, () => clock).syncOnce(requiredFrom(clock)),
+    (error: unknown) => error instanceof DataLayerError && error.code === "RPC_UNAVAILABLE",
+  );
+  assert.equal(store.getState().status, "ERROR");
+  assert.equal(store.getState().activeSnapshotHash, updated.snapshotHash);
+  const duringOutage = new PreflightService(store, config, abi, { now: () => clock })
+    .preflight(wireIntent(updated.snapshot, clock));
+  assert.equal(duringOutage.status, "AVAILABLE");
+  const outageHealth = buildOperationalHealthReport({
+    store,
+    config,
+    abi,
+    now: clock,
+    apiMetrics: new OperationalMetrics().snapshot(),
+  });
+  assert.equal(outageHealth.status, "DEGRADED");
+  assert.equal(outageHealth.ready, true);
+  assert.equal(outageHealth.snapshot.status, "CURRENT_COMPLETE_SNAPSHOT");
+
+  const staleNow = updated.snapshot.indexedThroughTimestamp + 121;
+  const stale = new PreflightService(store, config, abi, { now: () => staleNow })
+    .preflight(wireIntent(updated.snapshot, staleNow));
+  assert.equal(stale.status, "NO_CONFIDENT_RECOMMENDATION");
+  if (stale.status === "NO_CONFIDENT_RECOMMENDATION") {
+    assert.equal(stale.error.code, "STALE_RPC");
+    assert.equal("decision" in stale, false);
+  }
+});
+
+test("unsafe recovery states withdraw the active snapshot immediately", async (t) => {
+  const path = join(temporaryDirectory(t), "cutout.sqlite");
+  const rpc = new ReplayRpc(replay, 8_978_978);
+  const clock = blockTimestamp(replay, rpc.headBlock) + 1;
+  const store = openStore(path, () => clock);
+  t.after(() => store.close());
+  const indexed = await createIndexer(rpc, store, () => clock).syncOnce(requiredFrom(clock));
+
+  store.setStatus("REORGING");
+  assert.equal(store.getState().activeSnapshotHash, null);
+  assert.throws(
+    () => store.loadCompleteSnapshot(),
+    (error: unknown) => error instanceof DataLayerError && error.code === "SNAPSHOT_UNAVAILABLE",
+  );
+
+  const restoredHash = store.persistCompleteSnapshot(indexed.snapshot);
+  assert.equal(store.getState().activeSnapshotHash, restoredHash);
+  store.setStatus("ERROR", "POOL_SCHEMA_MISMATCH");
+  assert.equal(store.getState().activeSnapshotHash, null);
+});
+
+test("snapshot retention keeps a bounded operational history", async (t) => {
+  const path = join(temporaryDirectory(t), "cutout.sqlite");
+  const rpc = new ReplayRpc(replay, 8_978_975);
+  let clock = blockTimestamp(replay, rpc.headBlock) + 1;
+  const store = openStore(path, () => clock);
+  t.after(() => store.close());
+
+  const snapshotHashes: string[] = [];
+  for (const headBlock of [8_978_975, 8_978_976, 8_978_977, 8_978_978]) {
+    rpc.headBlock = headBlock;
+    clock = blockTimestamp(replay, headBlock) + 1;
+    const result = await createIndexer(rpc, store, () => clock).syncOnce(requiredFrom(clock));
+    snapshotHashes.push(result.snapshotHash);
+  }
+
+  const rows = store.database.prepare(`
+    SELECT snapshot_hash
+    FROM snapshots
+    ORDER BY created_at DESC, observed_block DESC, snapshot_hash DESC
+  `).all() as Array<{ snapshot_hash: string }>;
+  assert.equal(rows.length, 3);
+  assert.deepEqual(
+    new Set(rows.map((row) => row.snapshot_hash)),
+    new Set(snapshotHashes.slice(-3)),
+  );
+  assert.equal(store.getState().activeSnapshotHash, snapshotHashes.at(-1));
+});
+
 test("supervisor shutdown interrupts the active polling sleep", async (t) => {
   const path = join(temporaryDirectory(t), "cutout.sqlite");
   const rpc = new ReplayRpc(replay, 8_978_978);
@@ -446,8 +587,11 @@ test("restart, withdrawn snapshot durability, API restart, and backup restore ar
   const restarted = new PreflightService(store, config, abi, { now: () => clock })
     .preflight(wireIntent(indexed.snapshot, clock));
   assert.deepEqual(restarted, first);
-  store.setStatus("ERROR", "RPC_UNAVAILABLE");
-  assert.throws(() => store.loadCompleteSnapshot(), DataLayerError);
+  store.setStatus("ERROR", "POOL_SCHEMA_MISMATCH");
+  assert.throws(
+    () => store.loadCompleteSnapshot(),
+    (error: unknown) => error instanceof DataLayerError && error.code === "POOL_SCHEMA_MISMATCH",
+  );
   assert.equal(hashPublicSnapshot(store.loadLatestPersistedSnapshot() as PublicSnapshot), indexed.snapshotHash);
   store.close();
 
@@ -469,18 +613,35 @@ test("health distinguishes current, degraded, stale, schema mismatch, and no dat
   store.recordRpcProviderState(providerHealth("secondary", clock, rpc));
   const metrics = new OperationalMetrics();
   metrics.recordPreflight(12.5, false);
+  let deepIntegrityChecks = 0;
+  store.databaseIntegrity = () => {
+    deepIntegrityChecks += 1;
+    return "error";
+  };
+  const loadCompleteSnapshot = store.loadCompleteSnapshot.bind(store);
+  let activeSnapshotLoaded = false;
+  store.loadCompleteSnapshot = () => {
+    const snapshot = loadCompleteSnapshot();
+    activeSnapshotLoaded = true;
+    return snapshot;
+  };
 
   const healthy = buildOperationalHealthReport({
     store,
     config,
     abi,
-    now: clock,
+    now: () => {
+      assert.equal(activeSnapshotLoaded, true);
+      return clock;
+    },
     apiMetrics: metrics.snapshot(),
   });
   assert.equal(healthy.status, "HEALTHY");
   assert.equal(healthy.ready, true);
   assert.equal(healthy.snapshot.status, "CURRENT_COMPLETE_SNAPSHOT");
   assert.equal(healthy.database.mode, "read-write");
+  assert.equal(healthy.database.checkScope, "ACTIVE_PATH");
+  assert.equal(deepIntegrityChecks, 0);
   const serialized = JSON.stringify(healthy);
   assert.equal(serialized.includes(replay.account), false);
   assert.equal(serialized.includes('"amount"'), false);

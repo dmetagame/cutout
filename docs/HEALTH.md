@@ -27,7 +27,8 @@ The report contains:
 - `api.status`: process-level API status;
 - `indexer.status`: operational state, internal cursor state, indexed-through
   block, last successful sync/block, last error code/time, and active provider;
-- `database`: integrity result and `read-only`/`read-write` mode;
+- `database`: active-path integrity result, check scope, and
+  `read-only`/`read-write` mode;
 - `rpc.primary` and `rpc.secondary`: status, last check/success, chain ID,
   head block/hash/timestamp, and last error code;
 - `rpc.currentHead*`: the head represented by the currently inspected snapshot;
@@ -75,9 +76,14 @@ secrets.
 
 ## Readiness rules
 
-The health builder validates SQLite integrity, state identity, snapshot hash,
-snapshot completeness, block references, source age, and index lag. The frozen
-freshness limits are:
+The health builder performs the checks needed to serve the active read path:
+schema/state identity, active snapshot presence and hash, snapshot completeness,
+block references, source age, and index lag. The response labels this scope as
+`database.checkScope: ACTIVE_PATH`.
+
+It deliberately does not run SQLite `PRAGMA quick_check` on every request. A
+deep database scan can block the live read model as the event history grows and
+belongs in the backup/operator procedure. The frozen freshness limits are:
 
 - source age at most 120 seconds;
 - index lag at most 120 seconds;

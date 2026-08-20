@@ -25,8 +25,18 @@ const DATA_LAYER_ERROR_CODES: ReadonlySet<string> = new Set([
   "SNAPSHOT_UNAVAILABLE",
 ]);
 
+const TRANSIENT_SNAPSHOT_AVAILABILITY_ERRORS: ReadonlySet<DataLayerErrorCode> = new Set([
+  "RPC_UNAVAILABLE",
+]);
+
 export function isDataLayerErrorCode(value: unknown): value is DataLayerErrorCode {
   return typeof value === "string" && DATA_LAYER_ERROR_CODES.has(value);
+}
+
+export function isTransientSnapshotAvailabilityError(
+  value: unknown,
+): value is DataLayerErrorCode {
+  return isDataLayerErrorCode(value) && TRANSIENT_SNAPSHOT_AVAILABILITY_ERRORS.has(value);
 }
 
 export class DataLayerError extends Error {

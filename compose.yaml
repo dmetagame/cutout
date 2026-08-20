@@ -26,7 +26,7 @@ services:
       # The API still opens the database with readOnly + PRAGMA query_only.
       - cutout-data:/var/lib/cutout
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - indexer
     cap_drop:

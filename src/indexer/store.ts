@@ -14,7 +14,11 @@ import type {
   PublicSnapshot,
   SnapshotHash,
 } from "../starknet/types.js";
-import { DataLayerError, isDataLayerErrorCode } from "./errors.js";
+import {
+  DataLayerError,
+  isDataLayerErrorCode,
+  isTransientSnapshotAvailabilityError,
+} from "./errors.js";
 import type {
   IndexBatch,
   IndexedPoolEvent,
@@ -25,6 +29,7 @@ import type {
 } from "./types.js";
 
 const SCHEMA_VERSION = 2;
+const MAX_SNAPSHOT_HISTORY = 3;
 
 type SqlRow = Record<string, null | number | bigint | string | Uint8Array>;
 
@@ -434,20 +439,28 @@ export class CanonicalStore {
   }
 
   setStatus(status: IndexerStatus, errorCode: string | null = null): void {
+    const retainActiveSnapshot =
+      status === "COMPLETE" ||
+      status === "SYNCING" ||
+      (status === "ERROR" && isTransientSnapshotAvailabilityError(errorCode));
     if (errorCode === null) {
       this.database.prepare(`
         UPDATE indexer_state
-        SET status = ?, updated_at = ?
+        SET status = ?,
+            active_snapshot_hash = CASE WHEN ? THEN active_snapshot_hash ELSE NULL END,
+            updated_at = ?
         WHERE singleton = 1
-      `).run(status, this.now());
+      `).run(status, retainActiveSnapshot ? 1 : 0, this.now());
       return;
     }
     const now = this.now();
     this.database.prepare(`
       UPDATE indexer_state
-      SET status = ?, last_error_code = ?, last_error_at = ?, updated_at = ?
+      SET status = ?, last_error_code = ?, last_error_at = ?,
+          active_snapshot_hash = CASE WHEN ? THEN active_snapshot_hash ELSE NULL END,
+          updated_at = ?
       WHERE singleton = 1
-    `).run(status, errorCode, now, now);
+    `).run(status, errorCode, now, retainActiveSnapshot ? 1 : 0, now);
   }
 
   recordRpcProviderState(state: RpcProviderState): void {
@@ -654,7 +667,7 @@ export class CanonicalStore {
       this.database.prepare(`
         UPDATE indexer_state
         SET status = 'SYNCING', indexed_through_block = ?, indexed_through_hash = ?,
-            indexed_through_timestamp = ?, active_snapshot_hash = NULL,
+            indexed_through_timestamp = ?,
             updated_at = ?
         WHERE singleton = 1
       `).run(
@@ -863,6 +876,17 @@ export class CanonicalStore {
         SET status = 'COMPLETE', active_snapshot_hash = ?, updated_at = ?
         WHERE singleton = 1
       `).run(snapshotHash, this.now());
+      this.database.prepare(`
+        DELETE FROM snapshots
+        WHERE snapshot_hash <> ?
+          AND snapshot_hash NOT IN (
+            SELECT snapshot_hash
+            FROM snapshots
+            WHERE snapshot_hash <> ?
+            ORDER BY created_at DESC, observed_block DESC, snapshot_hash DESC
+            LIMIT ?
+          )
+      `).run(snapshotHash, snapshotHash, MAX_SNAPSHOT_HISTORY - 1);
     });
     return snapshotHash;
   }
@@ -897,7 +921,13 @@ export class CanonicalStore {
 
   private loadCompleteSnapshotRow(): PublicSnapshot {
     const state = this.getState();
-    if (state.status !== "COMPLETE" || state.activeSnapshotHash === null) {
+    const activeSnapshotIsUsable =
+      state.activeSnapshotHash !== null &&
+      (state.status === "COMPLETE" ||
+        state.status === "SYNCING" ||
+        (state.status === "ERROR" &&
+          isTransientSnapshotAvailabilityError(state.lastErrorCode)));
+    if (!activeSnapshotIsUsable) {
       if (state.status === "ERROR") {
         if (isDataLayerErrorCode(state.lastErrorCode)) {
           throw new DataLayerError(
@@ -952,6 +982,10 @@ export class CanonicalStore {
     return snapshot;
   }
 
+  /**
+   * Runs a deep SQLite integrity scan for operator/backup verification.
+   * Request-time health checks intentionally do not call this over the live DB.
+   */
   databaseIntegrity(): "ok" | "error" {
     try {
       const row = this.database.prepare("PRAGMA quick_check").get();
