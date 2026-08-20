@@ -148,7 +148,12 @@ function shortHash(value: string): string {
   return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-8)}` : value;
 }
 
-const FLOW_STEPS = ["Propose", "Verify", "Review", "Sign"] as const;
+const FLOW_STEPS = [
+  { label: "Propose", owner: "You" },
+  { label: "Verify", owner: "Cutout" },
+  { label: "Review", owner: "Cutout" },
+  { label: "Sign", owner: "Wallet" },
+] as const;
 
 function flowStep(state: FlowState): number {
   switch (state) {
@@ -502,9 +507,14 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       <main ref={motionScope} className="page-shell motion-root" aria-labelledby="page-title" data-workflow-state={state}>
         <section className="hero editorial-entry" data-motion-section>
           <div className="hero-copy">
-            <div className="eyebrow-row" data-motion-intro><p className="eyebrow">Signing decision</p><span className="live-label"><Activity size={13} /> Public evidence only</span></div>
-            <h1 id="page-title" className="hero-title" data-motion-intro>Protect your STRK20 deposit before you sign.</h1>
-            <p className="lede" data-motion-intro>Cutout checks the proposed exact amount against current public candidate-cohort evidence.</p>
+            <div className="eyebrow-row" data-motion-intro><p className="eyebrow">Deterministic signing guard</p><span className="live-label"><Activity size={13} /> Public evidence only</span></div>
+            <h1 id="page-title" className="hero-title" data-motion-intro>Before your wallet signs, verify the action.</h1>
+            <p className="lede" data-motion-intro>A deterministic signing guard for STRK20 shielding. Cutout checks fresh public state, explains the result, and stops before your wallet signs.</p>
+            <div className="hero-action-preview" data-motion-intro aria-label="Current proposal preview">
+              <span className="section-kicker">Current proposal</span>
+              <strong>{amountInput || "0.00"} {selectedToken?.symbol ?? "STRK20"}</strong>
+              <span>Exact amount · edited in the proposal below</span>
+            </div>
             <div className="hero-boundary" data-motion-intro>
               <InlineProofMark />
               <div><strong>Cutout decides. Your wallet signs.</strong><span>Connecting a wallet does not authorize a transaction.</span></div>
@@ -521,11 +531,9 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
         </div>
 
         <div className="workflow-stage">
-          <TrustMarquee bootstrap={bootstrap} />
-
           <div className="workflow-grid">
           <section className="surface workflow-surface" aria-labelledby="intent-title" data-motion-section>
-            <SurfaceHeader id="intent-title" index="01 / Propose" title="Proposed shield" description="One token, one deposit action, one final user decision." badge="ONE ACTION" />
+            <SurfaceHeader id="intent-title" index="Your action" title="Proposed shield" description="One token, one deposit action, one final user decision." badge="ONE ACTION" />
             <div className="surface-body">
               <div className={`wallet-row ${capability === null ? "wallet-row-disconnected" : "wallet-row-connected"}`} data-motion-item>
                 <div className="wallet-status-icon"><WalletCards size={18} /></div>
@@ -594,12 +602,12 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
           </section>
 
           <section className="surface evidence-surface" aria-labelledby="evidence-title" data-motion-section>
-            <SurfaceHeader id="evidence-title" index="02 / Verify" title="Cutout check" description="Deterministic public evidence for the exact intent." badge={<StateBadge state={state} />} />
+            <SurfaceHeader id="evidence-title" index="Public evidence" title="Cutout check" description="Deterministic public evidence for the exact intent." badge={<StateBadge state={state} />} />
             {currentDecision === null ? (
               <EmptyEvidence state={state} />
             ) : (
               <div data-state-reveal>
-                <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`} data-motion-item>
+                <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`} role="status" aria-live="polite" data-motion-item>
                   <div className="decision-hero-top"><span className="decision-kicker"><CheckCircle2 size={14} /> Deterministic result</span><span className="decision-model">{currentDecision.modelVersion}</span></div>
                   <div className="decision-mainline"><span className={`decision-band ${bandClass(currentDecision.riskBand)}`}>{currentDecision.riskBand}</span><div className="decision-copy"><strong>{currentDecision.decision}</strong><span>Operational guard decision under GUARD_POLICY-v1</span></div></div>
                 </div>
@@ -633,6 +641,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
             )}
           </section>
           </div>
+          <TrustMarquee bootstrap={bootstrap} />
         </div>
 
         {state === "PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode={selection === null ? "preflight" : "final"} /> : null}
@@ -669,14 +678,14 @@ function InlineProofMark() {
 
 function TrustMarquee({ bootstrap }: { readonly bootstrap: AvailableWebBootstrap }) {
   const items = [
-    { icon: <Database size={15} />, label: "Canonical snapshot", value: bootstrap.snapshot.engineVersion },
+    { icon: <Database size={15} />, label: "Public snapshot", value: "Canonical" },
     { icon: <Clock3 size={15} />, label: "Observed block", value: bootstrap.snapshot.observedBlock.toLocaleString() },
-    { icon: <LockKeyhole size={15} />, label: "Signing boundary", value: "Wallet-owned" },
-    { icon: <ShieldCheck size={15} />, label: "Decision source", value: "Public evidence" },
+    { icon: <LockKeyhole size={15} />, label: "Signing authority", value: "Your wallet" },
+    { icon: <ShieldCheck size={15} />, label: "Read path", value: "Read-only" },
   ];
 
   return (
-    <div className="trust-marquee" aria-label="Cutout guarantees" data-motion-section>
+    <div className="trust-marquee" aria-label="Cutout operating boundaries" data-motion-section>
       <div className="trust-marquee-viewport">
         <div className="trust-marquee-track">
           {items.map((item) => (
@@ -716,11 +725,11 @@ function FlowRail({ state }: { readonly state: FlowState }) {
         {FLOW_STEPS.map((step, index) => (
         <li
           className={`flow-step ${index < active ? "is-complete" : index === active ? "is-active" : ""}`}
-          key={step}
+          key={step.label}
           aria-current={index === active ? "step" : undefined}
         >
           <span className="flow-step-marker">{index < active ? <Check size={13} /> : String(index + 1).padStart(2, "0")}</span>
-          <span className="flow-step-label">{step}</span>
+          <span className="flow-step-copy"><span className="flow-step-label">{step.label}</span><span className="flow-step-owner">{step.owner}</span></span>
           {index < FLOW_STEPS.length - 1 ? <span className="flow-step-line" aria-hidden="true"><span className="flow-step-progress" /></span> : null}
         </li>
         ))}
@@ -847,7 +856,7 @@ function ReviewPanel({
 }) {
   return (
     <section className="surface review-surface" aria-labelledby="review-title" data-state-reveal>
-      <SurfaceHeader id="review-title" index="03 / Review" title="Final review" description="The exact action below is the only action eligible for wallet simulation." badge="FINAL INTENT" />
+      <SurfaceHeader id="review-title" index="Before signing" title="Final review" description="The exact action below is the only action eligible for wallet simulation." badge="FINAL INTENT" />
       <div className="review-hero" data-motion-item><div><span className="section-kicker">Exact action</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong></div><div className="review-decision"><span className={`decision-band ${bandClass(response.riskBand)}`}>{response.riskBand}</span><span className="review-decision-label">{response.decision} | {response.riskBand}</span></div></div>
       <div className="review-block" data-motion-item>
         <dl className="review-list">
@@ -883,8 +892,8 @@ function ConfirmationPanel({
   readonly onSubmit: () => void;
 }) {
   return (
-    <section className="surface confirmation-surface" aria-labelledby="confirmation-title" data-state-reveal>
-      <SurfaceHeader id="confirmation-title" index="04 / Sign" title="Wallet confirmation" description="Review the exact single deposit action before the wallet opens its confirmation." badge="READY FOR CONFIRMATION" />
+    <section className="surface confirmation-surface" aria-labelledby="confirmation-title" aria-live="polite" data-state-reveal>
+      <SurfaceHeader id="confirmation-title" index="Wallet boundary" title="Wallet confirmation" description="Review the exact single deposit action before the wallet opens its confirmation." badge="READY FOR CONFIRMATION" />
       <div className="confirmation-hero" data-motion-item><div className="confirmation-icon"><CheckCircle2 size={24} /></div><div><span className="section-kicker">Simulation complete</span><strong>{token === undefined ? plan.selection.amount : formatTokenAmount(plan.selection.amount, token.decimals)} {token?.symbol}</strong><span>One typed deposit · {simulation.simulation.entryPoint}</span></div></div>
       <div className="confirmation-status-grid" data-motion-item><div><strong>Simulation passed</strong><span>Final action checked</span></div><div><strong>No submission</strong><span>No transaction hash exists</span></div><div><strong>User wallet</strong><span>Only authority to confirm</span></div></div>
       <div className="review-block" data-motion-item>

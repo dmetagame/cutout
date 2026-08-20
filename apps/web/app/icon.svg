@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Cutout</title>
+  <rect width="64" height="64" rx="14" fill="#102633"/>
+  <path d="M32 14 47 20v11c0 9.8-6.1 16.5-15 19-8.9-2.5-15-9.2-15-19V20l15-6Z" fill="none" stroke="#fff" stroke-width="3.5"/>
+  <path d="m25 32 5 5 10-11" fill="none" stroke="#80d8bc" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+</svg>

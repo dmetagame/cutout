@@ -19,7 +19,7 @@ test("a recommended deposit reaches wallet confirmation without broadcasting", a
   await installWalletHarness(page);
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Protect your STRK20 deposit before you sign." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Before your wallet signs, verify the action." })).toBeVisible();
   await expect(page.getByText("0xb32956e5...95861e50")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(true);
@@ -111,6 +111,9 @@ test("the final review remains stable across desktop, tablet, and mobile widths"
       scrollWidth: document.documentElement.scrollWidth,
     }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+    const rail = await page.locator(".flow-rail-shell").boundingBox();
+    expect(rail?.width ?? 0).toBeLessThanOrEqual(viewport.width);
+    await expect(page.locator(".flow-step")).toHaveCount(4);
     await expect(finalReview).toBeVisible();
     await expect(page.getByRole("button", { name: "Simulate in wallet" })).toBeVisible();
   }
@@ -153,7 +156,7 @@ test("motion preference changes cleanly switch the scrolling and reveal systems"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
-  await expect(page.getByRole("heading", { name: "Protect your STRK20 deposit before you sign." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Before your wallet signs, verify the action." })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");

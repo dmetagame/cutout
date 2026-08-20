@@ -19,14 +19,29 @@ function revealStatePanel(scope: HTMLElement): void {
   const timeline = gsap.timeline();
   timeline.fromTo(
     panel,
-    { autoAlpha: 0.72, y: 14, scale: 0.994 },
-    { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, ease: ENTER_EASE },
+    { autoAlpha: 0.86, y: 12 },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.32,
+      ease: ENTER_EASE,
+      overwrite: "auto",
+      clearProps: "opacity,transform,visibility",
+    },
   );
   if (items.length > 0) {
     timeline.fromTo(
       items,
-      { autoAlpha: 0.78, y: 7 },
-      { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.035, ease: ENTER_EASE },
+      { autoAlpha: 0.9, y: 6 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.26,
+        stagger: 0.03,
+        ease: ENTER_EASE,
+        overwrite: "auto",
+        clearProps: "opacity,transform,visibility",
+      },
       "-=0.18",
     );
   }
@@ -45,12 +60,12 @@ export function useWorkflowMotion(
       const intro = gsap.utils.toArray<HTMLElement>("[data-motion-intro]", root);
       gsap.fromTo(
         intro,
-        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 0, y: 14 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.52,
-          stagger: 0.07,
+          duration: 0.46,
+          stagger: 0.055,
           ease: ENTER_EASE,
           clearProps: "opacity,transform,visibility",
         },
@@ -58,41 +73,61 @@ export function useWorkflowMotion(
 
       const sections = gsap.utils.toArray<HTMLElement>("[data-motion-section]", root);
       sections.forEach((section) => {
-        gsap.fromTo(
-          section,
-          { autoAlpha: 0.35, y: 22, scale: 0.992 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.5,
-            ease: ENTER_EASE,
-            clearProps: "opacity,transform,visibility",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 91%",
-              once: true,
-            },
+        ScrollTrigger.create({
+          trigger: section,
+          start: "clamp(top 92%)",
+          once: true,
+          onEnter: () => {
+            gsap.fromTo(
+              section,
+              { autoAlpha: 0.88, y: 14 },
+              {
+                autoAlpha: 1,
+                y: 0,
+                duration: 0.42,
+                ease: ENTER_EASE,
+                overwrite: "auto",
+                clearProps: "opacity,transform,visibility",
+              },
+            );
           },
-        );
+        });
       });
     });
-    media.add(`(min-width: 1024px) and ${ENHANCED_MOTION_QUERY}`, () => {
-      const stage = root.querySelector<HTMLElement>(".workflow-stage");
-      const rail = root.querySelector<HTMLElement>(".flow-rail-shell");
-      if (stage === null || rail === null) return;
+    const stage = root.querySelector<HTMLElement>(".workflow-stage");
+    const rail = root.querySelector<HTMLElement>(".flow-rail-shell");
+    const desktopMotion = window.matchMedia(`(min-width: 1024px) and ${ENHANCED_MOTION_QUERY}`);
+    let pin: ScrollTrigger | null = null;
 
-      ScrollTrigger.create({
+    const clearPin = () => {
+      pin?.kill();
+      pin = null;
+      if (rail !== null) gsap.set(rail, { clearProps: "all" });
+    };
+
+    const configurePin = () => {
+      clearPin();
+      if (!desktopMotion.matches || stage === null || rail === null) return;
+
+      pin = ScrollTrigger.create({
         trigger: stage,
         start: "top 82px",
-        end: "+=96",
+        end: "bottom top+=150",
         pin: rail,
-        pinSpacing: true,
+        pinSpacing: false,
         anticipatePin: 1,
       });
-    });
+      ScrollTrigger.refresh();
+    };
 
-    return () => media.revert();
+    configurePin();
+    desktopMotion.addEventListener("change", configurePin);
+
+    return () => {
+      desktopMotion.removeEventListener("change", configurePin);
+      clearPin();
+      media.revert();
+    };
   }, { scope });
 
   useGSAP(() => {
@@ -105,8 +140,8 @@ export function useWorkflowMotion(
       if (activeMarker !== null) {
         gsap.fromTo(
           activeMarker,
-          { scale: 0.82 },
-          { scale: 1, duration: 0.36, ease: "back.out(1.7)" },
+          { scale: 0.9 },
+          { scale: 1, duration: 0.28, ease: ENTER_EASE, overwrite: "auto" },
         );
       }
 
@@ -120,6 +155,7 @@ export function useWorkflowMotion(
       }
 
       revealStatePanel(root);
+      ScrollTrigger.refresh();
     });
     return () => media.revert();
   }, { scope, dependencies: [state], revertOnUpdate: true });
