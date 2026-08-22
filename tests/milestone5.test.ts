@@ -53,6 +53,7 @@ test("the live release smoke is public-data-only and cannot submit", () => {
   }
   assert.match(smoke, /transactionSubmitted: false/);
   assert.match(smoke, /broadcastMethodInvoked: false/);
+  assert.match(smoke, /modelVersion: CUTOUT_MODEL_V1_4\.version/);
   assert.equal(spike.includes("${config.rpcUrl}"), false);
   assert.match(spike, /URL redacted/);
 });

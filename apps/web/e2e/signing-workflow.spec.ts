@@ -262,6 +262,7 @@ test("unsupported Wallet API fails closed", async ({ page }) => {
 });
 
 test("simulation failure never exposes the confirmation call", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2_000_000_000_000));
   await installWalletHarness(page, { simulationFailure: "Protocol simulation rejected." });
   await page.goto("/");
   await prepareFlexibleDeposit(page);

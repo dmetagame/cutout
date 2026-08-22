@@ -35,7 +35,10 @@ async function main(): Promise<void> {
     modelVersion: CUTOUT_MODEL_V1_4.version,
   });
   const server = createPreflightHttpServer(
-    new PreflightService(store, config, abi, { now: () => now }),
+    new PreflightService(store, config, abi, {
+      now: () => now,
+      modelVersion: CUTOUT_MODEL_V1_4.version,
+    }),
     () => {},
     () => {
       const report = buildOperationalHealthReport({
