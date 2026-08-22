@@ -1,5 +1,22 @@
 # Cutout release evidence
 
+## v0.2.0 production verification
+
+This section is completed after the v0.2.0 deployment smoke. It must retain the
+separate distinction between live non-submitting evidence and the historical
+Milestone 3 transaction.
+
+| Item | Observed value |
+|---|---|
+| Verification URL | `https://cutout.rouma.online` |
+| Release | `v0.2.0` |
+| Deployed commit | recorded after deployment |
+| Engine | `CUTOUT-v1.4` |
+| Policies | `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1` |
+| Transaction state | no new transaction submitted |
+
+The v0.1.4 record below is historical and remains unchanged.
+
 **Candidate date:** 2026-08-20
 
 ## Identity

@@ -1,6 +1,27 @@
 # Cutout Release Manifests
 
-## Current release: v0.1.4
+## Current release: v0.2.0
+
+**Prepared:** 2026-08-22
+
+| Field | Value |
+|---|---|
+| Release | `v0.2.0` |
+| Release commit | recorded after the release commit is created |
+| Package | `@cutout/guard@0.2.0` |
+| Production | `https://cutout.rouma.online` |
+| Engine/policies | `CUTOUT-v1.4` / `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1` |
+| npm publication | Not claimed; owner authorization remains required |
+
+The v0.2.0 release adds the named CUTOUT-v1.4 successor: public Withdrawal
+ingestion and analysis, withdrawal-only S2/S3, S7 round-amount detection,
+deterministic WAIT advice, a wallet-free cover ledger and amount ladder, and an
+evidence-only React package surface. CUTOUT-v1.3 remains replayable. Deposit
+wallet execution, receipt verification, and the wallet authority boundary are
+unchanged. Production evidence is recorded after deployment in
+`docs/RELEASE_EVIDENCE.md`.
+
+## Historical release: v0.1.4
 
 **Prepared:** 2026-08-20
 

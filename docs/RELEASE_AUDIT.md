@@ -2,7 +2,7 @@
 
 **Review date:** 2026-08-20
 
-This review treats CUTOUT-v1.3, FRESHNESS_POLICY-v1, GUARD_POLICY-v1, the
+This review treats CUTOUT-v1.3, CUTOUT-v1.4, FRESHNESS_POLICY-v1, GUARD_POLICY-v1, the
 canonical indexer, WalletAccountV6 flow, and receipt binding as frozen
 foundations. No scoring or signing behavior was changed.
 
@@ -77,6 +77,17 @@ a decision or risk band, then recovered after a complete snapshot stabilized.
 No release-blocking security defect was found. npm publication remains an
 owner-authorized external action and was not attempted because `npm whoami`
 returned `401 Unauthorized`.
+
+## v0.2.0 successor review
+
+The v0.2.0 candidate adds public Withdrawal observation and analysis, S7 and
+WAIT, the cover ledger/amount ladder, and an evidence-only React package
+surface. CUTOUT-v1.3 remains an exact replay path. Withdrawal analysis stops
+before wallet simulation and submission; the only wallet execution path remains
+the existing typed deposit seam. The candidate verification passed 155 root
+tests, 21 Milestone 4 tests, 5 Milestone 5 tests, 4 package tests, 14 browser
+E2E tests, typechecks, production build, package consumer verification, and
+zero-invoke wallet fixture checks. No new transaction is part of this release.
 
 ## v0.1.3 final patch review
 

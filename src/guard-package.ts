@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "./engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "./engine/constants.js";
 import type { Band, Decision, SignalResult } from "./engine/types.js";
 import type {
   AvailablePreflightApiResponse,
@@ -8,8 +8,10 @@ import type {
   WireCohortQuality,
   WireExactFlexibility,
   WireFlexibleFlexibility,
+  WireIntent,
   WireRecommendation,
   WireShieldIntent,
+  WireWithdrawIntent,
 } from "./api/types.js";
 import {
   MAINNET_TOKENS,
@@ -71,7 +73,9 @@ export const CUTOUT_GUARD_API_VERSION = "CUTOUT_GUARD_API-v1" as const;
 
 export const CUTOUT_VERSIONS = Object.freeze({
   packageApi: CUTOUT_GUARD_API_VERSION,
-  model: CUTOUT_MODEL.version,
+  model: CUTOUT_MODEL_V1_4.version,
+  replayModel: CUTOUT_MODEL.version,
+  supportedModels: Object.freeze([CUTOUT_MODEL.version, CUTOUT_MODEL_V1_4.version] as const),
   guardPolicy: GUARD_POLICY.version,
   freshnessPolicy: FRESHNESS_POLICY.version,
   receiptSchema: RECEIPT_SCHEMA_VERSION,
@@ -140,7 +144,9 @@ export type {
   WireCohortQuality,
   WireExactFlexibility,
   WireFlexibleFlexibility,
+  WireIntent,
   WireRecommendation,
   WireShieldIntent,
+  WireWithdrawIntent,
   WorkflowErrorCode,
 };

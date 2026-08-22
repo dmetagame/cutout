@@ -1,8 +1,8 @@
 import type {
   PreflightApiResponse,
   WireCohortQuality,
+  WireIntent,
   WireRecommendation,
-  WireShieldIntent,
 } from "../api/types.js";
 
 export type PreflightClientFailureCode =
@@ -74,11 +74,13 @@ function recommendation(value: unknown): value is WireRecommendation {
   if (!isRecord(value) || typeof value.kind !== "string") return false;
   if (value.kind === "NO_SAFER_EXECUTION") return typeof value.reason === "string";
   return (
-    value.kind === "CHANGE_AMOUNT" &&
-    typeof value.from === "string" &&
-    typeof value.to === "string" &&
-    typeof value.absoluteDeviation === "string" &&
-    cohort(value.cohort)
+    value.kind === "WAIT"
+      ? integerNonnegative(value.suggestedHorizonSeconds) && typeof value.reason === "string"
+      : value.kind === "CHANGE_AMOUNT" &&
+        typeof value.from === "string" &&
+        typeof value.to === "string" &&
+        typeof value.absoluteDeviation === "string" &&
+        cohort(value.cohort)
   );
 }
 
@@ -105,7 +107,7 @@ function available(value: Record<string, unknown>): boolean {
     !integerNonnegative(value.candidateCohort.projectedCohort) ||
     value.signals.some((signal) =>
       !isRecord(signal) ||
-      !["S1", "S2", "S3", "S4", "S5"].includes(String(signal.id)) ||
+      !["S1", "S2", "S3", "S4", "S5", "S7"].includes(String(signal.id)) ||
       !["FIRED", "CLEAR", "NOT_APPLICABLE"].includes(String(signal.status)) ||
       typeof signal.summary !== "string"
     )
@@ -150,7 +152,7 @@ export function parsePreflightApiResponse(value: unknown): PreflightApiResponse 
 
 export async function requestPreflight(
   fetcher: PreflightFetch,
-  intent: WireShieldIntent,
+  intent: WireIntent,
   options: {
     readonly endpoint?: string;
     readonly signal?: AbortSignal;

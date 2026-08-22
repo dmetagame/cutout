@@ -4,16 +4,17 @@
 **Target:** hackathon/demo mainnet deployment package
 **Execution authority:** browser wallet only
 
-**Current external deployment status:** LIVE and verified.
+**v0.2.0 deployment status:** pending the separate production smoke recorded
+below.
 
 Production endpoint: [`https://cutout.rouma.online`](https://cutout.rouma.online)
 
-The endpoint serves the `v0.1.4` application release behind HTTPS termination.
-The deployment uses one supervised indexer writer and one read-only Next.js/API
-process sharing a persistent SQLite volume. Public verification has confirmed
-HTTP-to-HTTPS redirect behavior, `GET /api/health` readiness, a current
-complete snapshot, a successful non-submitting preflight, and no externally
-reachable application port `3000`.
+The endpoint is the production target for the `v0.2.0` application release
+behind HTTPS termination. The deployment uses one supervised indexer writer
+and one read-only Next.js/API process sharing a persistent SQLite volume. The
+post-deployment record must confirm HTTP-to-HTTPS redirect behavior,
+`GET /api/health` readiness, a current complete snapshot, a successful
+non-submitting preflight, and no externally reachable application port `3000`.
 
 Cutout deploys as two processes sharing one persistent public read model:
 
@@ -109,11 +110,25 @@ Both containers run as the unprivileged Node user, drop Linux capabilities,
 set `no-new-privileges`, and use an init process for signal forwarding. The
 runtime image prunes development dependencies.
 
-## v0.1.4 production verification record
+## v0.2.0 production verification record
 
-The current deployment is the annotated `v0.1.4` release. The observations
-below deliberately separate a stable health sample, the later live browser
-preflight, and transient synchronization states.
+The current v0.2.0 deployment record is completed after the release host has
+been rebuilt and the live smoke has passed. It must record the deployed commit,
+model-matched snapshot, preflight evidence, browser smoke, and zero-invoke
+wallet fixture. The historical v0.1.4 record follows unchanged.
+
+| Check | Result |
+|---|---|
+| URL | `https://cutout.rouma.online` |
+| Release | `v0.2.0` / deployed commit recorded after deployment |
+| Engine | `CUTOUT-v1.4` |
+| Wallet boundary | deposit simulation only; no confirmation or submission |
+
+## Historical v0.1.4 production verification record
+
+At the time of this historical record, production ran the annotated `v0.1.4`
+release. The observations below deliberately separate a stable health sample,
+the later live browser preflight, and transient synchronization states.
 
 | Check | Result |
 |---|---|
@@ -219,10 +234,13 @@ CUTOUT_BACKUP_PATH=/srv/cutout/backups/cutout-$(date +%Y%m%d-%H%M%S).sqlite \
 npm run db:backup
 ```
 
-The backup command refuses to overwrite an existing file. Verify a backup by
-opening it read-only, running SQLite `quick_check` against that copy, and
-checking `/api/health` with the restored runtime. The live request-time health
-path does not run a deep database scan.
+The backup command reads and reports the database's stored schema, ABI, and
+model identity without forcing a v1.3 or v1.4 application runtime over the
+source. It refuses to overwrite an existing file or copy a database belonging
+to another chain/pool. Verify a backup by opening it read-only, running SQLite
+`quick_check` against that copy, and checking `/api/health` with the matching
+restored runtime. The live request-time health path does not run a deep
+database scan.
 
 To restore, stop both processes, retain the failed database files for forensic
 inspection, place the selected backup at `CUTOUT_DB_PATH`, then start the
@@ -238,9 +256,13 @@ indexer before the API. Never copy only one of a live database, WAL, or SHM set.
 5. Start the indexer and require a current complete snapshot.
 6. Start the API and verify `/api/health` before opening the demo.
 
-Schema v1 databases migrate forward to schema v2 in place. A code rollback is
-not assumed to understand a newer schema, which is why the pre-deployment
-backup is part of the rollback contract.
+Schema v1 databases migrate forward to the current schema in place. Release
+v0.2.0 uses schema version `4` and persists the model identity so a v1.3
+database is replayed before v1.4 evidence is served; a read-only model mismatch
+fails closed. A code rollback is not assumed to understand a newer schema,
+which is why the pre-deployment backup is part of the rollback contract. A
+rollback to v0.1.4 therefore restores the matching pre-deployment v1.3 database
+backup before starting the prior runtime.
 
 ## Deployment alternatives considered
 

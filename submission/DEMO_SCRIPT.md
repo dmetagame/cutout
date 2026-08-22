@@ -16,7 +16,7 @@ Explain that stale, partial, or inconsistent data makes evidence unavailable.
 
 **0:35-1:00 - Preflight**
 
-Enter one supported token and amount. Run Cutout. Expand the CUTOUT-v1.3
+Enter one supported token and amount. Run Cutout. Expand the CUTOUT-v1.4
 signals, exact-amount cohort, freshness, and non-claims. If a permitted
 recommendation exists, compare it; otherwise show `NO_SAFER_EXECUTION`.
 
@@ -48,9 +48,10 @@ it enters the shielded pool."
 
 **0:20-0:45 - What Cutout is**
 
-Point to the first-screen statement and the Propose -> Verify -> Review -> Sign
-rail. "Cutout is a deterministic signing guard. It checks current public pool
-conditions before the wallet is asked to sign."
+Point to the first-screen statement and the Propose -> Verify -> Review ->
+Simulate -> User Wallet rail. "Cutout is a deterministic signing guard. It
+checks current public pool conditions before the wallet is asked to simulate
+the exact action."
 
 **0:45-1:15 - Propose a shield**
 
@@ -61,7 +62,7 @@ wallet signing or transaction request has occurred.
 **1:15-1:45 - Show fresh public evidence**
 
 Run Cutout. Show the observed block, snapshot hash, source age, index lag, and
-`CUTOUT-v1.3` / `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1`. Open
+`CUTOUT-v1.4` / `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1`. Open
 `https://cutout.rouma.online/api/health` only briefly if the judge wants the raw
 operational record.
 
@@ -126,3 +127,25 @@ npm run test:e2e -- --grep "wrong-network|simulation failure"
 If the live RPC or wallet is unavailable, announce `REPLAY / FIXTURE MODE`
 before running the deterministic harness. Never describe fixture output as a
 new mainnet transaction.
+
+## CUTOUT-v1.4 depth path
+
+Announce: "This is the v1.4 public-edge analysis path. Any replay data is
+labeled as replay; the demo remains non-submitting and wallet-controlled."
+
+1. Start on the wallet-free Public cover ledger. Point to the selected token's
+   trailing exact-amount cohorts, unmatched-event share, address diversity,
+   active days, burst share, snapshot block/hash, and model identity.
+2. Switch the analysis selector from Deposit to Withdraw. Explain that
+   withdrawals are the second public STRK20 edge and that this path evaluates
+   exact counterpart and timing evidence without creating a wallet action.
+3. Run the typed withdrawal analysis. Show S2, S3, S7, the cohort quality, and
+   a deterministic `WAIT`, `CHANGE_AMOUNT`, or `NO_SAFER_EXECUTION` result.
+4. Select an in-bounds amount only if the user chooses it. Show the second
+   evidence check, then stop at `ANALYSIS ONLY`.
+5. Show the wallet fixture counters: withdrawal `prepareCalls=0` and
+   `invokeCalls=0`. Return to the production deposit demo before showing
+   `READY_FOR_CONFIRMATION` or the historical receipt.
+
+The v1.4 extension demonstrates STRK20 integration depth; it does not authorize
+or submit a transaction.

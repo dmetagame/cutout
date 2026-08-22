@@ -1,5 +1,6 @@
 import { loadPoolAbiFixture, reviewPoolAbi } from "../src/starknet/abi.js";
 import { mainnetConfig } from "../src/starknet/config.js";
+import { CUTOUT_MODEL_V1_4 } from "../src/engine/constants.js";
 import { CanonicalStore } from "../src/indexer/store.js";
 import { operationalRpcConfig } from "../src/operations/config.js";
 import { IndexerSupervisor } from "../src/operations/indexer-supervisor.js";
@@ -26,7 +27,12 @@ const intervalSeconds = positiveInteger(
   DEFAULT_INTERVAL_SECONDS,
 );
 const runOnce = process.argv.includes("--once");
-const store = new CanonicalStore({ path: databasePath, config, abi });
+const store = new CanonicalStore({
+  path: databasePath,
+  config,
+  abi,
+  modelVersion: CUTOUT_MODEL_V1_4.version,
+});
 const rpcManager = createRpcFailoverManager(rpcConfig, config.chainId, {
   onProviderState: (state) => store.recordRpcProviderState(state),
   onRpcFailure: () => store.recordRpcFailure(),
@@ -39,6 +45,7 @@ const supervisor = new IndexerSupervisor({
   intervalSeconds,
   initialBackoffMs: rpcConfig.initialBackoffMs,
   maximumBackoffMs: rpcConfig.maximumBackoffMs,
+  modelVersion: CUTOUT_MODEL_V1_4.version,
   selectRpc: () => rpcManager.select(),
   onProgress: (message) => console.log(JSON.stringify({ event: "indexer", message })),
 });

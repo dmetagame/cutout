@@ -1,7 +1,8 @@
 # Final adversarial security review
 
-**Release:** `v0.1.4` (UI-only patch inheriting the v0.1.3 security boundary)
-**Model:** `CUTOUT-v1.3`
+**Release baseline:** `v0.1.4` UI patch; v0.2.0 successor review is appended
+below.
+**Model baseline:** `CUTOUT-v1.3`; successor model `CUTOUT-v1.4`
 **Policies:** `GUARD_POLICY-v1`, `FRESHNESS_POLICY-v1`
 
 `PASS` means the implemented release enforces the documented boundary. It does
@@ -44,3 +45,13 @@ No release-blocking security defect was found. The strongest residual risks are
 compromised user software, colluding public-data providers, host availability,
 and telemetry outside the published passive-public-observer threat model.
 These are documented limitations, not converted into favorable Cutout results.
+
+## v0.2.0 successor boundary
+
+The v0.2.0 public-edge additions retain the same security boundary. Withdrawal
+observations discard encrypted payloads and retain only reviewed public fields;
+withdrawal analysis has no wallet action constructor or simulation path. S7 and
+WAIT are deterministic analysis outputs, not execution controls. The deposit
+guard, final revalidation, wallet simulation, explicit user approval, and
+independent receipt verification remain unchanged. The v1.3 replay tests pass
+bit-for-bit alongside the v1.4 tests.

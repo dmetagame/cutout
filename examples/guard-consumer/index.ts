@@ -30,6 +30,7 @@ const action = validateSingleDepositAction([{
 console.log(JSON.stringify({
   packageApi: CUTOUT_VERSIONS.packageApi,
   model: CUTOUT_VERSIONS.model,
+  replayModel: CUTOUT_VERSIONS.replayModel,
   chainId: intent.chainId,
   action,
 }));

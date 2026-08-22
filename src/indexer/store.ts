@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { backup as sqliteBackup, DatabaseSync } from "node:sqlite";
 
 import type { ReviewedPoolAbi } from "../starknet/abi.js";
+import { CUTOUT_MODEL } from "../engine/constants.js";
 import type { StarknetSpikeConfig } from "../starknet/config.js";
 import { normalizeAddress, normalizeFelt, normalizeTransactionHash } from "../starknet/felt.js";
 import { canonicalSnapshotJson, hashPublicSnapshot } from "../starknet/snapshot.js";
@@ -12,6 +13,7 @@ import type {
   PublicDepositObservation,
   PublicRegistrationObservation,
   PublicSnapshot,
+  PublicWithdrawalObservation,
   SnapshotHash,
 } from "../starknet/types.js";
 import {
@@ -23,12 +25,13 @@ import type {
   IndexBatch,
   IndexedPoolEvent,
   IndexerState,
+  IndexerModelVersion,
   IndexerStatus,
   RpcProviderName,
   RpcProviderState,
 } from "./types.js";
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 4;
 const MAX_SNAPSHOT_HISTORY = 3;
 
 type SqlRow = Record<string, null | number | bigint | string | Uint8Array>;
@@ -105,8 +108,13 @@ function stateFromRow(row: SqlRow): IndexerState {
   ) {
     throw new DataLayerError("INDEX_CORRUPT", "Stored RPC provider identity is invalid.");
   }
+  const modelVersion = text(row, "model_version");
+  if (modelVersion !== "CUTOUT-v1.3" && modelVersion !== "CUTOUT-v1.4") {
+    throw new DataLayerError("INDEX_CORRUPT", "Stored indexer model identity is invalid.");
+  }
   return {
     status,
+    modelVersion,
     chainId: normalizeFelt(text(row, "chain_id"), "stored chain id"),
     poolAddress: normalizeAddress(text(row, "pool_address"), "stored pool address"),
     poolClassHash: normalizeFelt(text(row, "pool_class_hash"), "stored class hash"),
@@ -196,6 +204,9 @@ function eventStorageValues(event: IndexedPoolEvent): EventStorageValues {
       account: null,
     };
   }
+  if (event.normalized.kind === "withdrawal") {
+    throw new DataLayerError("INDEX_CORRUPT", "Withdrawal must use public_withdrawals storage.");
+  }
   const observation = event.normalized.observation;
   return {
     event_id: observation.eventId,
@@ -223,6 +234,7 @@ export interface CanonicalStoreOptions {
   readonly abi: ReviewedPoolAbi;
   readonly now?: () => number;
   readonly readOnly?: boolean;
+  readonly modelVersion?: IndexerModelVersion;
 }
 
 export class CanonicalStore {
@@ -232,6 +244,7 @@ export class CanonicalStore {
   readonly abi: ReviewedPoolAbi;
   readonly now: () => number;
   readonly readOnly: boolean;
+  modelVersion: IndexerModelVersion;
 
   constructor(options: CanonicalStoreOptions) {
     this.path = options.path === ":memory:" ? options.path : resolve(options.path);
@@ -239,6 +252,7 @@ export class CanonicalStore {
     this.abi = options.abi;
     this.now = options.now ?? (() => Math.floor(Date.now() / 1_000));
     this.readOnly = options.readOnly ?? false;
+    this.modelVersion = options.modelVersion ?? CUTOUT_MODEL.version;
     if (this.path !== ":memory:" && !this.readOnly) mkdirSync(dirname(this.path), { recursive: true });
     this.database = new DatabaseSync(this.path, {
       timeout: 5_000,
@@ -272,6 +286,7 @@ export class CanonicalStore {
         pool_address TEXT NOT NULL,
         pool_class_hash TEXT NOT NULL,
         abi_fixture_version TEXT NOT NULL,
+        model_version TEXT NOT NULL,
         source_from_block INTEGER,
         source_from_hash TEXT,
         source_from_timestamp INTEGER,
@@ -330,6 +345,32 @@ export class CanonicalStore {
       CREATE INDEX IF NOT EXISTS public_events_account_time_idx
         ON public_events(account, timestamp);
 
+      CREATE TABLE IF NOT EXISTS public_withdrawals (
+        event_id TEXT PRIMARY KEY,
+        block_number INTEGER NOT NULL,
+        block_hash TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        transaction_hash TEXT NOT NULL,
+        event_ordinal INTEGER NOT NULL,
+        event_selector TEXT NOT NULL,
+        source_address TEXT NOT NULL,
+        raw_key_count INTEGER NOT NULL,
+        raw_data_count INTEGER NOT NULL,
+        raw_public_json TEXT NOT NULL,
+        recipient TEXT NOT NULL,
+        token TEXT NOT NULL,
+        amount_decimal TEXT NOT NULL,
+        FOREIGN KEY (block_number) REFERENCES canonical_blocks(block_number) ON DELETE CASCADE,
+        UNIQUE (block_number, transaction_hash, event_ordinal)
+      );
+
+      CREATE INDEX IF NOT EXISTS public_withdrawals_time_idx
+        ON public_withdrawals(timestamp, block_number);
+      CREATE INDEX IF NOT EXISTS public_withdrawals_token_amount_idx
+        ON public_withdrawals(token, amount_decimal, timestamp);
+      CREATE INDEX IF NOT EXISTS public_withdrawals_recipient_time_idx
+        ON public_withdrawals(recipient, timestamp);
+
       CREATE TABLE IF NOT EXISTS ingestion_batches (
         batch_id TEXT PRIMARY KEY,
         from_block INTEGER NOT NULL,
@@ -377,7 +418,16 @@ export class CanonicalStore {
         ALTER TABLE indexer_state ADD COLUMN rpc_failure_count INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE indexer_state ADD COLUMN rpc_failover_count INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE indexer_state ADD COLUMN active_rpc_provider TEXT;
+        ALTER TABLE indexer_state ADD COLUMN model_version TEXT NOT NULL DEFAULT 'CUTOUT-v1.3';
       `);
+      this.database.prepare("UPDATE schema_meta SET value = '2' WHERE key = 'schema_version'").run();
+      this.database.prepare("UPDATE schema_meta SET value = ? WHERE key = 'schema_version'").run(
+        String(SCHEMA_VERSION),
+      );
+    } else if (version.value === "2" || version.value === "3") {
+      this.database.exec(
+        "ALTER TABLE indexer_state ADD COLUMN model_version TEXT NOT NULL DEFAULT 'CUTOUT-v1.3';",
+      );
       this.database.prepare("UPDATE schema_meta SET value = ? WHERE key = 'schema_version'").run(
         String(SCHEMA_VERSION),
       );
@@ -406,13 +456,14 @@ export class CanonicalStore {
       this.database.prepare(`
         INSERT INTO indexer_state(
           singleton, status, chain_id, pool_address, pool_class_hash,
-          abi_fixture_version, updated_at
-        ) VALUES(1, 'EMPTY', ?, ?, ?, ?, ?)
+          abi_fixture_version, model_version, updated_at
+        ) VALUES(1, 'EMPTY', ?, ?, ?, ?, ?, ?)
       `).run(
         this.config.chainId,
         this.config.poolAddress,
         this.abi.classHash,
         this.abi.fixtureVersion,
+        this.modelVersion,
         this.now(),
       );
       return;
@@ -428,8 +479,60 @@ export class CanonicalStore {
       state.poolClassHash !== this.abi.classHash ||
       state.poolAbiFixtureVersion !== this.abi.fixtureVersion
     ) {
+      if (
+        !this.readOnly &&
+        state.poolClassHash === this.abi.classHash &&
+        state.poolAbiFixtureVersion === "STRK20_POOL_ABI-v1" &&
+        this.abi.fixtureVersion === "STRK20_POOL_ABI-v2"
+      ) {
+        transaction(this.database, () => {
+          this.database.exec(`
+            DELETE FROM snapshots;
+            DELETE FROM ingestion_batches;
+            DELETE FROM public_withdrawals;
+            DELETE FROM public_events;
+            DELETE FROM canonical_blocks;
+          `);
+          this.database.prepare(`
+            UPDATE indexer_state
+            SET status = 'EMPTY', abi_fixture_version = ?,
+                source_from_block = NULL, source_from_hash = NULL,
+                source_from_timestamp = NULL, required_from_timestamp = NULL,
+                indexed_through_block = NULL, indexed_through_hash = NULL,
+                indexed_through_timestamp = NULL, active_snapshot_hash = NULL,
+                last_error_code = NULL, model_version = ?, updated_at = ?
+            WHERE singleton = 1
+          `).run(this.abi.fixtureVersion, this.modelVersion, this.now());
+        });
+        return;
+      }
       throw new DataLayerError("POOL_SCHEMA_MISMATCH", "Index database ABI identity is stale.");
     }
+    if (state.modelVersion !== this.modelVersion) {
+      if (this.readOnly) {
+        throw new DataLayerError(
+          "MODEL_VERSION_MISMATCH",
+          `Index database model ${state.modelVersion} does not match ${this.modelVersion}.`,
+        );
+      }
+      this.resetForReplay();
+    }
+  }
+
+  ensureModelVersion(modelVersion: IndexerModelVersion): void {
+    if (modelVersion !== "CUTOUT-v1.3" && modelVersion !== "CUTOUT-v1.4") {
+      throw new DataLayerError("MODEL_VERSION_MISMATCH", "Unsupported indexer model version.");
+    }
+    this.modelVersion = modelVersion;
+    const state = this.getState();
+    if (state.modelVersion === modelVersion) return;
+    if (this.readOnly) {
+      throw new DataLayerError(
+        "MODEL_VERSION_MISMATCH",
+        `Index database model ${state.modelVersion} does not match ${modelVersion}.`,
+      );
+    }
+    this.resetForReplay();
   }
 
   getState(): IndexerState {
@@ -602,6 +705,14 @@ export class CanonicalStore {
   }
 
   private insertEvent(event: IndexedPoolEvent): void {
+    if (event.normalized.kind === "withdrawal") {
+      this.insertWithdrawal(
+        event.raw,
+        event.rawPublicJson,
+        event.normalized.observation,
+      );
+      return;
+    }
     const values = eventStorageValues(event);
     const existing = this.database.prepare("SELECT * FROM public_events WHERE event_id = ?").get(
       values.event_id,
@@ -643,6 +754,67 @@ export class CanonicalStore {
         $raw_data_count, $raw_public_json, $depositor, $token, $amount_decimal, $account
       )
     `).run(values);
+  }
+
+  private insertWithdrawal(
+    raw: IndexedPoolEvent["raw"],
+    rawPublicJson: string,
+    observation: PublicWithdrawalObservation,
+  ): void {
+    const existing = this.database
+      .prepare("SELECT * FROM public_withdrawals WHERE event_id = ?")
+      .get(observation.eventId);
+    const incoming = {
+      eventId: observation.eventId,
+      blockNumber: observation.blockNumber,
+      blockHash: observation.blockHash,
+      timestamp: observation.timestamp,
+      transactionHash: observation.transactionHash,
+      eventOrdinal: observation.eventIndex,
+      eventSelector: observation.eventSelector,
+      rawPublicJson,
+    };
+    if (existing !== undefined) {
+      const comparable = {
+        eventId: text(existing, "event_id"),
+        blockNumber: integer(existing, "block_number"),
+        blockHash: text(existing, "block_hash"),
+        timestamp: integer(existing, "timestamp"),
+        transactionHash: text(existing, "transaction_hash"),
+        eventOrdinal: integer(existing, "event_ordinal"),
+        eventSelector: text(existing, "event_selector"),
+        rawPublicJson: text(existing, "raw_public_json"),
+      };
+      if (JSON.stringify(comparable) !== JSON.stringify(incoming)) {
+        throw new DataLayerError(
+          "INDEX_CORRUPT",
+          `Withdrawal identity ${observation.eventId} changed.`,
+        );
+      }
+      return;
+    }
+    this.database.prepare(`
+      INSERT INTO public_withdrawals(
+        event_id, block_number, block_hash, timestamp, transaction_hash,
+        event_ordinal, event_selector, source_address, raw_key_count,
+        raw_data_count, raw_public_json, recipient, token, amount_decimal
+      ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      observation.eventId,
+      observation.blockNumber,
+      observation.blockHash,
+      observation.timestamp,
+      observation.transactionHash,
+      observation.eventIndex,
+      observation.eventSelector,
+      raw.from_address,
+      raw.keys.length,
+      raw.data.length,
+      rawPublicJson,
+      observation.recipient,
+      observation.token,
+      observation.amount.toString(10),
+    );
   }
 
   commitBatch(batch: IndexBatch): void {
@@ -749,6 +921,7 @@ export class CanonicalStore {
       this.database.exec(`
         DELETE FROM snapshots;
         DELETE FROM ingestion_batches;
+        DELETE FROM public_withdrawals;
         DELETE FROM public_events;
         DELETE FROM canonical_blocks;
       `);
@@ -758,9 +931,9 @@ export class CanonicalStore {
             source_from_timestamp = NULL, required_from_timestamp = NULL,
             indexed_through_block = NULL, indexed_through_hash = NULL,
             indexed_through_timestamp = NULL, active_snapshot_hash = NULL,
-            updated_at = ?
+            model_version = ?, updated_at = ?
         WHERE singleton = 1
-      `).run(this.now());
+      `).run(this.modelVersion, this.now());
     });
   }
 
@@ -770,6 +943,7 @@ export class CanonicalStore {
 
   loadObservations(): {
     readonly deposits: readonly PublicDepositObservation[];
+    readonly withdrawals: readonly PublicWithdrawalObservation[];
     readonly registrations: readonly PublicRegistrationObservation[];
   } {
     const deposits: PublicDepositObservation[] = [];
@@ -810,7 +984,30 @@ export class CanonicalStore {
         });
       }
     }
-    return { deposits, registrations };
+    const withdrawals = this.database.prepare("SELECT * FROM public_withdrawals").all().map((row) => {
+      const recipient = normalizeAddress(text(row, "recipient"), "stored withdrawal recipient");
+      const token = normalizeAddress(text(row, "token"), "stored withdrawal token");
+      let amount: bigint;
+      try {
+        amount = BigInt(text(row, "amount_decimal"));
+      } catch {
+        throw new DataLayerError("INDEX_CORRUPT", "Stored withdrawal amount is invalid.");
+      }
+      return {
+        blockNumber: integer(row, "block_number") as number,
+        blockHash: normalizeFelt(text(row, "block_hash"), "stored withdrawal block hash"),
+        timestamp: integer(row, "timestamp") as number,
+        transactionHash: normalizeTransactionHash(text(row, "transaction_hash")),
+        eventIndex: integer(row, "event_ordinal") as number,
+        eventId: text(row, "event_id") as string,
+        eventSelector: normalizeFelt(text(row, "event_selector"), "stored withdrawal selector"),
+        recipient,
+        token,
+        amount,
+        normalizedFields: { recipient, token, amount: amount.toString(10) },
+      } satisfies PublicWithdrawalObservation;
+    });
+    return { deposits, withdrawals, registrations };
   }
 
   blockReferencesForSnapshot(extra: readonly BlockReference[]): readonly BlockReference[] {
@@ -818,7 +1015,8 @@ export class CanonicalStore {
       SELECT DISTINCT b.block_number, b.block_hash, b.parent_hash, b.timestamp
       FROM canonical_blocks b
       LEFT JOIN public_events e ON e.block_number = b.block_number
-      WHERE e.event_id IS NOT NULL
+      LEFT JOIN public_withdrawals w ON w.block_number = b.block_number
+      WHERE (e.event_id IS NOT NULL OR w.event_id IS NOT NULL)
          OR b.block_number IN (
            SELECT source_from_block FROM indexer_state WHERE singleton = 1
          )
@@ -964,17 +1162,27 @@ export class CanonicalStore {
     if (parsed === null || typeof parsed !== "object") {
       throw new DataLayerError("INDEX_CORRUPT", "Stored snapshot has an invalid shape.");
     }
-    const candidate = parsed as Omit<PublicSnapshot, "depositObservations"> & {
+    const candidate = parsed as Omit<PublicSnapshot, "depositObservations" | "withdrawalObservations"> & {
       depositObservations: Array<Omit<PublicDepositObservation, "amount"> & { amount: string }>;
+      withdrawalObservations?: Array<Omit<PublicWithdrawalObservation, "amount"> & { amount: string }>;
     };
     let snapshot: PublicSnapshot;
     try {
+      const { withdrawalObservations, ...candidateWithoutWithdrawals } = candidate;
       snapshot = {
-        ...candidate,
+        ...candidateWithoutWithdrawals,
         depositObservations: candidate.depositObservations.map((observation) => ({
           ...observation,
           amount: BigInt(observation.amount),
         })),
+        ...(withdrawalObservations === undefined
+          ? {}
+          : {
+              withdrawalObservations: withdrawalObservations.map((observation) => ({
+                ...observation,
+                amount: BigInt(observation.amount),
+              })),
+            }),
       };
     } catch {
       throw new DataLayerError("INDEX_CORRUPT", "Stored snapshot amounts are invalid.");
@@ -1006,7 +1214,7 @@ export class CanonicalStore {
     };
     return {
       blocks: count("canonical_blocks"),
-      events: count("public_events"),
+      events: count("public_events") + count("public_withdrawals"),
       batches: count("ingestion_batches"),
     };
   }

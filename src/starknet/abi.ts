@@ -40,7 +40,7 @@ export interface PoolAbiFixture {
 
 export interface ReviewedEventSchema {
   readonly fullName: string;
-  readonly leafName: "Deposit" | "ViewingKeySet";
+  readonly leafName: "Deposit" | "Withdrawal" | "ViewingKeySet";
   readonly selector: string;
   readonly keyFeltCount: number;
   readonly dataFeltCount: number;
@@ -52,6 +52,7 @@ export interface ReviewedPoolAbi {
   readonly poolAddress: string;
   readonly classHash: string;
   readonly deposit: ReviewedEventSchema;
+  readonly withdrawal: ReviewedEventSchema;
   readonly viewingKeySet: ReviewedEventSchema;
 }
 
@@ -189,7 +190,11 @@ function schemaFor(
   structs: ReadonlyMap<string, AbiStructFixture>,
 ): ReviewedEventSchema {
   const leafName = event.name.split("::").at(-1);
-  if (leafName !== "Deposit" && leafName !== "ViewingKeySet") {
+  if (
+    leafName !== "Deposit" &&
+    leafName !== "Withdrawal" &&
+    leafName !== "ViewingKeySet"
+  ) {
     throw new SpikeError("POOL_ABI_INVALID", `Unsupported reviewed event ${event.name}.`);
   }
   const keyFeltCount =
@@ -210,18 +215,27 @@ function schemaFor(
 }
 
 function assertExpectedMembers(event: AbiEventFixture): void {
-  const expected =
-    event.name.endsWith("::Deposit")
-      ? [
-          ["user_addr", "core::starknet::contract_address::ContractAddress", "key"],
-          ["token", "core::starknet::contract_address::ContractAddress", "key"],
-          ["amount", "core::integer::u128", "data"],
-        ]
-      : [
-          ["user_addr", "core::starknet::contract_address::ContractAddress", "key"],
-          ["public_key", "core::felt252", "key"],
-          ["enc_private_key", "privacy::objects::EncPrivateKey", "data"],
-        ];
+  let expected: readonly (readonly string[])[];
+  if (event.name.endsWith("::Deposit")) {
+    expected = [
+      ["user_addr", "core::starknet::contract_address::ContractAddress", "key"],
+      ["token", "core::starknet::contract_address::ContractAddress", "key"],
+      ["amount", "core::integer::u128", "data"],
+    ];
+  } else if (event.name.endsWith("::Withdrawal")) {
+    expected = [
+      ["enc_user_addr", "privacy::objects::EncUserAddr", "data"],
+      ["to_addr", "core::starknet::contract_address::ContractAddress", "key"],
+      ["token", "core::starknet::contract_address::ContractAddress", "key"],
+      ["amount", "core::integer::u128", "data"],
+    ];
+  } else {
+    expected = [
+      ["user_addr", "core::starknet::contract_address::ContractAddress", "key"],
+      ["public_key", "core::felt252", "key"],
+      ["enc_private_key", "privacy::objects::EncPrivateKey", "data"],
+    ];
+  }
   const actual = event.members.map((member) => [member.name, member.type, member.kind]);
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new SpikeError("POOL_ABI_INVALID", `${event.name} does not match the reviewed schema.`);
@@ -231,15 +245,25 @@ function assertExpectedMembers(event: AbiEventFixture): void {
 export function reviewPoolAbi(fixture: PoolAbiFixture): ReviewedPoolAbi {
   const structs = new Map(fixture.types.map((type) => [type.name, type]));
   const depositEvent = fixture.events.find((event) => event.name.endsWith("::Deposit"));
+  const withdrawalEvent = fixture.events.find((event) =>
+    event.name.endsWith("::Withdrawal"),
+  );
   const viewingEvent = fixture.events.find((event) =>
     event.name.endsWith("::ViewingKeySet"),
   );
-  if (depositEvent === undefined || viewingEvent === undefined || fixture.events.length !== 2) {
-    throw new SpikeError("POOL_ABI_INVALID", "The reviewed ABI must contain exactly two events.");
+  if (
+    depositEvent === undefined ||
+    withdrawalEvent === undefined ||
+    viewingEvent === undefined ||
+    fixture.events.length !== 3
+  ) {
+    throw new SpikeError("POOL_ABI_INVALID", "The reviewed ABI must contain exactly three events.");
   }
   assertExpectedMembers(depositEvent);
+  assertExpectedMembers(withdrawalEvent);
   assertExpectedMembers(viewingEvent);
   const deposit = schemaFor(depositEvent, structs);
+  const withdrawal = schemaFor(withdrawalEvent, structs);
   const viewingKeySet = schemaFor(viewingEvent, structs);
   if (deposit.keyFeltCount !== 3 || deposit.dataFeltCount !== 1) {
     throw new SpikeError("POOL_ABI_INVALID", "Deposit event width is invalid.");
@@ -247,12 +271,16 @@ export function reviewPoolAbi(fixture: PoolAbiFixture): ReviewedPoolAbi {
   if (viewingKeySet.keyFeltCount !== 3 || viewingKeySet.dataFeltCount !== 3) {
     throw new SpikeError("POOL_ABI_INVALID", "ViewingKeySet event width is invalid.");
   }
+  if (withdrawal.keyFeltCount !== 3 || withdrawal.dataFeltCount !== 4) {
+    throw new SpikeError("POOL_ABI_INVALID", "Withdrawal event width is invalid.");
+  }
   return {
     fixtureVersion: fixture.fixtureVersion,
     chainId: fixture.provenance.chainId,
     poolAddress: fixture.provenance.poolAddress,
     classHash: fixture.provenance.classHash,
     deposit,
+    withdrawal,
     viewingKeySet,
   };
 }

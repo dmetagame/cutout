@@ -17,6 +17,15 @@ export interface ShieldIntent {
   deadline: number;
 }
 
+export interface WithdrawIntent {
+  action: "withdraw";
+  account: Address;
+  recipient: Address;
+  token: Address;
+  amount: AmountConstraint;
+  deadline: number;
+}
+
 export interface UnsupportedIntent {
   action: Exclude<Action, "shield">;
   account: Address;
@@ -26,6 +35,16 @@ export interface UnsupportedIntent {
 }
 
 export type Intent = ShieldIntent | UnsupportedIntent;
+
+export interface V14UnsupportedIntent {
+  action: Exclude<Action, "shield" | "withdraw">;
+  account: Address;
+  token: Address;
+  amount: AmountConstraint;
+  deadline: number;
+}
+
+export type V14Intent = ShieldIntent | WithdrawIntent | V14UnsupportedIntent;
 
 export interface DepositObservation {
   blockNumber: number;
@@ -43,6 +62,15 @@ export interface RegistrationObservation {
   account: Address;
 }
 
+export interface WithdrawalObservation {
+  blockNumber: number;
+  timestamp: number;
+  transactionHash: TransactionHash;
+  recipient: Address;
+  token: Address;
+  amount: bigint;
+}
+
 export interface PreflightInput {
   intent: Intent;
   now: number;
@@ -50,8 +78,17 @@ export interface PreflightInput {
   registrations: readonly RegistrationObservation[];
 }
 
+export interface PreflightInputV14 {
+  intent: V14Intent;
+  now: number;
+  deposits: readonly DepositObservation[];
+  withdrawals: readonly WithdrawalObservation[];
+  registrations: readonly RegistrationObservation[];
+  tokenDecimals: number;
+}
+
 export interface SignalResult {
-  id: "S1" | "S2" | "S3" | "S4" | "S5";
+  id: "S1" | "S2" | "S3" | "S4" | "S5" | "S7";
   status: "FIRED" | "CLEAR" | "NOT_APPLICABLE";
   summary: string;
 }
@@ -82,7 +119,16 @@ export interface RefusalRecommendation {
   reason: string;
 }
 
-export type Recommendation = AmountRecommendation | RefusalRecommendation;
+export interface WaitRecommendation {
+  kind: "WAIT";
+  suggestedHorizonSeconds: number;
+  reason: string;
+}
+
+export type Recommendation =
+  | AmountRecommendation
+  | WaitRecommendation
+  | RefusalRecommendation;
 
 export interface SupportedPreflightResult {
   status: "SUPPORTED";

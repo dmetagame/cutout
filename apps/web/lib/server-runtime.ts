@@ -3,7 +3,8 @@ import "server-only";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { CUTOUT_MODEL } from "@cutout/engine/constants";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "@cutout/engine/constants";
+import { buildPublicCover } from "@cutout/cover";
 import { DataLayerError } from "@cutout/indexer/errors";
 import { CanonicalStore } from "@cutout/indexer/store";
 import { loadPoolAbiFixture, reviewPoolAbi } from "@cutout/starknet/abi";
@@ -46,9 +47,16 @@ export async function loadWebBootstrap(): Promise<WebBootstrap> {
     const config = mainnetConfig();
     const abi = reviewPoolAbi(await loadPoolAbiFixture(resolve(root, "fixtures/pool-abi.json")));
     const databasePath = resolve(root, process.env.CUTOUT_DB_PATH ?? "data/cutout.sqlite");
-    const store = new CanonicalStore({ path: databasePath, config, abi, readOnly: true });
+    const store = new CanonicalStore({
+      path: databasePath,
+      config,
+      abi,
+      readOnly: true,
+      modelVersion: CUTOUT_MODEL_V1_4.version,
+    });
     try {
       const snapshot = store.loadCompleteSnapshot();
+      const cover = buildPublicCover({ snapshot, config, abi, now });
       return {
         status: "AVAILABLE",
         runtimeMode: mode,
@@ -79,6 +87,8 @@ export async function loadWebBootstrap(): Promise<WebBootstrap> {
           guardPolicyVersion: GUARD_POLICY.version,
         },
         depositSelector: abi.deposit.selector,
+        withdrawalSelector: abi.withdrawal.selector,
+        cover,
       };
     } finally {
       store.close();
@@ -101,7 +111,13 @@ export async function openPreflightRuntime() {
   const config = mainnetConfig();
   const abi = reviewPoolAbi(await loadPoolAbiFixture(resolve(root, "fixtures/pool-abi.json")));
   const databasePath = resolve(root, process.env.CUTOUT_DB_PATH ?? "data/cutout.sqlite");
-  const store = new CanonicalStore({ path: databasePath, config, abi, readOnly: true });
+  const store = new CanonicalStore({
+    path: databasePath,
+    config,
+    abi,
+    readOnly: true,
+    modelVersion: CUTOUT_MODEL_V1_4.version,
+  });
   return { root, config, abi, store };
 }
 
@@ -110,7 +126,13 @@ export async function openHealthRuntime() {
   const config = mainnetConfig();
   const abi = reviewPoolAbi(await loadPoolAbiFixture(resolve(root, "fixtures/pool-abi.json")));
   const databasePath = resolve(root, process.env.CUTOUT_DB_PATH ?? "data/cutout.sqlite");
-  const store = new CanonicalStore({ path: databasePath, config, abi, readOnly: true });
+  const store = new CanonicalStore({
+    path: databasePath,
+    config,
+    abi,
+    readOnly: true,
+    modelVersion: CUTOUT_MODEL_V1_4.version,
+  });
   return { root, config, abi, store };
 }
 

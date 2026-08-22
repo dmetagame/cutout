@@ -1,17 +1,20 @@
 # @cutout/guard integrator contract
 
-**Package:** `@cutout/guard@0.1.4`
+**Package:** `@cutout/guard@0.2.0` (root workflow surface plus an evidence-only
+React subpath)
 **API:** `CUTOUT_GUARD_API-v1`
 
-The current repository patch release is identified by `v0.1.4`; `v0.1.3`,
+The current repository release is identified by `v0.2.0`; `v0.1.4`, `v0.1.3`,
 `v0.1.2`, `v0.1.1`, and `v0.1.0` remain immutable prior releases. Until
 registry publication is independently verified, integrators should use the
 tested workspace build or packed tarball and must not infer that
-`npm install @cutout/guard@0.1.4` is available publicly.
+`npm install @cutout/guard@0.2.0` is not claimed as publicly published unless
+the registry action is independently completed.
 
-The package is a pure integration boundary around the frozen Cutout signing
-workflow. It does not discover wallets, submit transactions, index Starknet,
-open SQLite, or run the CUTOUT engine independently of the canonical API.
+The package is a pure integration boundary around the Cutout signing workflow.
+The v0.2.0 release includes the deposit execution surface and the
+evidence-only `CUTOUT-v1.4` public-edge types. It does not change the wallet
+boundary.
 
 ## Runtime exports
 
@@ -28,10 +31,13 @@ open SQLite, or run the CUTOUT engine independently of the canonical API.
 | `authorizeSubmission` | Require matching simulation, fresh evidence, warning acknowledgement when needed, and explicit user approval. |
 | `assertGuardedDepositPlan` / `assertSubmissionAuthorization` | Recheck serialized or retained guard state before a wallet boundary. |
 | `verifyDepositReceipt` | Verify public inclusion and exact account/pool/token/amount event binding. |
+| `@cutout/guard/react` | `useCutoutEvidence` and `CutoutEvidencePanel` for evidence presentation. |
 | amount helpers | Exact decimal/base-unit conversion without floating-point arithmetic. |
 
 The package also exports the corresponding TypeScript request, response,
-action, plan, simulation, authorization, and receipt types.
+action, plan, simulation, authorization, and receipt types. It transports typed
+withdrawal evidence and the `WAIT` recommendation shape;
+withdrawal execution is intentionally absent.
 
 ## Deliberately absent
 
@@ -44,8 +50,18 @@ There is no supported package export for:
 - SQLite/read-model access;
 - private keys, viewing keys, private notes, proofs, or shielded balances.
 
-Node package `exports` exposes only `.`. Deep paths are implementation details
-and are not part of the compatibility contract.
+Node package `exports` exposes only the reviewed `.` and `./react` subpaths.
+Deep paths are implementation details and are not part of the compatibility
+contract.
+
+## Evidence-only React surface
+
+The release exposes `@cutout/guard/react` as a small, CSS-variable-
+driven surface for another STRK20 application. It can request and render
+preflight evidence, including unavailable states, but it cannot import or call
+wallet discovery, simulation, authorization, invoke, or receipt submission.
+The package test and isolated consumer verify this export boundary. It remains
+evidence-only and cannot submit.
 
 ## Integration order
 
@@ -64,6 +80,10 @@ typed WireShieldIntent
     -> independent public receipt lookup
     -> verifyDepositReceipt
 ```
+
+For typed withdrawal analysis, stop after the second
+evidence check and render the analysis-only state. Do not reuse the deposit
+plan or invent a withdrawal wallet action.
 
 The integrator must never call its wallet submission method unless every prior
 step succeeds. The package intentionally cannot submit by itself.

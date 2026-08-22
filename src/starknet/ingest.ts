@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import type { PoolAbiFixture, ReviewedPoolAbi } from "./abi.js";
 import {
   assertLiveAbiMatchesFixture,
@@ -20,6 +20,7 @@ import type {
   PublicDepositObservation,
   PublicRegistrationObservation,
   PublicSnapshot,
+  PublicWithdrawalObservation,
 } from "./types.js";
 
 interface CollectedEvent {
@@ -33,6 +34,7 @@ export interface IngestSnapshotOptions {
   readonly fixture: PoolAbiFixture;
   readonly requiredFromTimestamp: number;
   readonly sourceFromBlock?: number;
+  readonly modelVersion?: "CUTOUT-v1.3" | "CUTOUT-v1.4";
   readonly onProgress?: (message: string) => void;
 }
 
@@ -158,6 +160,7 @@ export async function ingestPublicSnapshot(
     throw new SpikeError("SOURCE_INCOMPLETE", "Required source timestamp is invalid.");
   }
   const abi = reviewPoolAbi(options.fixture);
+  const useV14 = options.modelVersion === "CUTOUT-v1.4";
   const configuredChain = normalizeFelt(options.config.chainId, "configured chain id");
   const configuredPool = normalizeAddress(options.config.poolAddress, "configured pool");
   if (abi.chainId !== configuredChain || abi.poolAddress !== configuredPool) {
@@ -223,16 +226,31 @@ export async function ingestPublicSnapshot(
     0,
     options.onProgress,
   );
+  const withdrawalEvents = useV14
+    ? await collectSelectorEvents(
+        options.rpc,
+        options.config,
+        abi.withdrawal.selector,
+        sourceFromBlock,
+        sourceThroughBlock,
+        depositEvents.events.length,
+        options.onProgress,
+      )
+    : { events: [], pages: 0 };
   const viewingEvents = await collectSelectorEvents(
     options.rpc,
     options.config,
     abi.viewingKeySet.selector,
     sourceFromBlock,
     sourceThroughBlock,
-    depositEvents.events.length,
+    depositEvents.events.length + withdrawalEvents.events.length,
     options.onProgress,
   );
-  const collected = [...depositEvents.events, ...viewingEvents.events].sort(eventOrder);
+  const collected = [
+    ...depositEvents.events,
+    ...withdrawalEvents.events,
+    ...viewingEvents.events,
+  ].sort(eventOrder);
 
   const eventBlockNumbers = [...new Set(collected.map((event) => event.raw.block_number))];
   const missingBlockNumbers = eventBlockNumbers.filter((block) => !headerCache.has(block));
@@ -241,6 +259,7 @@ export async function ingestPublicSnapshot(
   progress(options, `retrieved exact metadata for ${eventBlockNumbers.length} event blocks`);
 
   const deposits: PublicDepositObservation[] = [];
+  const withdrawals: PublicWithdrawalObservation[] = [];
   const registrations: PublicRegistrationObservation[] = [];
   for (const [eventIndex, event] of collected.entries()) {
     const header = headerCache.get(event.raw.block_number);
@@ -255,6 +274,7 @@ export async function ingestPublicSnapshot(
       abi,
     );
     if (normalized.kind === "deposit") deposits.push(normalized.observation);
+    else if (normalized.kind === "withdrawal") withdrawals.push(normalized.observation);
     else registrations.push(normalized.observation);
   }
 
@@ -308,19 +328,22 @@ export async function ingestPublicSnapshot(
     requiredFromTimestamp: options.requiredFromTimestamp,
     sourceComplete: sourceFromHeader.timestamp <= options.requiredFromTimestamp,
     pagesComplete: true,
-    queriedSelectors: [abi.deposit.selector, abi.viewingKeySet.selector],
+    queriedSelectors: useV14
+      ? [abi.deposit.selector, abi.withdrawal.selector, abi.viewingKeySet.selector]
+      : [abi.deposit.selector, abi.viewingKeySet.selector],
     sourceParentBlock: sourceParent.blockNumber,
     sourceParentHash: sourceParent.blockHash,
     sourceDeclaredParentHash: revalidatedSource.parentHash,
     blockReferences,
     depositObservations: deposits,
+    ...(useV14 ? { withdrawalObservations: withdrawals } : {}),
     viewingKeyRegistrationObservations: registrations,
-    engineVersion: CUTOUT_MODEL.version,
+    engineVersion: useV14 ? CUTOUT_MODEL_V1_4.version : "CUTOUT-v1.3",
     freshnessPolicyVersion: FRESHNESS_POLICY.version,
   };
   return {
     snapshot,
     abi,
-    eventPages: depositEvents.pages + viewingEvents.pages,
+    eventPages: depositEvents.pages + withdrawalEvents.pages + viewingEvents.pages,
   };
 }

@@ -93,6 +93,27 @@ export function useWorkflowMotion(
           },
         });
       });
+
+      const coverRows = gsap.utils.toArray<HTMLElement>("[data-cover-row]", root);
+      if (coverRows.length > 0) {
+        gsap.fromTo(
+          coverRows,
+          { autoAlpha: 0, y: 8 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.34,
+            stagger: 0.04,
+            ease: ENTER_EASE,
+            clearProps: "opacity,transform,visibility",
+            scrollTrigger: {
+              trigger: root.querySelector(".cover-table-wrap"),
+              start: "clamp(top 88%)",
+              once: true,
+            },
+          },
+        );
+      }
     });
     const stage = root.querySelector<HTMLElement>(".workflow-stage");
     const rail = root.querySelector<HTMLElement>(".flow-rail-shell");
@@ -120,11 +141,17 @@ export function useWorkflowMotion(
       ScrollTrigger.refresh();
     };
 
+    const refreshPinLayout = () => {
+      ScrollTrigger.refresh();
+    };
+
     configurePin();
     desktopMotion.addEventListener("change", configurePin);
+    window.addEventListener("resize", refreshPinLayout);
 
     return () => {
       desktopMotion.removeEventListener("change", configurePin);
+      window.removeEventListener("resize", refreshPinLayout);
       clearPin();
       media.revert();
     };
@@ -155,6 +182,35 @@ export function useWorkflowMotion(
       }
 
       revealStatePanel(root);
+      const signalRows = gsap.utils.toArray<HTMLElement>("[data-signal-row]", root);
+      if (signalRows.length > 0) {
+        gsap.fromTo(
+          signalRows,
+          { autoAlpha: 0.75, y: 6 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.28,
+            stagger: 0.035,
+            ease: ENTER_EASE,
+            clearProps: "opacity,transform,visibility",
+          },
+        );
+        const fired = signalRows.filter((row) => row.classList.contains("is-fired"));
+        if (fired.length > 0) {
+          gsap.fromTo(
+            fired,
+            { backgroundColor: "rgba(180, 35, 45, 0.12)" },
+            {
+              backgroundColor: "rgba(180, 35, 45, 0.035)",
+              duration: 0.7,
+              delay: 0.12,
+              ease: "power2.out",
+              clearProps: "backgroundColor",
+            },
+          );
+        }
+      }
       ScrollTrigger.refresh();
     });
     return () => media.revert();

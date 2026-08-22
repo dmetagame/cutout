@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import { IncrementalPublicIndexer } from "../indexer/indexer.js";
 import { asDataLayerError } from "../indexer/errors.js";
 import type { CanonicalStore } from "../indexer/store.js";
@@ -15,6 +15,7 @@ export interface IndexerSupervisorOptions {
   readonly historyBufferSeconds?: number;
   readonly initialBackoffMs?: number;
   readonly maximumBackoffMs?: number;
+  readonly modelVersion?: "CUTOUT-v1.3" | "CUTOUT-v1.4";
   readonly now?: () => number;
   readonly selectRpc: () => Promise<RpcSelection>;
   readonly sleep?: (milliseconds: number) => Promise<void>;
@@ -47,6 +48,7 @@ export class IndexerSupervisor {
   readonly historyBufferSeconds: number;
   readonly initialBackoffMs: number;
   readonly maximumBackoffMs: number;
+  readonly modelVersion: "CUTOUT-v1.3" | "CUTOUT-v1.4";
   readonly now: () => number;
   readonly selectRpc: () => Promise<RpcSelection>;
   readonly sleep: (milliseconds: number) => Promise<void>;
@@ -72,6 +74,7 @@ export class IndexerSupervisor {
     this.historyBufferSeconds = historyBufferSeconds;
     this.initialBackoffMs = initialBackoffMs;
     this.maximumBackoffMs = maximumBackoffMs;
+    this.modelVersion = options.modelVersion ?? CUTOUT_MODEL.version;
     this.now = options.now ?? (() => Math.floor(Date.now() / 1_000));
     this.selectRpc = options.selectRpc;
     this.sleep = options.sleep ?? delay;
@@ -94,11 +97,16 @@ export class IndexerSupervisor {
         config: this.config,
         abi: this.abi,
         rpcProviderName: selection.provider,
+        modelVersion: this.modelVersion,
         now: this.now,
         ...(this.onProgress === undefined ? {} : { onProgress: this.onProgress }),
       });
       return await indexer.syncOnce(
-        this.now() - CUTOUT_MODEL.observationSeconds - this.historyBufferSeconds,
+        this.now() -
+          (this.modelVersion === CUTOUT_MODEL_V1_4.version
+            ? CUTOUT_MODEL_V1_4.observationSeconds
+            : CUTOUT_MODEL.observationSeconds) -
+          this.historyBufferSeconds,
       );
     } catch (error) {
       const failure = asDataLayerError(error, "RPC_UNAVAILABLE");

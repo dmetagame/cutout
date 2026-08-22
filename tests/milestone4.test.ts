@@ -540,6 +540,7 @@ test("schema v1 databases migrate in place without losing the frozen identity", 
 
   const migrated = openStore(path, () => clock);
   const state = migrated.getState();
+  assert.equal(state.modelVersion, CUTOUT_MODEL.version);
   assert.equal(state.chainId, config.chainId);
   assert.equal(state.poolAddress, config.poolAddress);
   assert.equal(state.rpcFailureCount, 0);
@@ -548,7 +549,11 @@ test("schema v1 databases migrate in place without losing the frozen identity", 
   const version = migrated.database
     .prepare("SELECT value FROM schema_meta WHERE key = 'schema_version'")
     .get() as { value: string };
-  assert.equal(version.value, "2");
+  assert.equal(version.value, "4");
+  const withdrawalTable = migrated.database
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'public_withdrawals'")
+    .get() as { name: string } | undefined;
+  assert.equal(withdrawalTable?.name, "public_withdrawals");
   migrated.close();
 });
 

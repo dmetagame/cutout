@@ -1,10 +1,15 @@
-# CUTOUT v0.1.4
+# CUTOUT v0.2.0
 
-Cutout v0.1.4 is a presentation-only patch release. The existing v0.1.3,
+Cutout v0.2.0 is the CUTOUT-v1.4 depth release. The existing v0.1.4, v0.1.3,
 v0.1.2, v0.1.1, and v0.1.0 tags and releases remain unchanged.
 
 ## Improved
 
+- Add typed public `Withdrawal` ingestion and analysis without adding a
+  withdrawal execution path.
+- Add withdrawal-only S2/S3 evidence, S7 round-amount detection, deterministic
+  `WAIT` advice, a wallet-free public cover ledger, and a live amount ladder.
+- Add the evidence-only `@cutout/guard/react` integration surface.
 - Add Lenis `1.3.26` smooth scrolling with native-feeling anchors and touch
   behavior.
 - Add a reusable GSAP `3.15.0` / `@gsap/react` `2.1.2` motion system for
@@ -17,10 +22,12 @@ v0.1.2, v0.1.1, and v0.1.0 tags and releases remain unchanged.
 - Improve responsive/mobile layout, keyboard focus, accessibility semantics,
   and reduced-motion behavior.
 
-No signing authority, autonomous execution, or transaction semantics were
-added. No changes were made to CUTOUT-v1.3, GUARD_POLICY-v1, or
-FRESHNESS_POLICY-v1. The indexer, preflight API, snapshot generation, database,
-receipt verification, and wallet execution boundary are unchanged.
+No signing authority, autonomous execution, or deposit transaction semantics
+were added. `CUTOUT-v1.3`, `GUARD_POLICY-v1`, `FRESHNESS_POLICY-v1`, receipt
+verification, and the wallet execution boundary remain unchanged. The named
+`CUTOUT-v1.4` successor intentionally extends the public observation, database,
+snapshot, and preflight surfaces for withdrawal analysis and cover evidence.
+That analysis stops before wallet simulation or submission.
 
 ## Verification boundary
 
@@ -35,4 +42,5 @@ The historical Milestone 3 transaction remains separate execution evidence:
 Cutout remains a signing guard, not a privacy guarantee. The backend cannot
 sign or broadcast, and users retain final wallet authority.
 
-Production deployment: `https://cutout.rouma.online` (`v0.1.4`)
+Production target: `https://cutout.rouma.online` (`v0.2.0` after the separate
+deployment smoke passes)

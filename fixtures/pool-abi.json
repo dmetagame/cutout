@@ -1,16 +1,16 @@
 {
-  "fixtureVersion": "STRK20_POOL_ABI-v1",
+  "fixtureVersion": "STRK20_POOL_ABI-v2",
   "provenance": {
     "chainId": "0x534e5f4d41494e",
     "poolAddress": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
     "classHash": "0x67dddd89d80fedadc06b6f160798f94800a4a70164e5a24301cd0d6076b554d",
-    "retrievedAtBlock": 13299711,
-    "retrievedOn": "2026-08-14",
+    "retrievedAtBlock": 13603754,
+    "retrievedOn": "2026-08-20",
     "rpcMethods": [
       "starknet_getClassHashAt",
       "starknet_getClass"
     ],
-    "review": "Projection of the two public event definitions used by Cutout; compared with the live deployed class ABI."
+    "review": "Projection of the three public event definitions used by Cutout; compared with the live deployed class ABI on two independent Starknet RPC providers."
   },
   "types": [
     {
@@ -30,6 +30,24 @@
           "type": "core::felt252"
         }
       ]
+    },
+    {
+      "type": "struct",
+      "name": "privacy::objects::EncUserAddr",
+      "members": [
+        {
+          "name": "auditor_public_key",
+          "type": "core::felt252"
+        },
+        {
+          "name": "ephemeral_pubkey",
+          "type": "core::felt252"
+        },
+        {
+          "name": "enc_user_addr",
+          "type": "core::felt252"
+        }
+      ]
     }
   ],
   "events": [
@@ -40,6 +58,33 @@
       "members": [
         {
           "name": "user_addr",
+          "type": "core::starknet::contract_address::ContractAddress",
+          "kind": "key"
+        },
+        {
+          "name": "token",
+          "type": "core::starknet::contract_address::ContractAddress",
+          "kind": "key"
+        },
+        {
+          "name": "amount",
+          "type": "core::integer::u128",
+          "kind": "data"
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "privacy::events::Withdrawal",
+      "kind": "struct",
+      "members": [
+        {
+          "name": "enc_user_addr",
+          "type": "privacy::objects::EncUserAddr",
+          "kind": "data"
+        },
+        {
+          "name": "to_addr",
           "type": "core::starknet::contract_address::ContractAddress",
           "kind": "key"
         },

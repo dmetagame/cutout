@@ -13,3 +13,11 @@ export const CUTOUT_MODEL = {
 } as const;
 
 export type CutoutModel = typeof CUTOUT_MODEL;
+
+export const CUTOUT_MODEL_V1_4 = {
+  ...CUTOUT_MODEL,
+  version: "CUTOUT-v1.4",
+  roundAmountDecimalPlaces: 2,
+} as const;
+
+export type CutoutModelV14 = typeof CUTOUT_MODEL_V1_4;

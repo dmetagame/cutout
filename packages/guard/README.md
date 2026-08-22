@@ -1,7 +1,7 @@
 # @cutout/guard
 
-`@cutout/guard` is the stable integration boundary for Cutout's single-action
-STRK20 deposit workflow. It provides:
+`@cutout/guard` is the stable integration boundary for Cutout's public
+preflight evidence and guarded STRK20 deposit workflow. It provides:
 
 - typed preflight request and response contracts;
 - fail-closed final action and evidence validation;
@@ -10,9 +10,18 @@ STRK20 deposit workflow. It provides:
 - deterministic public receipt verification;
 - frozen model, policy, network, pool, and token metadata.
 
+The v0.2.0 package can request typed CUTOUT-v1.4 deposit or withdrawal
+evidence. Withdrawal analysis is evidence-only and exports no wallet execution
+path; the guarded deposit remains the only executable workflow.
+
 It does not include the indexer, SQLite store, RPC runtime, wallet discovery,
 wallet submission, private notes, viewing keys, shielded balances, or proofs.
 The wallet remains the only signing authority.
+
+For React applications, the optional `@cutout/guard/react` subpath provides
+`useCutoutEvidence` and `CutoutEvidencePanel`. They call/render preflight only;
+the subpath has no wallet discovery, simulation, authorization, invoke, or
+submission export.
 
 ```ts
 import {

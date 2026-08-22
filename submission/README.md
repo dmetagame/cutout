@@ -15,7 +15,7 @@ for the exact amount a user is about to deposit.
 ## Solution
 
 Cutout intercepts the signing decision, not the wallet. It reads a fresh,
-canonical public STRK20 snapshot, runs the frozen `CUTOUT-v1.3` model, applies
+canonical public STRK20 snapshot, runs the frozen `CUTOUT-v1.4` model, applies
 `GUARD_POLICY-v1`, and shows the evidence behind the result. If the user has
 explicitly allowed an amount range, the deterministic engine may recommend an
 in-bounds amount with healthier public exact-amount cover. The selected amount
@@ -28,18 +28,18 @@ Cutout can recommend, but it cannot sign.
 | Item | Value |
 |---|---|
 | Repository | `https://github.com/dmetagame/cutout` |
-| Release tag | `v0.1.4` |
-| Prior release | `v0.1.3` / `79c4843a32be58fcda5613d9f2a1d1b9157cc0ba` |
-| Package source | `@cutout/guard@0.1.4` |
-| Engine | `CUTOUT-v1.3` |
+| Release tag | `v0.2.0` |
+| Prior release | `v0.1.4` / `315f61a1a55fa771337eb633ecd564b2097aee1a` |
+| Package source | `@cutout/guard@0.2.0` |
+| Engine | `CUTOUT-v1.4` (`CUTOUT-v1.3` replay retained) |
 | Guard policy | `GUARD_POLICY-v1` |
 | Freshness policy | `FRESHNESS_POLICY-v1` |
 | Network | Starknet Mainnet |
 | STRK20 pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 
-The exact patch commit is the commit resolved by the annotated `v0.1.4` tag.
-The existing `v0.1.3`, `v0.1.2`, `v0.1.1`, and `v0.1.0` tags and releases
-remain unchanged.
+The exact release commit is the commit resolved by the `v0.2.0` release tag.
+The existing `v0.1.4`, `v0.1.3`, `v0.1.2`, `v0.1.1`, and `v0.1.0` tags and
+releases remain unchanged.
 
 v0.1.3 retains the v0.1.2 Propose -> Verify -> Review -> Sign polish and adds a
 strict client-side check before session-stored receipt evidence can render as
@@ -54,6 +54,13 @@ progression, stronger evidence and receipt hierarchy, responsive/mobile polish,
 keyboard-focus coverage, and reduced-motion handling. No signing authority,
 autonomous execution, or transaction semantics changed.
 
+The `v0.2.0` release adds typed public `Withdrawal` ingestion and analysis, withdrawal-only S2/S3,
+S7 round-amount detection, deterministic `WAIT` advice, a wallet-free cover
+ledger, a live amount ladder, and an evidence-only `@cutout/guard/react`
+surface. The immutable v0.1.4 release remains historical presentation-only
+evidence and must not be confused with the v0.2.0 release or its separately
+verified deployment.
+
 ## Architecture
 
 ```text
@@ -63,7 +70,7 @@ Public Starknet
     -> canonical SQLite public read model
     -> complete deterministic PublicSnapshot
     -> POST /api/preflight
-    -> CUTOUT-v1.3
+    -> CUTOUT-v1.4 in production / CUTOUT-v1.3 replay
     -> GUARD_POLICY-v1 evidence
     -> browser final review
     -> WalletAccountV6 simulation
@@ -79,8 +86,10 @@ The full diagram and authority table are in
 
 - The backend and indexer cannot sign or broadcast.
 - The wallet remains the only signing authority.
-- Exactly one typed STRK20 `deposit` is supported.
-- Arbitrary calldata, transfer, withdraw, invoke, and mixed actions fail closed.
+- Production supports one typed STRK20 `deposit` wallet path.
+- The v1.4 release analyzes typed withdrawals but stops before wallet
+  simulation and submission.
+- Arbitrary calldata, transfer, invoke, and mixed actions fail closed.
 - Stale, partial, corrupt, reorging, and schema-uncertain snapshots are
   unavailable, never converted to `LOW / ALLOW`.
 - Cutout never receives private keys, seed phrases, viewing-key payloads,
@@ -135,11 +144,11 @@ mainnet transaction.
 
 | Suite | Result |
 |---|---|
-| Root regression | 135 passed |
-| Milestone 4 focused | 18 passed |
+| Root regression | 155 passed |
+| Milestone 4 focused | 21 passed |
 | Milestone 5 focused | 5 passed |
-| Package public API | 3 passed |
-| Browser E2E | 12 passed |
+| Package public API | 4 passed |
+| Browser E2E | 14 passed |
 | TypeScript and production build | passed |
 | Packed consumer | passed |
 | Docker/Compose validation | passed |
@@ -147,12 +156,17 @@ mainnet transaction.
 | Production UI smoke | passed at 1440, 1024, 768, 430, and 390px |
 | Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
 
+The v0.2.0 candidate passed these checks after its final metadata and boundary
+review, including withdrawal analysis, cover evidence, reduced motion,
+responsive layouts, and the zero-invoke wallet fixture. The same public
+behavior is rechecked after deployment.
+
 ## External availability
 
-- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.1.4`
-- Production deployment: `https://cutout.rouma.online` (`v0.1.4`), with HTTPS,
-  persistent SQLite storage, supervised indexing, and current public health
-  verification.
+- GitHub release: `https://github.com/dmetagame/cutout/releases/tag/v0.2.0`
+- Production target: `https://cutout.rouma.online`; v0.2.0 deployment identity,
+  health, freshness, and browser evidence are recorded only after the separate
+  production smoke passes.
 - npm URL: not available until repository-owner npm authentication and
   publication are completed and verified from the public registry.
 
@@ -162,7 +176,8 @@ independently from the Git tag, and npm publication is not claimed.
 ## Known limitations and non-claims
 
 - One reviewed STRK20 mainnet pool and four configured tokens.
-- One supported action: deposit/shield.
+- Production v0.2.0 supports deposit execution and withdrawal analysis only;
+  it does not execute withdrawals.
 - SQLite assumes one persistent host and one indexer writer.
 - Public RPC cross-checking does not make the infrastructure decentralized or
   malicious-provider-proof.

@@ -3,7 +3,7 @@ import { once } from "node:events";
 import { createPreflightHttpServer } from "../src/api/http.js";
 import { PreflightService } from "../src/api/preflight.js";
 import type { PreflightApiResponse, WireShieldIntent } from "../src/api/types.js";
-import { CUTOUT_MODEL } from "../src/engine/constants.js";
+import { CUTOUT_MODEL_V1_4 } from "../src/engine/constants.js";
 import { CanonicalStore } from "../src/indexer/store.js";
 import { buildOperationalHealthReport } from "../src/operations/health.js";
 import { processOperationalMetrics } from "../src/operations/metrics.js";
@@ -27,7 +27,13 @@ async function main(): Promise<void> {
   const databasePath = process.env.CUTOUT_DB_PATH ?? "data/cutout-mainnet.sqlite";
   const now = Math.floor(Date.now() / 1_000);
   const metrics = processOperationalMetrics();
-  const store = new CanonicalStore({ path: databasePath, config, abi, readOnly: true });
+  const store = new CanonicalStore({
+    path: databasePath,
+    config,
+    abi,
+    readOnly: true,
+    modelVersion: CUTOUT_MODEL_V1_4.version,
+  });
   const server = createPreflightHttpServer(
     new PreflightService(store, config, abi, { now: () => now }),
     () => {},
@@ -87,7 +93,7 @@ async function main(): Promise<void> {
       response.status !== 200 ||
       preflight.status !== "AVAILABLE" ||
       preflight.snapshotHash !== snapshotHash ||
-      preflight.modelVersion !== CUTOUT_MODEL.version ||
+      preflight.modelVersion !== CUTOUT_MODEL_V1_4.version ||
       preflight.guardPolicyVersion !== GUARD_POLICY.version
     ) {
       throw new Error(`Live preflight failed closed (HTTP ${response.status}).`);
@@ -114,7 +120,7 @@ async function main(): Promise<void> {
       sourceAgeSeconds: now - snapshot.indexedThroughTimestamp,
       snapshotHash,
       versions: {
-        model: CUTOUT_MODEL.version,
+        model: CUTOUT_MODEL_V1_4.version,
         guardPolicy: GUARD_POLICY.version,
         freshnessPolicy: FRESHNESS_POLICY.version,
       },

@@ -34,7 +34,9 @@ The report contains:
 - `rpc.currentHead*`: the head represented by the currently inspected snapshot;
 - `snapshot`: `CURRENT_COMPLETE_SNAPSHOT`, `STALE_SNAPSHOT`, or
   `NO_USABLE_SNAPSHOT`, with hash, block provenance, source age, and index lag;
-- `versions`: `CUTOUT-v1.3`, `FRESHNESS_POLICY-v1`, and `GUARD_POLICY-v1`;
+- `versions`: the active model plus `FRESHNESS_POLICY-v1` and
+  `GUARD_POLICY-v1`. Production v0.2.0 reports `CUTOUT-v1.4`; `CUTOUT-v1.3`
+  remains available for model-matched replay.
 - `metrics`: aggregate sync, RPC, index-lag, snapshot, and preflight timing
   counters.
 
@@ -73,6 +75,20 @@ Example shape (values are illustrative and intentionally not a live claim):
 The actual response may include more operational fields, but never private
 wallet information, raw account telemetry, requested amounts, or provider
 secrets.
+
+During ordinary forward synchronization or a transient RPC failure, the
+indexer may report `DEGRADED`/`SYNCING` while retaining a complete snapshot
+whose source age and index lag remain inside policy. In that case `ready` may
+remain true and preflight still performs its own request-time validation.
+Unsafe recovery states such as reorg uncertainty, schema mismatch, corruption,
+or expired freshness withdraw the snapshot and must remain fail-closed.
+
+The current live v0.2.0 endpoint was rechecked on 2026-08-22 UTC
+(2026-08-22 JST) after a transient synchronization error: HTTP `200`,
+`HEALTHY`, `ready: true`,
+`CURRENT_COMPLETE_SNAPSHOT`, block `13,662,900`, source age `24s`, index lag
+`0s`, both configured RPC providers healthy, and active-path database integrity
+`ok`. This is a time-bound operational sample, not a permanent guarantee.
 
 ## Readiness rules
 

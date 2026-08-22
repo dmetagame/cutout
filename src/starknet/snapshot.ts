@@ -33,6 +33,13 @@ export function canonicalSnapshot(snapshot: PublicSnapshot): PublicSnapshot {
       (left, right) => left.blockNumber - right.blockNumber,
     ),
     depositObservations: [...snapshot.depositObservations].sort(observationOrder),
+    ...(snapshot.withdrawalObservations === undefined
+      ? {}
+      : {
+          withdrawalObservations: [...snapshot.withdrawalObservations].sort(
+            observationOrder,
+          ),
+        }),
     viewingKeyRegistrationObservations: [
       ...snapshot.viewingKeyRegistrationObservations,
     ].sort(observationOrder),

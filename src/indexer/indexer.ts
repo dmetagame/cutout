@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import { performance } from "node:perf_hooks";
 import type { Address } from "../engine/types.js";
 import type { ReviewedPoolAbi } from "../starknet/abi.js";
@@ -79,10 +79,24 @@ function rawOrder(left: CollectedRawEvent, right: CollectedRawEvent): number {
 
 function rawPublicJson(
   raw: RpcEvent,
-  kind: "deposit" | "viewing-key-registration",
+  kind: "deposit" | "withdrawal" | "viewing-key-registration",
 ): string {
   const canonical = canonicalRawEvent(raw);
   if (kind === "deposit") return JSON.stringify(canonical);
+  if (kind === "withdrawal") {
+    return JSON.stringify({
+      blockHash: canonical.blockHash,
+      blockNumber: canonical.blockNumber,
+      transactionHash: canonical.transactionHash,
+      fromAddress: canonical.fromAddress,
+      selector: canonical.keys[0],
+      recipient: canonical.keys[1],
+      token: canonical.keys[2],
+      amount: canonical.data[3],
+      keyCount: canonical.keys.length,
+      dataCount: canonical.data.length,
+    });
+  }
   return JSON.stringify({
     blockHash: canonical.blockHash,
     blockNumber: canonical.blockNumber,
@@ -150,6 +164,7 @@ export class IncrementalPublicIndexer {
   readonly maxRangeBlocks: number;
   readonly reorgWindowBlocks: number;
   readonly rpcProviderName: IndexerOptions["rpcProviderName"];
+  readonly modelVersion: "CUTOUT-v1.3" | "CUTOUT-v1.4";
   readonly now: () => number;
   readonly onProgress: ((message: string) => void) | undefined;
 
@@ -164,6 +179,7 @@ export class IncrementalPublicIndexer {
     );
     this.reorgWindowBlocks = options.reorgWindowBlocks ?? DEFAULT_REORG_WINDOW_BLOCKS;
     this.rpcProviderName = options.rpcProviderName;
+    this.modelVersion = options.modelVersion ?? CUTOUT_MODEL.version;
     this.now = options.now ?? (() => Math.floor(Date.now() / 1_000));
     this.onProgress = options.onProgress;
     if (!Number.isSafeInteger(this.maxRangeBlocks) || this.maxRangeBlocks <= 0) {
@@ -209,7 +225,13 @@ export class IncrementalPublicIndexer {
         from_block: { block_number: fromBlock },
         to_block: { block_number: throughBlock },
         address: this.config.poolAddress,
-        keys: [[this.abi.deposit.selector, this.abi.viewingKeySet.selector]],
+        keys: [[
+          this.abi.deposit.selector,
+          ...(this.modelVersion === CUTOUT_MODEL_V1_4.version
+            ? [this.abi.withdrawal.selector]
+            : []),
+          this.abi.viewingKeySet.selector,
+        ]],
         chunk_size: 1_000,
       };
       const filter: RpcEventFilter =
@@ -481,14 +503,19 @@ export class IncrementalPublicIndexer {
       requiredFromTimestamp: state.requiredFromTimestamp,
       sourceComplete: sourceHeader.timestamp <= state.requiredFromTimestamp,
       pagesComplete: true,
-      queriedSelectors: [this.abi.deposit.selector, this.abi.viewingKeySet.selector],
+      queriedSelectors: this.modelVersion === CUTOUT_MODEL_V1_4.version
+        ? [this.abi.deposit.selector, this.abi.withdrawal.selector, this.abi.viewingKeySet.selector]
+        : [this.abi.deposit.selector, this.abi.viewingKeySet.selector],
       sourceParentBlock: indexedParent.blockNumber,
       sourceParentHash: indexedParent.blockHash,
       sourceDeclaredParentHash: indexedHeader.parentHash,
       blockReferences,
       depositObservations: observations.deposits,
+      ...(this.modelVersion === CUTOUT_MODEL_V1_4.version
+        ? { withdrawalObservations: observations.withdrawals }
+        : {}),
       viewingKeyRegistrationObservations: observations.registrations,
-      engineVersion: CUTOUT_MODEL.version,
+      engineVersion: this.modelVersion,
       freshnessPolicyVersion: FRESHNESS_POLICY.version,
     };
     validatePublicSnapshot(snapshot, this.syntheticIntent(snapshot), this.config, this.abi);
@@ -501,6 +528,7 @@ export class IncrementalPublicIndexer {
     }
     const syncStarted = performance.now();
     let lastBatchDurationMs: number | null = null;
+    this.store.ensureModelVersion(this.modelVersion);
     this.store.setStatus("SYNCING");
     let batchesCommitted = 0;
     let eventPages = 0;

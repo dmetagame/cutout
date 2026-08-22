@@ -27,6 +27,7 @@ export default defineConfig({
     env: {
       CUTOUT_DB_PATH: "data/milestone3-fixture.sqlite",
       CUTOUT_FIXED_NOW: "2000000000",
+      CUTOUT_FIXTURE_MODEL_VERSION: "CUTOUT-v1.4",
       CUTOUT_RUNTIME_MODE: "fixture",
       CUTOUT_BROWSER_RPC_URL: "https://cutout-rpc.invalid",
     },

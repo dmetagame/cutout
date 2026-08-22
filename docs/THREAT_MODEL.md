@@ -277,6 +277,42 @@ product must never describe it as free.
 - **Relayer-level analysis is not scored in v1.** Submission patterns of shared
   relayers may carry signal.
 
+## 9.1 CUTOUT-v1.4 release addendum
+
+`CUTOUT-v1.3` above remains frozen and replayable. Release v0.2.0 adds a named
+`CUTOUT-v1.4` successor; these additions do not change the v1.3 constants,
+outputs, or policy mapping.
+
+The release adds a second public edge for analysis:
+
+- `Withdrawal` observations retain only recipient, token, amount, block, and
+  transaction provenance. Encrypted payloads are discarded.
+- For a typed withdrawal, S2 fires when a same-token `Deposit` has an exactly
+  equal amount in the observation window. S3 fires when that counterpart
+  deposit is within `T_PROXIMITY` of the proposed withdrawal.
+- S2 and S3 remain `NOT_APPLICABLE` for a future shield deposit. S4 remains
+  specific to the shield/account channel-open relationship.
+
+The release adds S7, a deterministic round-amount fingerprint: an amount
+with at most two displayed decimal places and no prior exact cohort. S7 is a
+preflight signal and is not S6. S6 remains a post-execution conservation-of-
+value holdout and does not enter any band or recommendation.
+
+When the current cohort is thin or burst-dominated and the deadline leaves at
+least one cohort window, v1.4 may return `WAIT`. This is advisory only: Cutout
+does not schedule a later check, create traffic, or submit anything. An
+in-bounds `CHANGE_AMOUNT` remains user-selected and receives a new exact
+preflight before the deposit wallet path can proceed.
+
+The release's cover ledger reports trailing exact-amount cohorts, traffic
+context, durability checks, and snapshot provenance from the same complete
+snapshot. It never calls those cohorts anonymity sets and does not expose raw
+actors. Withdrawal analysis stops before wallet simulation and submission.
+
+The v0.2.0 production target is `https://cutout.rouma.online`. Deployment
+identity is recorded only after the separate CUTOUT-v1.4 smoke passes. The
+v0.1.4 / CUTOUT-v1.3 record remains historical evidence.
+
 ## 10. Changelog
 
 | Version | Date | Change |

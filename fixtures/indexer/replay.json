@@ -4,6 +4,7 @@
   "poolAddress": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
   "classHash": "0x67dddd89d80fedadc06b6f160798f94800a4a70164e5a24301cd0d6076b554d",
   "depositSelector": "0x9149d2123147c5f43d258257fef0b7b969db78269369ebcf5ebb9eef8592f2",
+  "withdrawalSelector": "0x2eed7e29b3502a726faf503ac4316b7101f3da813654e8df02c13449e03da8",
   "viewingKeySetSelector": "0x1321a492485b4f19851fb787ab3800a0030b595332cba93cd5fe40dfb5a4daf",
   "token": "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
   "account": "0x0111",
@@ -77,6 +78,19 @@
         },
         {
           "ordinal": 4,
+          "block_hash": "0x1005",
+          "block_number": 8978975,
+          "transaction_hash": "0x0a5",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x2eed7e29b3502a726faf503ac4316b7101f3da813654e8df02c13449e03da8",
+            "0x0555",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x0bad", "0x0cafe", "0x0beef", "0x64"]
+        },
+        {
+          "ordinal": 5,
           "block_hash": "0x1007",
           "block_number": 8978977,
           "transaction_hash": "0x0a7",
@@ -159,6 +173,19 @@
         },
         {
           "ordinal": 4,
+          "block_hash": "0x1005",
+          "block_number": 8978975,
+          "transaction_hash": "0x0a5",
+          "from_address": "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+          "keys": [
+            "0x2eed7e29b3502a726faf503ac4316b7101f3da813654e8df02c13449e03da8",
+            "0x0555",
+            "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
+          ],
+          "data": ["0x0bad", "0x0cafe", "0x0beef", "0x64"]
+        },
+        {
+          "ordinal": 5,
           "block_hash": "0x2007",
           "block_number": 8978977,
           "transaction_hash": "0x0b7",

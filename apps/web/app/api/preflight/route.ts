@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 
 import { preflightLogEntry, routePreflightRequest } from "@cutout/api/http";
 import { PreflightService, unavailablePreflightResponse } from "@cutout/api/preflight";
+import { CUTOUT_MODEL_V1_4 } from "@cutout/engine/constants";
 import { DataLayerError } from "@cutout/indexer/errors";
 import { processOperationalMetrics } from "@cutout/operations/metrics";
 import { openPreflightRuntime, runtimeNow } from "@web/lib/server-runtime";
@@ -31,7 +32,7 @@ export async function POST(request: Request): Promise<Response> {
       runtimeState.store,
       runtimeState.config,
       runtimeState.abi,
-      { now: runtimeNow },
+      { now: runtimeNow, modelVersion: CUTOUT_MODEL_V1_4.version },
     );
     const routed = routePreflightRequest(service, {
       method: "POST",
@@ -58,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
     const result = unavailablePreflightResponse(
       code,
       "Canonical public evidence is operationally unavailable.",
+      CUTOUT_MODEL_V1_4.version,
     );
     const durationMs = Math.round((performance.now() - started) * 1_000) / 1_000;
     metrics.recordPreflight(durationMs, true);

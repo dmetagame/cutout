@@ -1,4 +1,5 @@
 import type { PublicSnapshotBoundary } from "@cutout/workflow/types";
+import type { PublicCover } from "@cutout/cover";
 
 export interface WebToken {
   readonly address: string;
@@ -22,6 +23,8 @@ export interface AvailableWebBootstrap {
   readonly config: BrowserCutoutConfig;
   readonly snapshot: PublicSnapshotBoundary;
   readonly depositSelector: string;
+  readonly withdrawalSelector: string;
+  readonly cover: PublicCover;
 }
 
 export interface UnavailableWebBootstrap {

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   CUTOUT_MODEL,
+  CUTOUT_MODEL_V1_4,
   FRESHNESS_POLICY,
   GUARD_POLICY,
   authorizeSubmission,
@@ -285,6 +286,49 @@ test("a recommendation is bound to final exact preflight, wallet identity, and d
   assert.equal(plan.displayedAmount, "105");
   assert.equal(plan.decision, "ALLOW");
   assert.equal(plan.warningAcknowledgementRequired, false);
+});
+
+test("a CUTOUT-v1.4 deposit decision can reach the unchanged deposit-only guard seam", async () => {
+  const original = intent();
+  const selection: ExecutionSelection = {
+    source: "RECOMMENDATION",
+    action: "shield",
+    token: token.address,
+    amount: "105",
+  };
+  const boundary = snapshot({ engineVersion: CUTOUT_MODEL_V1_4.version });
+  const final = makeFinalExactIntent(original, selection, boundary, NOW);
+  const initialPreflight = await response(original, {
+    modelVersion: CUTOUT_MODEL_V1_4.version,
+  });
+  const finalPreflight = await response(final, {
+    modelVersion: CUTOUT_MODEL_V1_4.version,
+    decision: "ALLOW",
+    riskBand: "LOW",
+    signals: [
+      { id: "S1", status: "CLEAR", summary: "Prior exact amounts exist." },
+      { id: "S2", status: "NOT_APPLICABLE", summary: "Not applicable." },
+      { id: "S3", status: "NOT_APPLICABLE", summary: "Not applicable." },
+      { id: "S4", status: "CLEAR", summary: "No recent registration." },
+      { id: "S5", status: "CLEAR", summary: "Candidate cohort is healthy." },
+      { id: "S7", status: "CLEAR", summary: "The amount has prior exact cover." },
+    ],
+    candidateCohort: { existingMatches: 8, projectedCohort: 9 },
+    cohortQuality: healthyCohort,
+    recommendation: null,
+  });
+  const plan = await createGuardedDepositPlan(await signingInput({
+    originalIntent: original,
+    initialPreflight,
+    selection,
+    finalIntent: final,
+    finalPreflight,
+    snapshot: boundary,
+  }), config);
+
+  assert.equal(plan.modelVersion, CUTOUT_MODEL_V1_4.version);
+  assert.equal(plan.action.type, "deposit");
+  assert.equal(plan.action.amount, "0x69");
 });
 
 test("original amount remains selectable without fabricating a recommendation", async () => {

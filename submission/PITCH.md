@@ -7,22 +7,22 @@ evidence to help users avoid predictable deposit amounts before they sign.
 
 ## 30-45 second judge pitch
 
-STRK20 protects private state, but the deposit amount is still public when a
-user enters the pool. Cutout checks that exact amount before the wallet signs.
-It builds a fresh canonical snapshot from public Starknet data, runs the frozen
-CUTOUT-v1.3 model, explains the evidence, and can recommend a healthier amount
-only inside the user's permitted range. The final action is checked again and
-simulated in the user's wallet. Cutout cannot hold keys, sign, or broadcast. A
-real `0.01 STRK` mainnet deposit independently verified the receipt path, while
-the live demo remains strictly non-submitting.
+STRK20 protects private state, but Deposit, Withdrawal, and ViewingKeySet facts
+remain public at the pool edge. Cutout checks exact-amount cover before the
+wallet signs, using a fresh canonical snapshot and deterministic CUTOUT-v1.4
+evidence. A selected deposit is checked again, then WalletAccountV6 calls
+`strk20PrepareInvoke` for simulation only. Cutout cannot hold keys, sign, or
+broadcast. A historical `0.01 STRK` mainnet deposit independently verified the
+receipt path; the current demo remains strictly non-submitting.
 
 ## 100-150 words
 
 STRK20 protects private state, but deposits remain public at the edge. An exact
-amount can become an operational fingerprint when few prior users deposited the
-same token and amount. Cutout checks that public evidence before the wallet
-signs. Its supervised indexer builds a fresh canonical snapshot from reviewed
-STRK20 events and block headers, then the frozen CUTOUT-v1.3 engine returns a
+amount can become an operational fingerprint when few prior users used the same
+token and amount. Cutout checks that public evidence before the wallet signs.
+Its supervised indexer builds a fresh canonical snapshot from reviewed STRK20
+Deposit, Withdrawal, and ViewingKeySet observations plus block headers, then
+the frozen CUTOUT-v1.4 engine returns a
 risk band, fired signals, cohort evidence, and an in-bounds recommendation when
 the user explicitly permits flexibility. The final amount is preflighted again,
 simulated through Ready X using WalletAccountV6, and shown for explicit wallet
@@ -44,7 +44,7 @@ typed STRK20 deposit and optionally defines the minimum and maximum amount they
 are willing to use. A supervised Starknet indexer reads only public Deposit and
 ViewingKeySet observations, validates canonical block provenance and the
 reviewed pool class, and publishes a complete deterministic snapshot. The
-frozen CUTOUT-v1.3 engine evaluates the proposed amount against that snapshot.
+frozen CUTOUT-v1.4 engine evaluates the proposed amount against that snapshot.
 It returns a risk band, signal evidence, exact-amount cohort information, and a
 recommendation only when a healthier candidate exists inside the user's stated
 bounds. It never fabricates an improved amount.
@@ -66,13 +66,22 @@ final release smoke used fresh mainnet data without submitting anything.
 
 The release includes deterministic replay tests, reorg recovery, RPC
 cross-checking and failover, fail-closed freshness rules, an unprivileged
-Docker deployment package, and `@cutout/guard@0.1.4` for integrators. Cutout
+Docker deployment package, and `@cutout/guard@0.2.0` for integrators. Cutout
 does not claim anonymity or untraceability. It reports public candidate-cohort
 evidence under a published passive-public-observer threat model. That honesty
 is part of the product: Cutout helps users make a better-informed signing
 choice without pretending to control the wallet or guarantee privacy.
 
-The current `v0.1.4` application is live at `https://cutout.rouma.online`.
+The `v0.2.0` production target is `https://cutout.rouma.online`; live identity
+is recorded only after the separate deployment verification passes.
+
+## CUTOUT-v1.4 release note
+
+The current release adds typed public Withdrawal analysis, withdrawal-only S2/S3,
+S7 round-amount detection, deterministic `WAIT`, a public cover ledger and
+amount ladder, and an evidence-only React integration surface. It keeps the
+v0.1.4 deposit signing path and wallet boundary unchanged. Replay output is
+labeled separately from live mainnet evidence.
 
 ## Why this should win
 
@@ -88,3 +97,6 @@ The current `v0.1.4` application is live at `https://cutout.rouma.online`.
   access private STRK20 state.
 - It fails closed and states its limitations instead of making unsupported
   anonymity claims.
+- Its v1.4 release extends the same narrow product across the STRK20
+  withdrawal edge and makes exact-amount cover visible without wallet access,
+  while stopping before withdrawal execution.

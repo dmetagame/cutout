@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import type { StarknetSpikeConfig } from "./config.js";
 import type { ReviewedPoolAbi } from "./abi.js";
 import { SpikeError } from "./errors.js";
@@ -14,6 +14,7 @@ import type {
   PublicSnapshot,
   SnapshotFreshness,
   SpikeShieldIntent,
+  SpikeWithdrawIntent,
 } from "./types.js";
 
 function requireInteger(value: unknown, field: string): number {
@@ -96,7 +97,7 @@ function requireReference(
 
 export function validatePublicSnapshot(
   snapshot: PublicSnapshot,
-  intent: SpikeShieldIntent,
+  intent: SpikeShieldIntent | SpikeWithdrawIntent,
   config: StarknetSpikeConfig,
   abi: ReviewedPoolAbi,
 ): SnapshotFreshness {
@@ -115,7 +116,10 @@ export function validatePublicSnapshot(
   if (snapshot.poolAbiFixtureVersion !== abi.fixtureVersion) {
     throw new SpikeError("POOL_ABI_MISMATCH", "Snapshot ABI fixture version is inconsistent.");
   }
-  if (snapshot.engineVersion !== CUTOUT_MODEL.version) {
+  if (
+    snapshot.engineVersion !== CUTOUT_MODEL.version &&
+    snapshot.engineVersion !== CUTOUT_MODEL_V1_4.version
+  ) {
     throw new SpikeError("ENGINE_VERSION_MISMATCH", "Snapshot engine version is inconsistent.");
   }
   if (snapshot.freshnessPolicyVersion !== FRESHNESS_POLICY.version) {
@@ -133,6 +137,12 @@ export function validatePublicSnapshot(
     !Array.isArray(snapshot.queriedSelectors)
   ) {
     throw new SpikeError("SNAPSHOT_INCOMPLETE", "Snapshot observations are missing.");
+  }
+  if (
+    snapshot.engineVersion === CUTOUT_MODEL_V1_4.version &&
+    !Array.isArray(snapshot.withdrawalObservations)
+  ) {
+    throw new SpikeError("SNAPSHOT_INCOMPLETE", "CUTOUT-v1.4 withdrawal observations are missing.");
   }
 
   const observedBlock = requireInteger(snapshot.observedBlock, "observed block");
@@ -226,14 +236,19 @@ export function validatePublicSnapshot(
   if (snapshot.sourceComplete !== true || snapshot.pagesComplete !== true) {
     throw new SpikeError("SOURCE_INCOMPLETE", "Required event source is incomplete.");
   }
-  const expectedSelectors = [abi.deposit.selector, abi.viewingKeySet.selector].sort();
+  const expectedSelectors = snapshot.engineVersion === CUTOUT_MODEL_V1_4.version
+    ? [abi.deposit.selector, abi.withdrawal.selector, abi.viewingKeySet.selector].sort()
+    : [abi.deposit.selector, abi.viewingKeySet.selector].sort();
   const queriedSelectors = snapshot.queriedSelectors.map((item) =>
     normalizeFelt(item, "queried selector"),
   ).sort();
   if (JSON.stringify(queriedSelectors) !== JSON.stringify(expectedSelectors)) {
-    throw new SpikeError("SOURCE_INCOMPLETE", "Required event selectors were not both queried.");
+    throw new SpikeError("SOURCE_INCOMPLETE", "Required event selectors were not all queried.");
   }
-  const requiredHorizon = intent.evaluationTimestamp - CUTOUT_MODEL.observationSeconds;
+  const model = snapshot.engineVersion === CUTOUT_MODEL_V1_4.version
+    ? CUTOUT_MODEL_V1_4
+    : CUTOUT_MODEL;
+  const requiredHorizon = intent.evaluationTimestamp - model.observationSeconds;
   if (snapshot.sourceFromTimestamp > snapshot.requiredFromTimestamp) {
     throw new SpikeError("SOURCE_INCOMPLETE", "Source does not cover its declared requested boundary.");
   }
@@ -314,6 +329,31 @@ export function validatePublicSnapshot(
       registration.normalizedFields.account
     ) {
       throw new SpikeError("SNAPSHOT_INCOMPLETE", "Registration normalized account is inconsistent.");
+    }
+  }
+  for (const withdrawal of snapshot.withdrawalObservations ?? []) {
+    validateObservation(withdrawal, abi.withdrawal.selector);
+    if (
+      typeof withdrawal.amount !== "bigint" ||
+      withdrawal.amount < 0n ||
+      withdrawal.amount > MAX_U128
+    ) {
+      throw new SpikeError("SNAPSHOT_INCOMPLETE", "Withdrawal amount is malformed.");
+    }
+    if (
+      normalizeAddress(withdrawal.recipient, "withdrawal recipient") !==
+      withdrawal.normalizedFields.recipient
+    ) {
+      throw new SpikeError("SNAPSHOT_INCOMPLETE", "Withdrawal normalized recipient is inconsistent.");
+    }
+    if (
+      normalizeAddress(withdrawal.token, "withdrawal token") !==
+      withdrawal.normalizedFields.token
+    ) {
+      throw new SpikeError("SNAPSHOT_INCOMPLETE", "Withdrawal normalized token is inconsistent.");
+    }
+    if (withdrawal.amount.toString(10) !== withdrawal.normalizedFields.amount) {
+      throw new SpikeError("SNAPSHOT_INCOMPLETE", "Withdrawal normalized amount is inconsistent.");
     }
   }
 

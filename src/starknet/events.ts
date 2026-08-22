@@ -11,10 +11,12 @@ import type { RpcBlockHeader, RpcEvent } from "./rpc.js";
 import type {
   PublicDepositObservation,
   PublicRegistrationObservation,
+  PublicWithdrawalObservation,
 } from "./types.js";
 
 export type NormalizedPoolObservation =
   | { readonly kind: "deposit"; readonly observation: PublicDepositObservation }
+  | { readonly kind: "withdrawal"; readonly observation: PublicWithdrawalObservation }
   | {
       readonly kind: "viewing-key-registration";
       readonly observation: PublicRegistrationObservation;
@@ -25,6 +27,7 @@ function schemaForSelector(
   abi: ReviewedPoolAbi,
 ): ReviewedEventSchema {
   if (eventSelector === abi.deposit.selector) return abi.deposit;
+  if (eventSelector === abi.withdrawal.selector) return abi.withdrawal;
   if (eventSelector === abi.viewingKeySet.selector) return abi.viewingKeySet;
   throw new SpikeError(
     "UNKNOWN_EVENT_SELECTOR",
@@ -87,6 +90,32 @@ export function decodePoolEvent(
         amount,
         normalizedFields: {
           depositor,
+          token,
+          amount: amount.toString(10),
+        },
+      },
+    };
+  }
+
+  if (schema.leafName === "Withdrawal") {
+    const recipient = normalizeAddress(raw.keys[1], "withdrawal to_addr");
+    const token = normalizeAddress(raw.keys[2], "withdrawal token");
+    const amount = parseU128(raw.data[3], "withdrawal amount");
+    return {
+      kind: "withdrawal",
+      observation: {
+        blockNumber: block.blockNumber,
+        blockHash: block.blockHash,
+        timestamp: block.timestamp,
+        transactionHash,
+        eventIndex,
+        eventId: identity,
+        eventSelector,
+        recipient,
+        token,
+        amount,
+        normalizedFields: {
+          recipient,
           token,
           amount: amount.toString(10),
         },

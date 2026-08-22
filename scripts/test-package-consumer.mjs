@@ -14,6 +14,10 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryRoot = mkdtempSync(join(tmpdir(), "cutout-guard-consumer-"));
+const repositoryManifest = JSON.parse(readFileSync(
+  resolve(repositoryRoot, "package.json"),
+  "utf8",
+));
 
 try {
   execFileSync("npm", [
@@ -30,10 +34,20 @@ try {
     name: "cutout-guard-consumer-test",
     private: true,
     type: "module",
+    dependencies: {
+      react: repositoryManifest.dependencies.react,
+    },
+    devDependencies: {
+      "@types/react": repositoryManifest.devDependencies["@types/react"],
+    },
   }, null, 2));
   copyFileSync(
     resolve(repositoryRoot, "examples/guard-consumer/index.ts"),
     join(temporaryRoot, "index.ts"),
+  );
+  copyFileSync(
+    resolve(repositoryRoot, "examples/guard-consumer/evidence-panel.tsx"),
+    join(temporaryRoot, "evidence-panel.tsx"),
   );
   copyFileSync(
     resolve(repositoryRoot, "examples/guard-consumer/tsconfig.json"),
@@ -58,7 +72,8 @@ try {
   });
   const result = JSON.parse(output);
   assert.equal(result.packageApi, "CUTOUT_GUARD_API-v1");
-  assert.equal(result.model, "CUTOUT-v1.3");
+  assert.equal(result.model, "CUTOUT-v1.4");
+  assert.equal(result.replayModel, "CUTOUT-v1.3");
   assert.equal(result.action.type, "deposit");
 
   const manifest = JSON.parse(readFileSync(
@@ -66,7 +81,7 @@ try {
     "utf8",
   ));
   assert.equal(manifest.name, "@cutout/guard");
-  assert.deepEqual(Object.keys(manifest.exports), ["."]);
+  assert.deepEqual(Object.keys(manifest.exports), [".", "./react"]);
 
   console.log(JSON.stringify({
     status: "PASS",

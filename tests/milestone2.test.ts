@@ -533,7 +533,7 @@ test("malformed and unsupported API intents fail before any confident decision",
   }
 
   const unsupportedAction = service.preflight(
-    wireIntent(indexed.snapshot, clock, { action: "withdraw" }),
+    wireIntent(indexed.snapshot, clock, { action: "private_transfer" }),
   );
   assert.equal(unsupportedAction.status, "NO_CONFIDENT_RECOMMENDATION");
   if (unsupportedAction.status === "NO_CONFIDENT_RECOMMENDATION") {

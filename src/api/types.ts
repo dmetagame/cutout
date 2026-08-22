@@ -38,6 +38,21 @@ export interface WireShieldIntent {
   readonly deadline: number;
 }
 
+export interface WireWithdrawIntent {
+  readonly action: "withdraw";
+  readonly chainId: string;
+  readonly account: string;
+  readonly recipient: string;
+  readonly token: string;
+  readonly amount: string;
+  readonly evaluationBlock: number;
+  readonly evaluationTimestamp: number;
+  readonly flexibility: WireExactFlexibility | WireFlexibleFlexibility;
+  readonly deadline: number;
+}
+
+export type WireIntent = WireShieldIntent | WireWithdrawIntent;
+
 export interface WireCohortQuality {
   readonly existingMatches: number;
   readonly projectedCohort: number;
@@ -60,6 +75,11 @@ export type WireRecommendation =
       readonly cohort: WireCohortQuality;
     }
   | { readonly kind: "NO_SAFER_EXECUTION"; readonly reason: string }
+  | {
+      readonly kind: "WAIT";
+      readonly suggestedHorizonSeconds: number;
+      readonly reason: string;
+    }
   | null;
 
 export interface AvailablePreflightApiResponse {

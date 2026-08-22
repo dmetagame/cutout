@@ -12,13 +12,18 @@ another.
 - Two configured Starknet mainnet RPC URLs.
 - No seed phrase, private key, viewing key, note, or proof entered into Cutout.
 
+Production serves `v0.2.0` with `CUTOUT-v1.4` deposit and withdrawal analysis,
+the public cover ledger, and the amount ladder. `CUTOUT-v1.3` remains available
+as a labeled fixture/replay path. Do not present replay output as a live
+mainnet observation.
+
 ## 2-3 minute judge script
 
 | Time | Presenter action and language |
 |---|---|
 | 0:00-0:20 | "Cutout is a wallet-native signing guard. It checks public exact-amount STRK20 cover before the user signs. It can recommend, but it cannot sign." |
 | 0:20-0:45 | Open `https://cutout.rouma.online/api/health`; show the current block/hash, source age, index lag, and snapshot hash. State that stale or uncertain evidence stops the flow. |
-| 0:45-1:15 | Enter one deposit amount, run preflight, and expand the deterministic CUTOUT-v1.3 signals and candidate cohort. Do not promise a particular band. |
+| 0:45-1:15 | Enter one deposit amount, run preflight, and expand the deterministic CUTOUT-v1.4 signals and candidate cohort. Do not promise a particular band. |
 | 1:15-1:35 | If a permitted recommendation exists, compare it with the original and select one. Otherwise show `NO_SAFER_EXECUTION`. Emphasize that the user controls the bounds. |
 | 1:35-2:00 | Show the mandatory final exact-amount preflight, then the exact token, amount, account, pool, network, snapshot, and policy versions. |
 | 2:00-2:20 | Run simulation if Ready X is available. Stop at `READY_FOR_CONFIRMATION`; do not invoke or submit during the release demo rehearsal. |
@@ -64,7 +69,7 @@ Expected markers:
 CUTOUT_M5_LIVE_SMOKE
 "mode":"LIVE_MAINNET_NON_SUBMITTING"
 "status":"PASS"
-"model":"CUTOUT-v1.3"
+"model":"CUTOUT-v1.4"
 "guardPolicy":"GUARD_POLICY-v1"
 "freshnessPolicy":"FRESHNESS_POLICY-v1"
 "sourceComplete":true
@@ -76,6 +81,28 @@ Show the snapshot block/hash/timestamp, RPC head, source age, index lag, snapsho
 hash, signal evidence, cohort counts, deterministic decision ID, decision, and
 recommendation/refusal. The exact band is data-dependent. Do not promise
 `LOW / ALLOW` in advance.
+
+## Candidate v1.4 depth path (fixture/replay only)
+
+Use the replay path only when a fixture is needed:
+
+```bash
+CUTOUT_FIXTURE_MODEL_VERSION=CUTOUT-v1.4 npm run fixture:milestone3
+CUTOUT_RUNTIME_MODE=fixture \
+  CUTOUT_DB_PATH=data/milestone3-fixture.sqlite \
+  npm run web:start -- --hostname 127.0.0.1 --port 3000
+```
+
+Open the local fixture and show the wallet-free Public cover ledger first. It
+is derived from the same canonical snapshot as preflight and exposes trailing
+deposit and withdrawal cohorts, address diversity, durability, burst share,
+snapshot hash, block, and model identity without raw actors. Then select
+`Withdraw`, analyze one typed public withdrawal, and show S2 exact counterpart,
+S3 proximity, S7 round-amount evidence, and any `WAIT` or in-bounds amount
+recommendation. Stop at `ANALYSIS ONLY`: no withdrawal simulation or wallet
+call exists in this analysis path.
+
+The fixture is deterministic and is not a live mainnet observation.
 
 ## E-F. Ready X simulation and confirmation boundary
 
@@ -185,6 +212,6 @@ calls.
 ## Presenter language
 
 Say "public exact-amount candidate cohort," "evidence observed at block," and
-"CUTOUT-v1.3 band." Do not claim anonymity, untraceability, guaranteed
+"CUTOUT-v1.4 band." Do not claim anonymity, untraceability, guaranteed
 unlinkability, a privacy probability, deanonymization, or protection against
 private wallet/RPC/exchange telemetry.

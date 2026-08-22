@@ -12,6 +12,11 @@ recommend, but it cannot sign.
 Cutout is not a privacy guarantee. It does not claim anonymity, untraceability,
 unlinkability, or a probability of deanonymization.
 
+The current release is `v0.2.0` with `CUTOUT-v1.4` at
+[`https://cutout.rouma.online`](https://cutout.rouma.online). The immutable
+`v0.1.4` release remains available as the prior motion-only release, and
+`CUTOUT-v1.3` remains replayable.
+
 Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon),
 14 to 31 August 2026.
 
@@ -44,7 +49,7 @@ that can request a signature and submit the STRK20 action.
 ```text
 typed shield intent
     -> canonical public STRK20 snapshot
-    -> deterministic CUTOUT-v1.3 evaluation
+    -> deterministic CUTOUT-v1.4 evaluation
     -> GUARD_POLICY-v1 decision and evidence
     -> optional in-bounds amount recommendation
     -> final exact-amount preflight
@@ -53,6 +58,11 @@ typed shield intent
     -> wallet-owned submission
     -> independent public receipt verification
 ```
+
+The v1.4 release keeps this deposit signing path unchanged and adds a separate
+typed withdrawal-analysis path. Withdrawal analysis ends after
+deterministic evidence and revalidation; it does not construct, simulate, or
+submit a withdrawal wallet action.
 
 The only supported transaction action is one typed deposit:
 
@@ -79,7 +89,7 @@ supervised incremental indexer
 persistent canonical SQLite read model
            |
            v
-POST /api/preflight -> CUTOUT-v1.3 -> GUARD_POLICY-v1
+POST /api/preflight -> CUTOUT-v1.4 -> GUARD_POLICY-v1
            ^
            |
 Next.js signing client <-> Ready X / WalletAccountV6
@@ -113,6 +123,23 @@ Operational policy is separately frozen in [GUARD_POLICY.md](docs/GUARD_POLICY.m
 | `HIGH` | `DENY` |
 | `MEDIUM` | `WARN` |
 | `LOW` | `ALLOW` |
+
+## CUTOUT-v1.4
+
+The successor is explicitly versioned rather than silently changing v1.3. It
+adds:
+
+- typed public `Withdrawal` ingestion with minimized fields;
+- S2 exact counterpart and S3 deposit-to-withdrawal proximity signals for
+  withdrawal analysis only;
+- S7 round-amount fingerprint detection and deterministic `WAIT` advice;
+- a current-snapshot public cover ledger with per-token amount cohorts and an
+  amount ladder;
+- an evidence-only React hook and panel under `@cutout/guard/react`.
+
+`CUTOUT-v1.3`, `GUARD_POLICY-v1`, and `FRESHNESS_POLICY-v1` remain available for
+replay. The v1.4 release does not add signing authority, private-state
+access, arbitrary calldata, or autonomous execution.
 
 ## Mainnet evidence
 
@@ -163,6 +190,9 @@ reduced-motion improvements. No signing authority, autonomous execution, or
 transaction semantics were added, and CUTOUT-v1.3, GUARD_POLICY-v1, and
 FRESHNESS_POLICY-v1 remain unchanged.
 
+The v0.2.0 release described above is the successor to the immutable v0.1.4
+presentation release. Historical v0.1.4 evidence remains separate.
+
 ## Wallet-native security boundary
 
 - Cutout never receives private keys, seed phrases, viewing keys, private
@@ -179,10 +209,11 @@ See [SECURITY.md](docs/SECURITY.md) and
 
 ## Integrator package
 
-`packages/guard` builds `@cutout/guard@0.1.4`. Its single root
-export contains only stable action, preflight, guard, amount, version, and
-public receipt interfaces. It does not export wallet submission, the indexer,
-SQLite, RPC ingestion, or operational runtime modules.
+`packages/guard` builds `@cutout/guard@0.2.0`. The package exposes the stable
+root action, preflight, guard, amount, version, and public receipt interfaces,
+plus the evidence-only `@cutout/guard/react` subpath. Neither surface exports wallet
+submission, the indexer, SQLite, RPC ingestion, or operational runtime
+modules. Registry publication is not claimed.
 
 ```bash
 npm run package:verify
@@ -218,7 +249,7 @@ curl --fail-with-body http://127.0.0.1:3000/api/health
 
 The current production deployment is live at
 [`https://cutout.rouma.online`](https://cutout.rouma.online), serving the
-`v0.1.4` application release. The endpoint is HTTPS-terminated, exposes the
+`v0.2.0` application release. The endpoint is HTTPS-terminated, exposes the
 read-only API through the reverse proxy, and has been verified with a current
 complete snapshot and a non-submitting public preflight. See
 [DEPLOYMENT.md](docs/DEPLOYMENT.md) for the host architecture and verification
@@ -245,7 +276,8 @@ The command must end with `NO TRANSACTION WAS SUBMITTED.`
 ## Current limitations
 
 - One reviewed STRK20 mainnet pool and four configured tokens.
-- One supported action: shield/deposit.
+- Production v0.2.0 supports deposit execution and typed withdrawal analysis;
+  withdrawal analysis does not construct or execute a wallet action.
 - SQLite assumes one persistent host and one indexer writer.
 - Public RPC cross-checking reduces provider failure modes but is not a claim of
   decentralized or malicious-provider-proof infrastructure.

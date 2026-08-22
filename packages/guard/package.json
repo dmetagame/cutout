@@ -1,6 +1,6 @@
 {
   "name": "@cutout/guard",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Fail-closed STRK20 deposit guard, preflight client, and public receipt verifier",
   "type": "module",
   "license": "Apache-2.0",
@@ -15,6 +15,11 @@
       "types": "./dist/guard-package.d.ts",
       "import": "./dist/guard-package.js",
       "default": "./dist/guard-package.js"
+    },
+    "./react": {
+      "types": "./dist/guard-react.d.ts",
+      "import": "./dist/guard-react.js",
+      "default": "./dist/guard-react.js"
     }
   },
   "files": [
@@ -23,6 +28,9 @@
   ],
   "dependencies": {
     "starknet": "10.4.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

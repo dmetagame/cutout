@@ -1,5 +1,6 @@
 import { createPreflightHttpServer } from "../src/api/http.js";
 import { PreflightService } from "../src/api/preflight.js";
+import { CUTOUT_MODEL_V1_4 } from "../src/engine/constants.js";
 import { CanonicalStore } from "../src/indexer/store.js";
 import { buildOperationalHealthReport } from "../src/operations/health.js";
 import { processOperationalMetrics } from "../src/operations/metrics.js";
@@ -15,8 +16,16 @@ if (!Number.isSafeInteger(port) || port <= 0 || port > 65_535) {
   throw new Error("PORT must be an integer between 1 and 65535.");
 }
 
-const store = new CanonicalStore({ path: databasePath, config, abi, readOnly: true });
-const service = new PreflightService(store, config, abi);
+const store = new CanonicalStore({
+  path: databasePath,
+  config,
+  abi,
+  readOnly: true,
+  modelVersion: CUTOUT_MODEL_V1_4.version,
+});
+const service = new PreflightService(store, config, abi, {
+  modelVersion: CUTOUT_MODEL_V1_4.version,
+});
 const metrics = processOperationalMetrics();
 const server = createPreflightHttpServer(
   service,

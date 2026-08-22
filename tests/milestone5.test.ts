@@ -6,7 +6,7 @@ function read(path: string): string {
   return readFileSync(path, "utf8");
 }
 
-test("the integrator package manifest exposes one root entry and no application files", () => {
+test("the integrator package manifest exposes only evidence entries and no application files", () => {
   const manifest = JSON.parse(read("packages/guard/package.json")) as {
     readonly name: string;
     readonly private?: boolean;
@@ -15,12 +15,12 @@ test("the integrator package manifest exposes one root entry and no application 
   };
   assert.equal(manifest.name, "@cutout/guard");
   assert.notEqual(manifest.private, true);
-  assert.deepEqual(Object.keys(manifest.exports), ["."]);
+  assert.deepEqual(Object.keys(manifest.exports), [".", "./react"]);
   assert.deepEqual(manifest.files, ["dist", "README.md"]);
 });
 
-test("the package entry cannot expose wallet execution, RPC, indexer, or database modules", () => {
-  const entry = read("src/guard-package.ts");
+test("the package entries cannot expose wallet execution, RPC, indexer, or database modules", () => {
+  const entries = [read("src/guard-package.ts"), read("src/guard-react.tsx")];
   for (const forbidden of [
     "/indexer/",
     "/operations/",
@@ -31,7 +31,9 @@ test("the package entry cannot expose wallet execution, RPC, indexer, or databas
     "strk20InvokeTransaction",
     "evaluatePreflight",
   ]) {
-    assert.equal(entry.includes(forbidden), false, `${forbidden} leaked into the package entry`);
+    for (const entry of entries) {
+      assert.equal(entry.includes(forbidden), false, `${forbidden} leaked into a package entry`);
+    }
   }
 });
 

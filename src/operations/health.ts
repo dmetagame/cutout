@@ -264,7 +264,7 @@ export function buildOperationalHealthReport(input: {
       indexLagSeconds,
     },
     versions: {
-      model: CUTOUT_MODEL.version,
+      model: snapshot?.engineVersion ?? CUTOUT_MODEL.version,
       freshnessPolicy: FRESHNESS_POLICY.version,
       guardPolicy: GUARD_POLICY.version,
     },

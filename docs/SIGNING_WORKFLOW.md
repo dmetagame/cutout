@@ -14,7 +14,8 @@ Cutout browser UI
   +--> typed shield intent --> POST /api/preflight --> canonical snapshot
   |                                              |
   |                                              v
-  |                                      CUTOUT-v1.3
+  |                              CUTOUT-v1.4 in production
+  |                              CUTOUT-v1.3 replay path
   |                                              |
   |                                              v
   |                                      GUARD_POLICY-v1
@@ -44,21 +45,31 @@ The API supplies public evidence and deterministic recommendations only. It
 cannot sign, broadcast, change the token, change the amount, or execute a
 transaction.
 
+The deployed v0.2.0 flow keeps the shield/deposit path shown above and adds a
+typed public withdrawal analysis path using the same
+snapshot, freshness, evidence, and recommendation seams. Withdrawal analysis
+stops after revalidation at an explicit `ANALYSIS ONLY` boundary; it never
+enters wallet simulation or submission.
+
 ## User flow
 
 1. The browser discovers a Wallet Standard Starknet wallet.
 2. Cutout requires Wallet API `0.10.3` or newer, constructs `WalletAccountV6`,
    and verifies `SN_MAIN`.
 3. The user enters a token, target amount, and either exact or flexible bounds.
-4. The browser sends the typed shield intent to `POST /api/preflight`.
+4. The browser sends the typed shield intent to `POST /api/preflight`. In the
+    v1.4 release, a typed withdrawal uses the same endpoint with its reviewed
+   `recipient` field.
 5. The response renders the model band, operational decision, signals, cohort
    quality, freshness, snapshot hash, and non-claims.
 6. If a permitted healthy alternative exists, the user may choose it or keep
    the original amount. The range is never widened silently.
 7. Cutout creates a new exact final intent and calls preflight again. The first
-   result is never reused as signing authority.
+   result is never reused as signing authority. For v1.4 withdrawal analysis,
+   this second check is the final evidence check and the workflow stops there.
 8. The pure guard binds the final amount, token, account, pool, snapshot,
-   model, policy, and decision into one validated deposit plan.
+   model, policy, and decision into one validated deposit plan. This execution
+   seam is deposit-only; v1.4 withdrawal analysis does not create a plan.
 9. The browser calls `strk20PrepareInvoke([action], true)` for simulation.
 10. The UI shows the exact action returned by the guard. The user then chooses
     the wallet confirmation action explicitly.
@@ -94,6 +105,9 @@ capability.
 The deterministic Playwright Wallet Standard harness reaches
 `READY_FOR_CONFIRMATION`, after successful final preflight and simulation, and
 asserts that no broadcast request was made.
+
+The same harness exercises v1.4 withdrawal analysis and asserts that it stops
+before `strk20PrepareInvoke` and before any submission method.
 
 A separate controlled Ready X run submitted one `0.01 STRK` mainnet deposit.
 The transaction was accepted on L2 and the independent receipt verifier matched

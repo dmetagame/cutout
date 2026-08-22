@@ -30,9 +30,11 @@ export function MotionProvider({ children }: { readonly children: ReactNode }) {
 
       if (media.matches) {
         ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+        gsap.ticker.lagSmoothing(500, 33);
         return;
       }
 
+      gsap.ticker.lagSmoothing(0);
       lenis = new Lenis({
         anchors: { duration: 0.65, offset: -84 },
         duration: 0.82,
@@ -57,6 +59,7 @@ export function MotionProvider({ children }: { readonly children: ReactNode }) {
     return () => {
       media.removeEventListener("change", configureMotion);
       destroyLenis();
+      gsap.ticker.lagSmoothing(500, 33);
       delete document.documentElement.dataset.motion;
     };
   }, []);

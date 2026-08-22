@@ -5,6 +5,7 @@ import type {
   PublicDepositObservation,
   PublicRegistrationObservation,
   PublicSnapshot,
+  PublicWithdrawalObservation,
   SnapshotHash,
 } from "../starknet/types.js";
 
@@ -24,6 +25,8 @@ export type OperationalHealthStatus =
 
 export type RpcProviderName = "primary" | "secondary";
 
+export type IndexerModelVersion = "CUTOUT-v1.3" | "CUTOUT-v1.4";
+
 export type RpcProviderHealthStatus = "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
 
 export interface RpcProviderState {
@@ -40,6 +43,7 @@ export interface RpcProviderState {
 
 export interface IndexerState {
   readonly status: IndexerStatus;
+  readonly modelVersion: IndexerModelVersion;
   readonly chainId: string;
   readonly poolAddress: string;
   readonly poolClassHash: string;
@@ -70,6 +74,7 @@ export interface IndexedPoolEvent {
   readonly eventOrdinal: number;
   readonly normalized:
     | { readonly kind: "deposit"; readonly observation: PublicDepositObservation }
+    | { readonly kind: "withdrawal"; readonly observation: PublicWithdrawalObservation }
     | {
         readonly kind: "viewing-key-registration";
         readonly observation: PublicRegistrationObservation;
@@ -113,6 +118,7 @@ export interface IndexerOptions {
   readonly maxRangeBlocks?: number;
   readonly reorgWindowBlocks?: number;
   readonly rpcProviderName?: RpcProviderName;
+  readonly modelVersion?: IndexerModelVersion;
   readonly now?: () => number;
   readonly onProgress?: (message: string) => void;
 }

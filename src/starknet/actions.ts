@@ -9,7 +9,11 @@ import {
   normalizeAddress,
   normalizeFelt,
 } from "./felt.js";
-import type { IntentFlexibility, SpikeShieldIntent } from "./types.js";
+import type {
+  IntentFlexibility,
+  SpikeShieldIntent,
+  SpikeWithdrawIntent,
+} from "./types.js";
 
 const INTENT_KEYS = new Set([
   "action",
@@ -22,6 +26,8 @@ const INTENT_KEYS = new Set([
   "flexibility",
   "deadline",
 ]);
+
+const WITHDRAW_INTENT_KEYS = new Set([...INTENT_KEYS, "recipient"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -102,7 +108,56 @@ export function validateShieldIntent(
   };
 }
 
-function amountAllowed(intent: SpikeShieldIntent, amount: bigint): boolean {
+export function validateWithdrawIntent(
+  value: unknown,
+  config: StarknetSpikeConfig,
+): SpikeWithdrawIntent {
+  if (!isRecord(value) || !noExtraKeys(value, WITHDRAW_INTENT_KEYS)) {
+    throw new SpikeError("INVALID_INTENT", "Withdraw intent has an invalid shape.");
+  }
+  if (value.action !== "withdraw") {
+    throw new SpikeError("UNSUPPORTED_ACTION", "Expected one typed STRK20 withdraw action.");
+  }
+  const chainId = normalizeFelt(value.chainId, "intent chain id");
+  if (chainId !== config.chainId) {
+    throw new SpikeError("INVALID_CHAIN", "Withdraw intent targets the wrong Starknet network.");
+  }
+  const account = normalizeAddress(value.account, "intent account");
+  const recipient = normalizeAddress(value.recipient, "withdraw recipient");
+  const token = normalizeAddress(value.token, "intent token");
+  if (tokenByAddress(config, token) === undefined) {
+    throw new SpikeError("UNSUPPORTED_TOKEN", "Token is not configured for this STRK20 spike.");
+  }
+  if (!isPositiveU128(value.amount)) {
+    throw new SpikeError("INVALID_AMOUNT", "Amount must be a positive u128 in base units.");
+  }
+  if (!validTimestamp(value.evaluationBlock)) {
+    throw new SpikeError("INVALID_INTENT", "Evaluation block must be a non-negative integer.");
+  }
+  if (!validTimestamp(value.evaluationTimestamp) || !validTimestamp(value.deadline)) {
+    throw new SpikeError("INVALID_INTENT", "Evaluation timestamp and deadline are required.");
+  }
+  if (value.deadline < value.evaluationTimestamp) {
+    throw new SpikeError("INVALID_INTENT", "Withdraw intent deadline has already expired.");
+  }
+  return {
+    action: "withdraw",
+    chainId,
+    account,
+    recipient,
+    token,
+    amount: value.amount,
+    evaluationBlock: value.evaluationBlock,
+    evaluationTimestamp: value.evaluationTimestamp,
+    flexibility: parseFlexibility(value.flexibility, value.amount),
+    deadline: value.deadline,
+  };
+}
+
+function amountAllowed(
+  intent: SpikeShieldIntent | SpikeWithdrawIntent,
+  amount: bigint,
+): boolean {
   if (intent.flexibility.mode === "exact") return amount === intent.amount;
   return amount >= intent.flexibility.min && amount <= intent.flexibility.max;
 }

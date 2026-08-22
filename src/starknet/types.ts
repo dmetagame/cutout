@@ -7,6 +7,7 @@ import type {
   RegistrationObservation,
   SignalResult,
   TransactionHash,
+  WithdrawalObservation,
 } from "../engine/types.js";
 import type { SpikeErrorCode } from "./errors.js";
 
@@ -41,6 +42,18 @@ export interface PublicRegistrationObservation extends RegistrationObservation {
   };
 }
 
+export interface PublicWithdrawalObservation extends WithdrawalObservation {
+  readonly blockHash: string;
+  readonly eventIndex: number;
+  readonly eventId: string;
+  readonly eventSelector: string;
+  readonly normalizedFields: {
+    readonly recipient: Address;
+    readonly token: Address;
+    readonly amount: string;
+  };
+}
+
 export interface PublicSnapshot {
   readonly chainId: string;
   readonly poolAddress: Address;
@@ -67,6 +80,7 @@ export interface PublicSnapshot {
   readonly sourceDeclaredParentHash: string;
   readonly blockReferences: readonly BlockReference[];
   readonly depositObservations: readonly PublicDepositObservation[];
+  readonly withdrawalObservations?: readonly PublicWithdrawalObservation[];
   readonly viewingKeyRegistrationObservations: readonly PublicRegistrationObservation[];
   readonly engineVersion: string;
   readonly freshnessPolicyVersion: string;
@@ -80,6 +94,19 @@ export interface SpikeShieldIntent {
   readonly action: "shield";
   readonly chainId: string;
   readonly account: Address;
+  readonly token: Address;
+  readonly amount: bigint;
+  readonly evaluationBlock: number;
+  readonly evaluationTimestamp: number;
+  readonly flexibility: IntentFlexibility;
+  readonly deadline: number;
+}
+
+export interface SpikeWithdrawIntent {
+  readonly action: "withdraw";
+  readonly chainId: string;
+  readonly account: Address;
+  readonly recipient: Address;
   readonly token: Address;
   readonly amount: bigint;
   readonly evaluationBlock: number;

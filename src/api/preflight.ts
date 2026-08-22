@@ -1,26 +1,30 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import type { Recommendation } from "../engine/types.js";
 import type { ReviewedPoolAbi } from "../starknet/abi.js";
 import type { StarknetSpikeConfig } from "../starknet/config.js";
 import type { SpikeErrorCode } from "../starknet/errors.js";
 import { GUARD_POLICY } from "../starknet/policies.js";
 import { runSpikePreflight } from "../starknet/preflight.js";
-import type { SpikeShieldIntent } from "../starknet/types.js";
+import type { SpikeShieldIntent, SpikeWithdrawIntent } from "../starknet/types.js";
 import { DataLayerError } from "../indexer/errors.js";
 import { CanonicalStore } from "../indexer/store.js";
 import { deterministicId } from "./canonical.js";
 import type {
   PreflightApiErrorCode,
   PreflightApiResponse,
+  WireIntent,
   WireRecommendation,
   WireShieldIntent,
+  WireWithdrawIntent,
 } from "./types.js";
 
-const NON_CLAIMS = [
-  "Candidate cohorts are public-observer evidence, not anonymity sets.",
-  "LOW means only that CUTOUT-v1.3 placed this result in its LOW band under the published rules.",
-  "Cutout does not claim anonymity, untraceability, unlinkability, or a probability of deanonymization.",
-] as const;
+function nonClaims(modelVersion: string): readonly string[] {
+  return [
+    "Candidate cohorts are public-observer evidence, not anonymity sets.",
+    `LOW means only that ${modelVersion} placed this result in its LOW band under the published rules.`,
+    "Cutout does not claim anonymity, untraceability, unlinkability, or a probability of deanonymization.",
+  ];
+}
 
 const INTENT_KEYS = new Set([
   "action",
@@ -33,6 +37,7 @@ const INTENT_KEYS = new Set([
   "flexibility",
   "deadline",
 ]);
+const WITHDRAW_INTENT_KEYS = new Set([...INTENT_KEYS, "recipient"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -118,30 +123,104 @@ export function parseWireShieldIntent(value: unknown): SpikeShieldIntent {
   };
 }
 
-function canonicalIntent(intent: SpikeShieldIntent): WireShieldIntent {
+export function parseWireWithdrawIntent(value: unknown): SpikeWithdrawIntent {
+  if (!isRecord(value) || !hasOnlyKeys(value, WITHDRAW_INTENT_KEYS)) {
+    throw new ApiInputError("INVALID_INTENT", "Request must contain exactly one typed withdraw intent.");
+  }
+  if (value.action !== "withdraw") {
+    throw new ApiInputError("UNSUPPORTED_ACTION", "Expected one STRK20 withdraw intent.");
+  }
+  if (
+    typeof value.chainId !== "string" ||
+    typeof value.account !== "string" ||
+    typeof value.recipient !== "string" ||
+    typeof value.token !== "string" ||
+    typeof value.evaluationBlock !== "number" ||
+    typeof value.evaluationTimestamp !== "number" ||
+    typeof value.deadline !== "number" ||
+    !Number.isSafeInteger(value.evaluationBlock) ||
+    !Number.isSafeInteger(value.evaluationTimestamp) ||
+    !Number.isSafeInteger(value.deadline)
+  ) {
+    throw new ApiInputError("INVALID_INTENT", "Withdraw intent fields have invalid JSON types.");
+  }
+  const amount = wireAmount(value.amount, "amount");
+  if (!isRecord(value.flexibility) || typeof value.flexibility.mode !== "string") {
+    throw new ApiInputError("INVALID_INTENT", "Flexibility constraints are required.");
+  }
+  let flexibility: SpikeWithdrawIntent["flexibility"];
+  if (value.flexibility.mode === "exact") {
+    if (!hasOnlyKeys(value.flexibility, new Set(["mode"]))) {
+      throw new ApiInputError("INVALID_INTENT", "Exact flexibility has an invalid shape.");
+    }
+    flexibility = { mode: "exact" };
+  } else if (
+    value.flexibility.mode === "flexible" &&
+    hasOnlyKeys(value.flexibility, new Set(["mode", "min", "max"]))
+  ) {
+    flexibility = {
+      mode: "flexible",
+      min: wireAmount(value.flexibility.min, "flexibility.min"),
+      max: wireAmount(value.flexibility.max, "flexibility.max"),
+    };
+  } else {
+    throw new ApiInputError("INVALID_INTENT", "Flexibility constraints have an invalid shape.");
+  }
   return {
-    action: "shield",
+    action: "withdraw",
+    chainId: value.chainId,
+    account: value.account as SpikeWithdrawIntent["account"],
+    recipient: value.recipient as SpikeWithdrawIntent["recipient"],
+    token: value.token as SpikeWithdrawIntent["token"],
+    amount,
+    evaluationBlock: value.evaluationBlock,
+    evaluationTimestamp: value.evaluationTimestamp,
+    flexibility,
+    deadline: value.deadline,
+  };
+}
+
+export function parseWireIntent(value: unknown): SpikeShieldIntent | SpikeWithdrawIntent {
+  if (isRecord(value) && value.action === "withdraw") {
+    return parseWireWithdrawIntent(value);
+  }
+  return parseWireShieldIntent(value);
+}
+
+function canonicalIntent(intent: SpikeShieldIntent | SpikeWithdrawIntent): WireIntent {
+  const flexibility: WireShieldIntent["flexibility"] = intent.flexibility.mode === "exact"
+    ? { mode: "exact" }
+    : {
+        mode: "flexible",
+        min: intent.flexibility.min.toString(10),
+        max: intent.flexibility.max.toString(10),
+      };
+  const common = {
     chainId: intent.chainId,
     account: intent.account,
     token: intent.token,
     amount: intent.amount.toString(10),
     evaluationBlock: intent.evaluationBlock,
     evaluationTimestamp: intent.evaluationTimestamp,
-    flexibility:
-      intent.flexibility.mode === "exact"
-        ? { mode: "exact" }
-        : {
-            mode: "flexible",
-            min: intent.flexibility.min.toString(10),
-            max: intent.flexibility.max.toString(10),
-          },
+    flexibility,
     deadline: intent.deadline,
   };
+  if (intent.action === "withdraw") {
+    return { action: "withdraw", recipient: intent.recipient, ...common } satisfies WireWithdrawIntent;
+  }
+  return { action: "shield", ...common } satisfies WireShieldIntent;
 }
 
 function wireRecommendation(recommendation: Recommendation | null): WireRecommendation {
   if (recommendation === null || recommendation.kind === "NO_SAFER_EXECUTION") {
     return recommendation;
+  }
+  if (recommendation.kind === "WAIT") {
+    return {
+      kind: "WAIT",
+      suggestedHorizonSeconds: recommendation.suggestedHorizonSeconds,
+      reason: recommendation.reason,
+    };
   }
   return {
     kind: "CHANGE_AMOUNT",
@@ -195,18 +274,19 @@ function mapSpikeError(code: SpikeErrorCode | "UNKNOWN"): PreflightApiErrorCode 
 }
 
 function unavailable(input: {
-  readonly intent: SpikeShieldIntent | null;
+  readonly intent: SpikeShieldIntent | SpikeWithdrawIntent | null;
   readonly code: PreflightApiErrorCode;
   readonly message: string;
   readonly snapshotHash: `0x${string}` | null;
+  readonly modelVersion: string;
 }): PreflightApiResponse {
   const core = {
     status: "NO_CONFIDENT_RECOMMENDATION" as const,
-    modelVersion: CUTOUT_MODEL.version,
+    modelVersion: input.modelVersion,
     guardPolicyVersion: GUARD_POLICY.version,
     error: { code: input.code, message: input.message },
     snapshotHash: input.snapshotHash,
-    nonClaims: NON_CLAIMS,
+    nonClaims: nonClaims(input.modelVersion),
   };
   return {
     ...core,
@@ -224,8 +304,15 @@ function unavailable(input: {
 export function unavailablePreflightResponse(
   code: PreflightApiErrorCode,
   message: string,
+  modelVersion: typeof CUTOUT_MODEL.version | typeof CUTOUT_MODEL_V1_4.version = CUTOUT_MODEL.version,
 ): PreflightApiResponse {
-  return unavailable({ intent: null, code, message, snapshotHash: null });
+  return unavailable({
+    intent: null,
+    code,
+    message,
+    snapshotHash: null,
+    modelVersion,
+  });
 }
 
 export class PreflightService {
@@ -234,6 +321,7 @@ export class PreflightService {
   readonly abi: ReviewedPoolAbi;
   readonly now: () => number;
   readonly maximumIntentClockSkewSeconds: number;
+  readonly configuredModelVersion: typeof CUTOUT_MODEL.version | typeof CUTOUT_MODEL_V1_4.version;
 
   constructor(
     store: CanonicalStore,
@@ -242,6 +330,7 @@ export class PreflightService {
     options: {
       readonly now?: () => number;
       readonly maximumIntentClockSkewSeconds?: number;
+      readonly modelVersion?: typeof CUTOUT_MODEL.version | typeof CUTOUT_MODEL_V1_4.version;
     } = {},
   ) {
     this.store = store;
@@ -249,21 +338,23 @@ export class PreflightService {
     this.abi = abi;
     this.now = options.now ?? (() => Math.floor(Date.now() / 1_000));
     this.maximumIntentClockSkewSeconds = options.maximumIntentClockSkewSeconds ?? 5;
+    this.configuredModelVersion = options.modelVersion ?? CUTOUT_MODEL.version;
   }
 
   preflight(request: unknown): PreflightApiResponse {
-    let intent: SpikeShieldIntent | null = null;
+    let intent: SpikeShieldIntent | SpikeWithdrawIntent | null = null;
     try {
-      intent = parseWireShieldIntent(request);
+      intent = parseWireIntent(request);
     } catch (error) {
       const inputError = error instanceof ApiInputError
         ? error
-        : new ApiInputError("INVALID_INTENT", "Request is not a valid shield intent.");
+        : new ApiInputError("INVALID_INTENT", "Request is not a valid typed STRK20 intent.");
       return unavailable({
         intent: null,
         code: inputError.code,
         message: inputError.message,
         snapshotHash: null,
+        modelVersion: this.configuredModelVersion,
       });
     }
 
@@ -278,6 +369,7 @@ export class PreflightService {
         code: "INVALID_INTENT",
         message: "Evaluation timestamp is not current for this preflight service.",
         snapshotHash: null,
+        modelVersion: this.configuredModelVersion,
       });
     }
 
@@ -293,6 +385,17 @@ export class PreflightService {
         code: dataError.code,
         message: dataError.message,
         snapshotHash: null,
+        modelVersion: this.configuredModelVersion,
+      });
+    }
+
+    if (snapshot.engineVersion !== this.configuredModelVersion) {
+      return unavailable({
+        intent,
+        code: "MODEL_VERSION_MISMATCH",
+        message: "Configured preflight model does not match the active canonical snapshot.",
+        snapshotHash: null,
+        modelVersion: this.configuredModelVersion,
       });
     }
 
@@ -308,6 +411,7 @@ export class PreflightService {
         code: mapSpikeError(result.error.code),
         message: result.error.message,
         snapshotHash: result.snapshotHash,
+        modelVersion: result.modelVersion,
       });
     }
     const core = {

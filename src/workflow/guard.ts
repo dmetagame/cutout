@@ -1,4 +1,4 @@
-import { CUTOUT_MODEL } from "../engine/constants.js";
+import { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "../engine/constants.js";
 import type { Decision } from "../engine/types.js";
 import type {
   AvailablePreflightApiResponse,
@@ -218,8 +218,11 @@ function validateBoundary(
   ) {
     throw new WorkflowError("STALE_PREFLIGHT", "Canonical snapshot block or timestamp order is inconsistent.");
   }
-  if (snapshot.engineVersion !== CUTOUT_MODEL.version) {
-    throw new WorkflowError("MODEL_VERSION_MISMATCH", "Snapshot engine version is not CUTOUT-v1.3.");
+  if (
+    snapshot.engineVersion !== CUTOUT_MODEL.version &&
+    snapshot.engineVersion !== CUTOUT_MODEL_V1_4.version
+  ) {
+    throw new WorkflowError("MODEL_VERSION_MISMATCH", "Snapshot engine version is not a supported Cutout model.");
   }
   if (snapshot.freshnessPolicyVersion !== FRESHNESS_POLICY.version) {
     throw new WorkflowError("MODEL_VERSION_MISMATCH", "Snapshot freshness policy version is inconsistent.");
@@ -295,7 +298,11 @@ async function validateAvailablePreflight(
       `Cutout evidence is unavailable: ${response.error.code}.`,
     );
   }
-  if (response.modelVersion !== CUTOUT_MODEL.version || response.modelVersion !== snapshot.engineVersion) {
+  if (
+    response.modelVersion !== snapshot.engineVersion ||
+    (response.modelVersion !== CUTOUT_MODEL.version &&
+      response.modelVersion !== CUTOUT_MODEL_V1_4.version)
+  ) {
     throw new WorkflowError("MODEL_VERSION_MISMATCH", "Preflight model version is inconsistent.");
   }
   if (
@@ -571,7 +578,8 @@ export function assertGuardedDepositPlan(
 ): void {
   if (
     plan.status !== "VALIDATED" ||
-    plan.modelVersion !== CUTOUT_MODEL.version ||
+    plan.modelVersion !== CUTOUT_MODEL.version &&
+      plan.modelVersion !== CUTOUT_MODEL_V1_4.version ||
     plan.guardPolicyVersion !== GUARD_POLICY.version ||
     guardDecisionForBand(plan.riskBand) !== plan.decision ||
     !decisionAllowsWalletCall(plan.decision) ||

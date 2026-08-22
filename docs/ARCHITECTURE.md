@@ -4,12 +4,16 @@ Cutout has three deliberately separate planes: public observation,
 deterministic analysis, and user-controlled execution. Only the wallet can
 sign or submit.
 
+The diagram below shows the deposit execution path in the deployed `v0.2.0`
+architecture. `CUTOUT-v1.3` remains the frozen replay path and the release adds
+named `CUTOUT-v1.4` observation and analysis without adding execution authority.
+
 ```mermaid
 flowchart TB
   subgraph PublicObservation[Public observation]
     SN[Public Starknet]
     RPC[Primary and secondary RPC]
-    EVENTS["STRK20 Deposit and ViewingKeySet events<br/>plus block headers"]
+    EVENTS["STRK20 Deposit, Withdrawal, and ViewingKeySet events<br/>plus block headers"]
     INDEXER[Supervised incremental indexer]
     STORE[(Canonical SQLite read model)]
     SNAPSHOT["Complete canonical PublicSnapshot<br/>and deterministic snapshot hash"]
@@ -17,9 +21,9 @@ flowchart TB
   end
 
   subgraph DeterministicAnalysis[Deterministic analysis]
-    INTENT["Typed shield intent<br/>deposit only"]
+    INTENT["Typed shield or withdrawal intent"]
     API[POST /api/preflight]
-    ENGINE[CUTOUT-v1.3]
+    ENGINE[CUTOUT-v1.4]
     POLICY[GUARD_POLICY-v1]
     EVIDENCE["Band, signals, cohort evidence,<br/>recommendation or refusal"]
     INTENT --> API
@@ -46,7 +50,7 @@ flowchart TB
 | Boundary | Authority | Prohibited capability |
 |---|---|---|
 | Indexer | Normalize reviewed public pool events and canonical block provenance. | Wallet access, signing, private notes, viewing-key payloads, proofs, or shielded balances. |
-| Preflight API | Load one complete snapshot and return deterministic CUTOUT-v1.3 evidence. | Signing, broadcasting, changing the user's token/action/amount, or serving stale evidence as current. |
+| Preflight API | Load one complete snapshot and return deterministic CUTOUT-v1.4 evidence. | Signing, broadcasting, changing the user's token/action/amount, or serving stale evidence as current. |
 | Browser | Own user intent, recommendation selection, final review, and wallet-call state. | Bypassing final preflight or broadening user-approved flexibility. |
 | Wallet | Hold keys, simulate, display the exact action, request approval, sign, and submit. | Delegating signing authority to the Cutout backend. |
 | Receipt verifier | Independently read public inclusion and bind account, pool, token, amount, and event. | Treating a transaction hash alone as proof of the expected deposit. |
@@ -66,8 +70,31 @@ flowchart TB
 
 ## Scope
 
-The release supports one reviewed Starknet mainnet STRK20 pool and exactly one
-typed `deposit` action. It does not add a Cairo contract because the public
+The release supports one reviewed Starknet mainnet STRK20 pool, a typed
+`deposit` wallet path, and typed `withdrawal` analysis. It does not add a Cairo contract because the public
 evidence calculation and recommendation do not require onchain authority.
 Cutout does not claim anonymity, untraceability, guaranteed unlinkability, or
 protection against private wallet, exchange, browser, or RPC telemetry.
+
+## CUTOUT-v1.4 release extension
+
+The successor keeps the same three-plane boundary:
+
+```text
+Public Deposit + Withdrawal + ViewingKeySet events
+    -> model-versioned canonical snapshot
+    -> CUTOUT-v1.4 deposit or withdrawal analysis
+    -> public cover/evidence surface
+    -> deposit path only: final exact preflight -> wallet simulation -> user wallet
+```
+
+For a typed withdrawal, v1.4 evaluates public S2 counterpart and S3 proximity
+evidence, plus the shared cohort signals. The browser renders the result and
+stops at an analysis-only boundary; it does not construct, simulate, confirm,
+or submit a withdrawal action. S7 round-amount detection and `WAIT` are
+deterministic advisory outputs, never automatic scheduling or execution.
+
+The release also exposes a wallet-free cover ledger derived from the same
+complete snapshot as preflight. It contains aggregate cohorts and provenance,
+not raw actors or encrypted viewing-key payloads. Deposit execution remains the
+only wallet action.

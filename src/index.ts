@@ -1,6 +1,7 @@
-export { CUTOUT_MODEL } from "./engine/constants.js";
-export { evaluatePreflight } from "./engine/evaluate.js";
+export { CUTOUT_MODEL, CUTOUT_MODEL_V1_4 } from "./engine/constants.js";
+export { evaluatePreflight, evaluatePreflightV14 } from "./engine/evaluate.js";
 export type * from "./engine/types.js";
+export * from "./cover.js";
 export * from "./starknet/abi.js";
 export * from "./starknet/actions.js";
 export * from "./starknet/config.js";

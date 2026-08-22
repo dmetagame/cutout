@@ -2,9 +2,9 @@
 
 ## What is Cutout?
 
-A wallet-native guard for one STRK20 deposit. It evaluates public exact-amount
-cohort evidence before signing and may recommend a healthier amount only inside
-the user's permitted range.
+A wallet-native guard for one STRK20 deposit, plus a non-executing withdrawal
+analysis path. It evaluates public exact-amount cohort evidence before signing
+and may recommend a healthier amount only inside the user's permitted range.
 
 ## Is Cutout a mixer or privacy protocol?
 
@@ -13,7 +13,7 @@ uses public STRK20 observations.
 
 ## Does LOW mean anonymous?
 
-No. `LOW` is only a CUTOUT-v1.3 band under the published rules. Candidate
+No. `LOW` is only a band under the selected frozen CUTOUT model. Candidate
 cohorts are not anonymity sets, and Cutout reports no probability of
 deanonymization.
 
@@ -66,7 +66,7 @@ transaction hash, or submission.
 
 ## What is shipped for integrators?
 
-`@cutout/guard@0.1.4` exposes the stable action, preflight, guard, amount,
+`@cutout/guard@0.2.0` exposes the stable action, preflight, guard, amount,
 version, and public receipt interfaces. It does not expose wallet submission,
 the engine evaluator, RPC ingestion, the indexer, or SQLite.
 
@@ -76,3 +76,41 @@ The production demo is live at `https://cutout.rouma.online` and has current
 health/preflight verification. Public npm availability still requires owner
 credentials and registry verification; it is not inferred from the GitHub
 release or deployment.
+
+## What does CUTOUT-v1.4 add?
+
+The successor release adds typed public `Withdrawal` observations,
+withdrawal-only S2 exact counterpart and S3 proximity signals, S7 round-amount
+fingerprints, deterministic `WAIT` advice, and a wallet-free cover ledger. It
+keeps `CUTOUT-v1.3`, `GUARD_POLICY-v1`, and `FRESHNESS_POLICY-v1` intact.
+The v0.2.0 release runs v1.4 after its separate production deployment is
+verified; v1.3 remains available for replay.
+
+## Does v1.4 execute withdrawals?
+
+No. The release can analyze a typed withdrawal and revalidate its public
+evidence, then stops at `ANALYSIS ONLY`. It does not construct a withdrawal
+action, simulate it, ask the wallet to confirm it, or submit it. The existing
+deposit path is still the only wallet execution path.
+
+## What is the cover ledger showing?
+
+It is an aggregate view of exact-token amount cohorts from the same complete
+canonical snapshot used by preflight. It shows traffic context, distinct
+addresses, durability, burst share, and current model band. It does not expose
+raw actors and it is not an anonymity set.
+
+## What does WAIT mean?
+
+`WAIT` is deterministic advisory output when a thin or burst-dominated cohort
+may change after one bounded trailing cohort window. Cutout does not schedule a
+future check, create cover traffic, or submit later. The user must decide
+whether to re-run preflight.
+
+## Can another STRK20 app use the evidence UI?
+
+The release adds `@cutout/guard/react`, an evidence-only hook and panel
+that call the fail-closed preflight contract. The subpath has no wallet,
+simulation, authorization, invoke, or submission export. It is not a claim of
+public npm availability until an owner publishes and verifies a separate
+package release.

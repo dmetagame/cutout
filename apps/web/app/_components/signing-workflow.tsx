@@ -4,6 +4,9 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  BarChart3,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -18,10 +21,15 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-import type { PreflightApiResponse } from "@cutout/api/types";
+import type {
+  PreflightApiResponse,
+  WireIntent,
+  WireShieldIntent,
+  WireWithdrawIntent,
+} from "@cutout/api/types";
 import {
   authorizeSubmission,
   createGuardedDepositPlan,
@@ -35,7 +43,6 @@ import {
 import {
   verifyDepositReceipt,
 } from "@cutout/workflow/receipt";
-import type { WireShieldIntent } from "@cutout/api/types";
 import type {
   ExecutionSelection,
   GuardedDepositPlan,
@@ -68,7 +75,9 @@ type FlowState =
   | "PREFLIGHT_UNAVAILABLE"
   | "PREFLIGHT_COMPLETE"
   | "RECOMMENDATION_AVAILABLE"
+  | "FINAL_PREFLIGHT_LOADING"
   | "FINAL_REVIEW"
+  | "WITHDRAW_ANALYSIS_COMPLETE"
   | "SIMULATING"
   | "SIMULATION_FAILED"
   | "READY_FOR_CONFIRMATION"
@@ -87,6 +96,13 @@ interface SigningWorkflowProps {
 interface UiError {
   readonly code: string;
   readonly message: string;
+}
+
+type AnalysisAction = "shield" | "withdraw";
+
+interface AmountChoice {
+  readonly source: "ORIGINAL" | "RECOMMENDATION";
+  readonly amount: string;
 }
 
 function coreConfig(bootstrap: AvailableWebBootstrap): StarknetSpikeConfig {
@@ -152,7 +168,8 @@ const FLOW_STEPS = [
   { label: "Propose", owner: "You" },
   { label: "Verify", owner: "Cutout" },
   { label: "Review", owner: "Cutout" },
-  { label: "Sign", owner: "Wallet" },
+  { label: "Simulate", owner: "Wallet" },
+  { label: "User wallet", owner: "You" },
 ] as const;
 
 function flowStep(state: FlowState): number {
@@ -169,18 +186,21 @@ function flowStep(state: FlowState): number {
     case "PREFLIGHT_COMPLETE":
     case "RECOMMENDATION_AVAILABLE":
       return 1;
+    case "FINAL_PREFLIGHT_LOADING":
     case "FINAL_REVIEW":
+    case "WITHDRAW_ANALYSIS_COMPLETE":
+      return 2;
     case "SIMULATING":
     case "SIMULATION_FAILED":
-      return 2;
-    default:
       return 3;
+    default:
+      return 4;
   }
 }
 
 function stateTone(state: FlowState): "neutral" | "working" | "success" | "warning" | "error" {
-  if (state === "CONNECTING" || state === "PREFLIGHT_LOADING" || state === "SIMULATING" || state === "SUBMITTING" || state === "RECEIPT_VERIFYING") return "working";
-  if (state === "PREFLIGHT_COMPLETE" || state === "FINAL_REVIEW" || state === "READY_FOR_CONFIRMATION" || state === "SUCCESS") return "success";
+  if (state === "CONNECTING" || state === "PREFLIGHT_LOADING" || state === "FINAL_PREFLIGHT_LOADING" || state === "SIMULATING" || state === "SUBMITTING" || state === "RECEIPT_VERIFYING") return "working";
+  if (state === "PREFLIGHT_COMPLETE" || state === "FINAL_REVIEW" || state === "WITHDRAW_ANALYSIS_COMPLETE" || state === "READY_FOR_CONFIRMATION" || state === "SUCCESS") return "success";
   if (state === "RECOMMENDATION_AVAILABLE") return "warning";
   if (state === "UNSUPPORTED_WALLET" || state === "WRONG_NETWORK" || state === "INVALID_INTENT" || state === "PREFLIGHT_UNAVAILABLE" || state === "SIMULATION_FAILED" || state === "RECEIPT_MISMATCH" || state === "USER_REJECTED" || state === "SUBMISSION_FAILED") return "error";
   return "neutral";
@@ -205,6 +225,12 @@ function emptyStateCopy(state: FlowState): { readonly title: string; readonly bo
       body: "Validating the canonical snapshot, evaluating exact-amount coverage, and applying the frozen guard policy.",
     };
   }
+  if (state === "FINAL_PREFLIGHT_LOADING") {
+    return {
+      title: "Revalidating the exact selection",
+      body: "Cutout is binding the selected amount to the current snapshot before the flow can continue.",
+    };
+  }
   return {
     title: "Connect a wallet to begin",
     body: "No confident decision is shown until wallet identity, network, intent, and a complete public snapshot are available.",
@@ -213,7 +239,9 @@ function emptyStateCopy(state: FlowState): { readonly title: string; readonly bo
 
 export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const motionScope = useRef<HTMLElement>(null);
+  const previousBootstrapStatus = useRef(bootstrap.status);
   const availableBootstrap = bootstrap.status === "AVAILABLE" ? bootstrap : null;
   const config = useMemo(
     () => (availableBootstrap === null ? null : coreConfig(availableBootstrap)),
@@ -232,14 +260,16 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     bootstrap.status === "UNAVAILABLE" ? bootstrap.error : null,
   );
   const [capability, setCapability] = useState<WalletCapabilityReady | null>(null);
+  const [action, setAction] = useState<AnalysisAction>("shield");
   const [tokenAddress, setTokenAddress] = useState(availableBootstrap?.config.tokens[0]?.address ?? "");
-  const [amountInput, setAmountInput] = useState("4713.22");
-  const [flexible, setFlexible] = useState(true);
-  const [minimumInput, setMinimumInput] = useState("4600");
-  const [maximumInput, setMaximumInput] = useState("4800");
-  const [initialIntent, setInitialIntent] = useState<WireShieldIntent | null>(null);
+  const [amountInput, setAmountInput] = useState("");
+  const [flexible, setFlexible] = useState(false);
+  const [minimumInput, setMinimumInput] = useState("");
+  const [maximumInput, setMaximumInput] = useState("");
+  const [initialIntent, setInitialIntent] = useState<WireIntent | null>(null);
   const [initialPreflight, setInitialPreflight] = useState<PreflightApiResponse | null>(null);
   const [selection, setSelection] = useState<ExecutionSelection | null>(null);
+  const [withdrawSelection, setWithdrawSelection] = useState<AmountChoice | null>(null);
   const [finalPreflight, setFinalPreflight] = useState<PreflightApiResponse | null>(null);
   const [plan, setPlan] = useState<GuardedDepositPlan | null>(null);
   const [simulation, setSimulation] = useState<SimulatedDepositPlan | null>(null);
@@ -247,6 +277,15 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   const [warningAcknowledged, setWarningAcknowledged] = useState(false);
 
   useWorkflowMotion(motionScope, state);
+
+  useEffect(() => {
+    const changed = previousBootstrapStatus.current !== bootstrap.status;
+    previousBootstrapStatus.current = bootstrap.status;
+    if (changed && bootstrap.status === "AVAILABLE") {
+      setError(null);
+      setState(capability === null ? "DISCONNECTED" : "CONNECTED");
+    }
+  }, [bootstrap.status, capability]);
 
   const selectedToken = availableBootstrap?.config.tokens.find(
     (candidate) => candidate.address === tokenAddress,
@@ -260,6 +299,58 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     setState(nextState);
     setError(nextError);
   }, []);
+
+  const clearDecision = useCallback(() => {
+    setInitialIntent(null);
+    setInitialPreflight(null);
+    setSelection(null);
+    setWithdrawSelection(null);
+    setFinalPreflight(null);
+    setPlan(null);
+    setSimulation(null);
+    setTransactionHash(null);
+    setWarningAcknowledged(false);
+    setError(null);
+    setState(capability === null ? "DISCONNECTED" : "CONNECTED");
+  }, [capability]);
+
+  const refreshSnapshot = useCallback(() => {
+    startRefresh(() => router.refresh());
+  }, [router]);
+
+  const selectAction = useCallback((nextAction: AnalysisAction) => {
+    if (nextAction === action) return;
+    setAction(nextAction);
+    setAmountInput("");
+    setFlexible(false);
+    setMinimumInput("");
+    setMaximumInput("");
+    clearDecision();
+  }, [action, clearDecision]);
+
+  const selectToken = useCallback((nextToken: string) => {
+    setTokenAddress(nextToken);
+    setAmountInput("");
+    setMinimumInput("");
+    setMaximumInput("");
+    clearDecision();
+  }, [clearDecision]);
+
+  const chooseCoverAmount = useCallback((next: {
+    readonly action: AnalysisAction;
+    readonly token: string;
+    readonly amount: string;
+  }) => {
+    setAction(next.action);
+    setTokenAddress(next.token);
+    const token = availableBootstrap?.config.tokens.find((candidate) => candidate.address === next.token);
+    setAmountInput(token === undefined ? next.amount : formatTokenAmount(next.amount, token.decimals));
+    setFlexible(false);
+    setMinimumInput("");
+    setMaximumInput("");
+    clearDecision();
+    window.requestAnimationFrame(() => document.getElementById("proposal")?.scrollIntoView({ block: "start" }));
+  }, [availableBootstrap, clearDecision]);
 
   const connectWallet = useCallback(async () => {
     if (config === null) return;
@@ -279,12 +370,12 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     setState("CONNECTED");
   }, [config, setFailure]);
 
-  const buildIntent = useCallback((): WireShieldIntent => {
+  const buildIntent = useCallback((): WireIntent => {
     if (availableBootstrap === null || config === null || capability === null || selectedToken === undefined) {
       throw new Error("Wallet, snapshot, and token are required before preflight.");
     }
     const amount = parseTokenAmount(amountInput, selectedToken.decimals);
-    let flexibility: WireShieldIntent["flexibility"] = { mode: "exact" };
+    let flexibility: WireIntent["flexibility"] = { mode: "exact" };
     if (flexible) {
       const min = parseTokenAmount(minimumInput, selectedToken.decimals);
       const max = parseTokenAmount(maximumInput, selectedToken.decimals);
@@ -294,8 +385,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       flexibility = { mode: "flexible", min: min.toString(10), max: max.toString(10) };
     }
     const evaluationTimestamp = nowWithOffset(clockOffset);
-    return {
-      action: "shield",
+    const common = {
       chainId: config.chainId,
       account: accountFor(capability),
       token: selectedToken.address,
@@ -305,7 +395,17 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       flexibility,
       deadline: evaluationTimestamp + 600,
     };
-  }, [amountInput, availableBootstrap, capability, clockOffset, config, flexible, maximumInput, minimumInput, selectedToken]);
+    return action === "withdraw"
+      ? {
+          action: "withdraw",
+          recipient: accountFor(capability),
+          ...common,
+        } satisfies WireWithdrawIntent
+      : {
+          action: "shield",
+          ...common,
+        } satisfies WireShieldIntent;
+  }, [action, amountInput, availableBootstrap, capability, clockOffset, config, flexible, maximumInput, minimumInput, selectedToken]);
 
   const runInitialPreflight = useCallback(async () => {
     if (config === null || availableBootstrap === null || capability === null) return;
@@ -323,6 +423,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       setInitialIntent(intent);
       setInitialPreflight(result);
       setSelection(null);
+      setWithdrawSelection(null);
       setFinalPreflight(null);
       setPlan(null);
       setSimulation(null);
@@ -339,17 +440,54 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
     }
   }, [availableBootstrap, buildIntent, capability, config, setFailure]);
 
+  const chooseWithdrawSelection = useCallback(async (nextSelection: AmountChoice) => {
+    if (
+      availableBootstrap === null ||
+      initialIntent?.action !== "withdraw" ||
+      initialPreflight?.status !== "AVAILABLE"
+    ) return;
+    setWithdrawSelection(nextSelection);
+    setError(null);
+    setState("FINAL_PREFLIGHT_LOADING");
+    try {
+      const timestamp = nowWithOffset(clockOffset);
+      const final: WireWithdrawIntent = {
+        ...initialIntent,
+        amount: nextSelection.amount,
+        evaluationBlock: availableBootstrap.snapshot.observedBlock,
+        evaluationTimestamp: timestamp,
+        flexibility: { mode: "exact" },
+        deadline: timestamp + 600,
+      };
+      const result = await requestPreflight(window.fetch.bind(window), final);
+      if (result.status === "CLIENT_UNAVAILABLE") {
+        setFailure("PREFLIGHT_UNAVAILABLE", clientFailure(result));
+        return;
+      }
+      setFinalPreflight(result);
+      if (result.status !== "AVAILABLE") {
+        setFailure("PREFLIGHT_UNAVAILABLE", result.error);
+        return;
+      }
+      setState("WITHDRAW_ANALYSIS_COMPLETE");
+    } catch (caught) {
+      setFailure("PREFLIGHT_UNAVAILABLE", errorDetails(caught));
+    }
+  }, [availableBootstrap, clockOffset, initialIntent, initialPreflight, setFailure]);
+
   const chooseSelection = useCallback(async (nextSelection: ExecutionSelection) => {
     if (
       config === null ||
       availableBootstrap === null ||
       capability === null ||
       initialIntent === null ||
-      initialPreflight === null
+      initialIntent.action !== "shield" ||
+      initialPreflight === null ||
+      initialPreflight.status !== "AVAILABLE"
     ) return;
     setSelection(nextSelection);
     setError(null);
-    setState("PREFLIGHT_LOADING");
+    setState("FINAL_PREFLIGHT_LOADING");
     try {
       const timestamp = nowWithOffset(clockOffset);
       const final = makeFinalExactIntent(
@@ -479,14 +617,20 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       <>
         <Header runtimeMode={bootstrap.runtimeMode} walletLabel="Unavailable" />
         <main ref={motionScope} className="page-shell unavailable-page motion-root">
-          <section className="unavailable-shell" aria-labelledby="unavailable-title" data-state-reveal>
-            <div className="state-icon state-icon-error"><CircleX size={22} /></div>
-            <p className="eyebrow" data-motion-item>Evidence unavailable</p>
-            <h1 id="unavailable-title">Public evidence is unavailable.</h1>
-            <p className="lede" data-motion-item>Cutout cannot safely make this decision from the current public state.</p>
-            <div className="error-meta" data-motion-item><span className="error-code">{bootstrap.error.code}</span><span>Fail-closed boundary</span></div>
-            <p className="unavailable-detail" data-motion-item>{bootstrap.error.message}</p>
-            <button className="button button-secondary" type="button" onClick={() => window.location.reload()}><RefreshCw size={16} /> Refresh snapshot</button>
+          <section className="unavailable-instrument" aria-labelledby="unavailable-title" data-state-reveal>
+            <div className="unavailable-copy">
+              <div className="state-icon state-icon-error"><CircleX size={22} /></div>
+              <p className="eyebrow" data-motion-item>Fail-closed evidence boundary</p>
+              <h1 id="unavailable-title">Cutout will not decide from incomplete public state.</h1>
+              <p className="lede" data-motion-item>Evidence is temporarily unavailable. No band, recommendation, simulation, or wallet action is exposed until a current canonical snapshot returns.</p>
+              <div className="error-meta" data-motion-item><span className="error-code">{bootstrap.error.code}</span><span>No decision produced</span></div>
+              <p className="unavailable-detail" data-motion-item>{bootstrap.error.message}</p>
+              <button className="button button-secondary" type="button" onClick={refreshSnapshot} disabled={isRefreshing}><RefreshCw size={16} className={isRefreshing ? "spinner" : undefined} /> {isRefreshing ? "Checking snapshot" : "Check snapshot again"}</button>
+            </div>
+            <div className="unavailable-boundary" data-motion-item>
+              <strong>What remains protected</strong>
+              <ul><li>No partial LOW / MEDIUM / HIGH result</li><li>No amount recommendation</li><li>No wallet simulation or invoke call</li></ul>
+            </div>
           </section>
         </main>
       </>
@@ -497,6 +641,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   const finalResponse = finalPreflight;
   const hasRecommendation = availableResponse(response) && response.recommendation?.kind === "CHANGE_AMOUNT";
   const currentDecision = finalResponse?.status === "AVAILABLE" ? finalResponse : response?.status === "AVAILABLE" ? response : null;
+  const currentAction: AnalysisAction = initialIntent?.action ?? action;
   const selectedAmountLabel = selectedToken === undefined || selection === null
     ? null
     : formatTokenAmount(selection.amount, selectedToken.decimals);
@@ -507,24 +652,34 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
       <main ref={motionScope} className="page-shell motion-root" aria-labelledby="page-title" data-workflow-state={state}>
         <section className="hero editorial-entry" data-motion-section>
           <div className="hero-copy">
-            <div className="eyebrow-row" data-motion-intro><p className="eyebrow">Deterministic signing guard</p><span className="live-label"><Activity size={13} /> Public evidence only</span></div>
-            <h1 id="page-title" className="hero-title" data-motion-intro>Before your wallet signs, verify the action.</h1>
-            <p className="lede" data-motion-intro>A deterministic signing guard for STRK20 shielding. Cutout checks fresh public state, explains the result, and stops before your wallet signs.</p>
+            <div className="eyebrow-row" data-motion-intro><p className="eyebrow">STRK20 signing preflight</p><span className="live-label"><Activity size={13} /> Current public snapshot</span></div>
+            <h1 id="page-title" className="hero-title" data-motion-intro>Cutout decides. Your wallet signs.</h1>
+            <p className="lede" data-motion-intro>Public exact amounts can fingerprint STRK20 deposits and withdrawals. Cutout checks current cohort cover, explains the deterministic result, and stops at the wallet boundary.</p>
             <div className="hero-action-preview" data-motion-intro aria-label="Current proposal preview">
-              <span className="section-kicker">Current proposal</span>
-              <strong>{amountInput || "0.00"} {selectedToken?.symbol ?? "STRK20"}</strong>
-              <span>Exact amount · edited in the proposal below</span>
+              <span className="section-kicker">Proposal in focus</span>
+              <strong data-proposal-amount>{amountInput === "" ? "Choose an amount" : `${amountInput} ${selectedToken?.symbol ?? "STRK20"}`}</strong>
+              <span>{action === "shield" ? "Deposit" : "Withdrawal"} · user-selected · not submitted</span>
             </div>
             <div className="hero-boundary" data-motion-intro>
               <InlineProofMark />
-              <div><strong>Cutout decides. Your wallet signs.</strong><span>Connecting a wallet does not authorize a transaction.</span></div>
+              <div><strong>Connection is not authorization.</strong><span>Cutout has no key, cannot confirm, and cannot broadcast on your behalf.</span></div>
             </div>
+            <a className="historical-proof-link" href="https://starkscan.co/tx/0x50f81ee1b9e90576d51dde9dd73bdd89f481b677ceb9b6d244027cbe0499c9e" target="_blank" rel="noreferrer" data-motion-intro>View historical independently verified 0.01 STRK proof <ArrowRight size={14} /></a>
           </div>
           <div className="hero-aside" data-motion-intro>
             <SnapshotStamp snapshot={bootstrap.snapshot} runtimeMode={bootstrap.runtimeMode} />
-            <p className="hero-aside-note">A canonical public snapshot is the boundary for every decision.</p>
+            <p className="hero-aside-note">Every result is bound to this complete snapshot. If it becomes uncertain, Cutout removes the decision.</p>
           </div>
         </section>
+
+        <CoverLedger
+          bootstrap={bootstrap}
+          action={action}
+          tokenAddress={tokenAddress}
+          onAction={selectAction}
+          onToken={selectToken}
+          onChooseAmount={chooseCoverAmount}
+        />
 
         <div className="flow-rail-shell" data-motion-intro>
           <FlowRail state={state} />
@@ -532,14 +687,18 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
 
         <div className="workflow-stage">
           <div className="workflow-grid">
-          <section className="surface workflow-surface" aria-labelledby="intent-title" data-motion-section>
-            <SurfaceHeader id="intent-title" index="Your action" title="Proposed shield" description="One token, one deposit action, one final user decision." badge="ONE ACTION" />
+          <section id="proposal" className="surface workflow-surface" aria-labelledby="intent-title" data-motion-section>
+            <SurfaceHeader id="intent-title" index="Your proposal" title={action === "shield" ? "Proposed deposit" : "Proposed withdrawal"} description={action === "shield" ? "One token, one amount, one explicit wallet decision." : "Analyze one public withdrawal edge. Execution remains disabled in this build."} badge={action === "shield" ? "EXECUTABLE AFTER CHECKS" : "ANALYSIS ONLY"} />
             <div className="surface-body">
+              <div className="action-selector" role="group" aria-label="STRK20 action">
+                <button className={action === "shield" ? "is-selected" : ""} type="button" aria-pressed={action === "shield"} onClick={() => selectAction("shield")}><ArrowDownToLine size={16} /><span><strong>Deposit</strong><small>Analyze, review, simulate</small></span></button>
+                <button className={action === "withdraw" ? "is-selected" : ""} type="button" aria-pressed={action === "withdraw"} onClick={() => selectAction("withdraw")}><ArrowUpFromLine size={16} /><span><strong>Withdraw</strong><small>Public-edge analysis only</small></span></button>
+              </div>
               <div className={`wallet-row ${capability === null ? "wallet-row-disconnected" : "wallet-row-connected"}`} data-motion-item>
                 <div className="wallet-status-icon"><WalletCards size={18} /></div>
                 <div className="wallet-copy">
                   <strong>{capability === null ? "Wallet disconnected" : "Wallet connected"}</strong>
-                  <span>{capability === null ? "Connect a supported Starknet wallet" : `${shortHash(capability.accountAddress)} · Connection only`}</span>
+                  <span>{capability === null ? "Connect to identify the account; this does not authorize an action" : `${shortHash(capability.accountAddress)} · identity only`}</span>
                 </div>
                 {capability === null ? (
                   <button className="button button-secondary" type="button" onClick={connectWallet} disabled={state === "CONNECTING"}>
@@ -554,7 +713,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
               <div className="field-stack form-fields" data-motion-item>
                 <label className="field">
                   <span className="field-label"><span>Token</span><span className="field-hint">STRK20 asset</span></span>
-                  <select className="select" aria-label="Token" value={tokenAddress} onChange={(event) => setTokenAddress(event.target.value)} disabled={state === "PREFLIGHT_LOADING"}>
+                  <select className="select" aria-label="Token" value={tokenAddress} onChange={(event) => selectToken(event.target.value)} disabled={state === "PREFLIGHT_LOADING" || state === "FINAL_PREFLIGHT_LOADING"} data-lenis-prevent>
                     {bootstrap.config.tokens.map((tokenOption) => (
                       <option key={tokenOption.address} value={tokenOption.address}>{tokenOption.symbol}</option>
                     ))}
@@ -564,13 +723,20 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                 <label className="field amount-field">
                   <span className="field-label"><span>Target amount</span><span className="field-hint">Base-unit safe input</span></span>
                   <div className="amount-control">
-                    <input className="input amount-input" aria-label="Target amount" inputMode="decimal" value={amountInput} onChange={(event) => setAmountInput(event.target.value)} placeholder="0.00" />
-                    <input className="input amount-token" aria-label="Token symbol" value={selectedToken?.symbol ?? ""} readOnly />
+                    <input className="input amount-input" aria-label="Target amount" inputMode="decimal" value={amountInput} onChange={(event) => { setAmountInput(event.target.value); clearDecision(); }} placeholder="Enter exact amount" data-lenis-prevent />
+                    <input className="input amount-token" aria-label="Token symbol" value={selectedToken?.symbol ?? ""} readOnly data-lenis-prevent />
                   </div>
                 </label>
 
-                <label className="toggle-row">
-                  <input type="checkbox" checked={flexible} onChange={(event) => setFlexible(event.target.checked)} />
+                <AmountLadder
+                  bootstrap={bootstrap}
+                  action={action}
+                  tokenAddress={tokenAddress}
+                  onChoose={(amount) => chooseCoverAmount({ action, token: tokenAddress, amount })}
+                />
+
+                <label className="toggle-row" data-lenis-prevent>
+                  <input type="checkbox" checked={flexible} onChange={(event) => { setFlexible(event.target.checked); clearDecision(); }} />
                   <span className="toggle-copy">
                     <strong>Permit amount flexibility</strong>
                     <span>Your range is authorization; Cutout will not widen it.</span>
@@ -580,8 +746,8 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
 
                 {flexible ? (
                   <div className="range-grid">
-                    <label className="field"><span className="field-label">Minimum</span><input className="input" aria-label="Minimum amount" inputMode="decimal" value={minimumInput} onChange={(event) => setMinimumInput(event.target.value)} /></label>
-                    <label className="field"><span className="field-label">Maximum</span><input className="input" aria-label="Maximum amount" inputMode="decimal" value={maximumInput} onChange={(event) => setMaximumInput(event.target.value)} /></label>
+                    <label className="field"><span className="field-label">Minimum</span><input className="input" aria-label="Minimum amount" inputMode="decimal" value={minimumInput} onChange={(event) => { setMinimumInput(event.target.value); clearDecision(); }} placeholder="Minimum permitted" data-lenis-prevent /></label>
+                    <label className="field"><span className="field-label">Maximum</span><input className="input" aria-label="Maximum amount" inputMode="decimal" value={maximumInput} onChange={(event) => { setMaximumInput(event.target.value); clearDecision(); }} placeholder="Maximum permitted" data-lenis-prevent /></label>
                   </div>
                 ) : null}
               </div>
@@ -591,62 +757,64 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
               ) : null}
 
               <div className="button-row form-actions" data-motion-item>
-                <button className="button button-primary" type="button" onClick={runInitialPreflight} disabled={capability === null || state === "PREFLIGHT_LOADING" || state === "CONNECTING"}>
+                <button className="button button-primary" type="button" onClick={runInitialPreflight} disabled={capability === null || amountInput.trim() === "" || state === "PREFLIGHT_LOADING" || state === "FINAL_PREFLIGHT_LOADING" || state === "CONNECTING"}>
                   {state === "PREFLIGHT_LOADING" ? <LoaderCircle size={16} className="spinner" /> : <ShieldCheck size={16} />}
-                  {state === "PREFLIGHT_LOADING" ? "Checking public evidence" : "Run Cutout check"}
+                  {state === "PREFLIGHT_LOADING" ? "Checking public evidence" : action === "shield" ? "Check deposit" : "Analyze withdrawal"}
                 </button>
-                <button className="icon-button" type="button" title="Refresh snapshot" aria-label="Refresh snapshot" onClick={() => window.location.reload()}><RefreshCw size={16} /></button>
+                <button className="icon-button" type="button" title="Refresh snapshot" aria-label="Refresh snapshot" onClick={refreshSnapshot} disabled={isRefreshing}><RefreshCw size={16} className={isRefreshing ? "spinner" : undefined} /></button>
               </div>
-              <div className="form-footnote"><LockKeyhole size={14} /><span>Wallet calls begin only after final preflight and simulation.</span></div>
+              <div className="form-footnote"><LockKeyhole size={14} /><span>{action === "shield" ? "Wallet calls begin only after final preflight and explicit simulation." : "Withdrawal analysis cannot reach wallet simulation or submission in this build."}</span></div>
             </div>
           </section>
 
           <section className="surface evidence-surface" aria-labelledby="evidence-title" data-motion-section>
-            <SurfaceHeader id="evidence-title" index="Public evidence" title="Cutout check" description="Deterministic public evidence for the exact intent." badge={<StateBadge state={state} />} />
+            <SurfaceHeader id="evidence-title" index="Deterministic result" title="Evidence and decision" description="Decision first, then the evidence and provenance that produced it." badge={<StateBadge state={state} />} />
             {currentDecision === null ? (
               <EmptyEvidence state={state} />
             ) : (
               <div data-state-reveal>
                 <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`} role="status" aria-live="polite" data-motion-item>
-                  <div className="decision-hero-top"><span className="decision-kicker"><CheckCircle2 size={14} /> Deterministic result</span><span className="decision-model">{currentDecision.modelVersion}</span></div>
+                  <div className="decision-hero-top"><span className="decision-kicker"><CheckCircle2 size={14} /> {currentAction === "shield" ? "Deposit preflight" : "Withdrawal analysis"}</span><span className="decision-model">{currentDecision.modelVersion}</span></div>
                   <div className="decision-mainline"><span className={`decision-band ${bandClass(currentDecision.riskBand)}`}>{currentDecision.riskBand}</span><div className="decision-copy"><strong>{currentDecision.decision}</strong><span>Operational guard decision under GUARD_POLICY-v1</span></div></div>
                 </div>
                 <div className="decision-why" data-motion-item><InlineProofMark /><p><strong>Why this result?</strong><span>The decision is bound to the exact amount, a complete snapshot, freshness thresholds, and the published guard policy.</span></p></div>
                 <div className="evidence-grid grid-flow-dense" data-motion-item>
                   <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Exact matches</span><strong className="evidence-value">{currentDecision.candidateCohort.existingMatches}</strong><span className="evidence-subvalue">trailing 24h</span></div>
-                  <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Projected cohort</span><strong className="evidence-value">{currentDecision.candidateCohort.projectedCohort}</strong><span className="evidence-subvalue">after this deposit</span></div>
-                  <div className="evidence-cell"><span className="section-kicker">Address diversity</span><strong className="evidence-value">{currentDecision.cohortQuality.distinctAddresses}</strong><span className="evidence-subvalue">distinct public addresses</span></div>
+                  <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Projected cohort</span><strong className="evidence-value">{currentDecision.candidateCohort.projectedCohort}</strong><span className="evidence-subvalue">after this {currentAction === "shield" ? "deposit" : "withdrawal"}</span></div>
+                  <div className="evidence-cell"><span className="section-kicker">Address diversity</span><strong className="evidence-value">{currentDecision.cohortQuality.distinctAddresses}</strong><span className="evidence-subvalue">distinct public {currentAction === "shield" ? "depositors" : "recipients"}</span></div>
                   <div className="evidence-cell"><span className="section-kicker">Source age</span><strong className="evidence-value">{currentDecision.freshness.sourceAgeSeconds}s</strong><span className="evidence-subvalue">freshness window</span></div>
                   <div className="evidence-cell"><span className="section-kicker">Index lag</span><strong className="evidence-value">{currentDecision.freshness.indexLagSeconds}s</strong><span className="evidence-subvalue">observed block {currentDecision.freshness.observedBlock.toLocaleString()}</span></div>
                 </div>
-                {hasRecommendation && selection === null && response?.status === "AVAILABLE" ? <RecommendationBlock response={response} token={selectedToken} onChoose={(nextSelection) => void chooseSelection(nextSelection)} /> : null}
-                {initialIntent !== null && response?.status === "AVAILABLE" && !hasRecommendation && selection === null ? (
-                  <div className="recommendation recommendation-neutral"><h3>No safer permitted amount</h3><p>The current intent does not have a deterministic healthier alternative inside its authorized range.</p><button className="button button-secondary" type="button" onClick={() => void chooseSelection({ source: "ORIGINAL", action: "shield", token: initialIntent.token, amount: initialIntent.amount })}>Review original amount <ArrowRight size={15} /></button></div>
+                {hasRecommendation && selection === null && withdrawSelection === null && response?.status === "AVAILABLE" ? <RecommendationBlock response={response} token={selectedToken} action={currentAction} onChoose={(choice) => currentAction === "shield" && initialIntent?.action === "shield" ? void chooseSelection({ source: choice.source, action: "shield", token: initialIntent.token, amount: choice.amount }) : void chooseWithdrawSelection(choice)} /> : null}
+                {initialIntent !== null && response?.status === "AVAILABLE" && !hasRecommendation && selection === null && withdrawSelection === null ? (
+                  <RecommendationAdvisory response={response} action={currentAction} onContinue={response.decision === "DENY" ? undefined : () => initialIntent.action === "shield" ? void chooseSelection({ source: "ORIGINAL", action: "shield", token: initialIntent.token, amount: initialIntent.amount }) : void chooseWithdrawSelection({ source: "ORIGINAL", amount: initialIntent.amount })} />
                 ) : null}
                 {selection !== null && state === "RECOMMENDATION_AVAILABLE" ? (
                   <div className="recommendation recommendation-neutral"><h3>Selected amount</h3><p>{selectedAmountLabel} {selectedToken?.symbol} will be rechecked as an exact final intent before any wallet action.</p></div>
                 ) : null}
-                <details className="evidence-disclosure" open>
+                <details className="evidence-disclosure" open data-lenis-prevent>
                   <summary><span><span className="summary-kicker">Evidence</span> Signal findings</span><span className="summary-meta">{currentDecision.signals.length} signals <ChevronDown size={15} /></span></summary>
                   <div className="signal-list">
-                    {currentDecision.signals.map((signal) => <div className="signal-row" key={signal.id}><span className="signal-id">{signal.id}</span><span className={`signal-status ${signal.status === "FIRED" ? "signal-fired" : signal.status === "CLEAR" ? "signal-clear" : "signal-na"}`}>{signal.status}</span><span className="signal-summary">{signal.summary}</span></div>)}
+                    {currentDecision.signals.map((signal) => <div className={`signal-row ${signal.status === "FIRED" ? "is-fired" : ""}`} data-signal-row key={signal.id}><span className="signal-id">{signal.id}</span><span className={`signal-status ${signal.status === "FIRED" ? "signal-fired" : signal.status === "CLEAR" ? "signal-clear" : "signal-na"}`}>{signal.status}</span><span className="signal-summary">{signal.summary}</span></div>)}
                   </div>
                 </details>
-                <details className="evidence-disclosure technical-disclosure">
+                <details className="evidence-disclosure technical-disclosure" data-lenis-prevent>
                   <summary><span><span className="summary-kicker">Technical</span> Snapshot provenance</span><span className="summary-meta">Hashes and policies <ChevronDown size={15} /></span></summary>
                   <dl className="provenance-grid"><dt>Snapshot</dt><dd>{shortHash(currentDecision.snapshotHash)}</dd><dt>Observed block hash</dt><dd>{shortHash(bootstrap.snapshot.observedBlockHash)}</dd><dt>Indexed-through</dt><dd>{bootstrap.snapshot.indexedThroughBlock.toLocaleString()} · {shortHash(bootstrap.snapshot.indexedThroughHash)}</dd><dt>Engine</dt><dd>{currentDecision.modelVersion}</dd><dt>Freshness policy</dt><dd>{bootstrap.snapshot.freshnessPolicyVersion}</dd></dl>
                 </details>
-                <details className="evidence-disclosure nonclaims-disclosure"><summary><span><span className="summary-kicker">Scope</span> Published non-claims</span><span className="summary-meta">Read carefully <ChevronDown size={15} /></span></summary><ul className="nonclaims-list">{currentDecision.nonClaims.map((claim) => <li key={claim}>{claim}</li>)}</ul></details>
+                <details className="evidence-disclosure nonclaims-disclosure" data-lenis-prevent><summary><span><span className="summary-kicker">Scope</span> Published non-claims</span><span className="summary-meta">Read carefully <ChevronDown size={15} /></span></summary><ul className="nonclaims-list">{currentDecision.nonClaims.map((claim) => <li key={claim}>{claim}</li>)}</ul></details>
               </div>
             )}
           </section>
           </div>
-          <TrustMarquee bootstrap={bootstrap} />
+          <AuthorityStrip bootstrap={bootstrap} />
         </div>
 
         {state === "PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode={selection === null ? "preflight" : "final"} /> : null}
-        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert" data-state-reveal><AlertTriangle size={17} /><span><strong>Evidence unavailable: {error.code}</strong><br />Cutout cannot safely make this decision from the current public state.<br />{error.message}</span><button className="button button-quiet" type="button" onClick={() => window.location.reload()}>Refresh</button></div> : null}
+        {state === "FINAL_PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode="final" /> : null}
+        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert" data-state-reveal><AlertTriangle size={17} /><span><strong>Evidence unavailable: {error.code}</strong><br />Cutout cannot safely make this decision from the current public state.<br />{error.message}</span><button className="button button-quiet" type="button" onClick={refreshSnapshot} disabled={isRefreshing}>{isRefreshing ? "Checking" : "Check snapshot"}</button></div> : null}
         {state === "FINAL_REVIEW" && plan !== null && finalResponse?.status === "AVAILABLE" ? <ReviewPanel plan={plan} response={finalResponse} token={selectedToken} onSimulate={() => void simulate()} /> : null}
+        {state === "WITHDRAW_ANALYSIS_COMPLETE" && initialIntent?.action === "withdraw" && finalResponse?.status === "AVAILABLE" && withdrawSelection !== null ? <WithdrawBoundaryPanel intent={initialIntent} response={finalResponse} selection={withdrawSelection} token={selectedToken} snapshotHash={bootstrap.snapshot.snapshotHash} /> : null}
         {state === "SIMULATING" ? <WorkflowProgressPanel mode="simulation" /> : null}
         {state === "READY_FOR_CONFIRMATION" && plan !== null && simulation !== null ? <ConfirmationPanel plan={plan} simulation={simulation} token={selectedToken} acknowledged={warningAcknowledged} onAcknowledged={setWarningAcknowledged} onSubmit={() => void submit()} /> : null}
         {state === "RECEIPT_VERIFYING" || state === "SUBMITTED" ? <WorkflowProgressPanel mode="receipt" detail={transactionHash === null ? "Waiting for wallet response." : `Transaction ${shortHash(transactionHash)} was submitted; inclusion is not yet verified.`} /> : null}
@@ -676,29 +844,92 @@ function InlineProofMark() {
   );
 }
 
-function TrustMarquee({ bootstrap }: { readonly bootstrap: AvailableWebBootstrap }) {
+function AuthorityStrip({ bootstrap }: { readonly bootstrap: AvailableWebBootstrap }) {
   const items = [
-    { icon: <Database size={15} />, label: "Public snapshot", value: "Canonical" },
-    { icon: <Clock3 size={15} />, label: "Observed block", value: bootstrap.snapshot.observedBlock.toLocaleString() },
-    { icon: <LockKeyhole size={15} />, label: "Signing authority", value: "Your wallet" },
-    { icon: <ShieldCheck size={15} />, label: "Read path", value: "Read-only" },
+    { icon: <Database size={15} />, label: "Evidence", value: "Canonical public snapshot" },
+    { icon: <Clock3 size={15} />, label: "Freshness", value: `${bootstrap.cover.freshness.sourceAgeSeconds}s source age` },
+    { icon: <LockKeyhole size={15} />, label: "Authority", value: "Your wallet only" },
+    { icon: <ShieldCheck size={15} />, label: "Execution", value: "No backend signer" },
   ];
 
   return (
-    <div className="trust-marquee" aria-label="Cutout operating boundaries" data-motion-section>
-      <div className="trust-marquee-viewport">
-        <div className="trust-marquee-track">
-          {items.map((item) => (
-            <div className="trust-marquee-item" key={item.label}>
-              <span className="trust-marquee-icon">{item.icon}</span>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </div>
-          ))}
-        </div>
+    <aside className="authority-strip" aria-label="Cutout operating boundaries" data-motion-section>
+      <div className="authority-strip-heading"><span className="section-kicker">Operating boundary</span><strong>Read. Decide. Stop.</strong></div>
+      <div className="authority-strip-items">
+        {items.map((item) => (
+          <div className="authority-strip-item" key={item.label}>
+            <span className="authority-strip-icon">{item.icon}</span>
+            <span><small>{item.label}</small><strong>{item.value}</strong></span>
+          </div>
+        ))}
       </div>
-    </div>
+    </aside>
   );
+}
+
+function CoverLedger({
+  bootstrap,
+  action,
+  tokenAddress,
+  onAction,
+  onToken,
+  onChooseAmount,
+}: {
+  readonly bootstrap: AvailableWebBootstrap;
+  readonly action: AnalysisAction;
+  readonly tokenAddress: string;
+  readonly onAction: (action: AnalysisAction) => void;
+  readonly onToken: (token: string) => void;
+  readonly onChooseAmount: (input: { readonly action: AnalysisAction; readonly token: string; readonly amount: string }) => void;
+}) {
+  const token = bootstrap.cover.tokens.find((candidate) => candidate.address === tokenAddress) ?? bootstrap.cover.tokens[0];
+  const coverAction = token?.actions.find((candidate) => candidate.action === action);
+  const rows = coverAction?.cohorts ?? [];
+  if (token === undefined || coverAction === undefined) return null;
+
+  return (
+    <section className="cover-ledger" aria-labelledby="cover-title" data-motion-section>
+      <div className="cover-ledger-intro" data-motion-item>
+        <div className="cover-ledger-heading"><span className="eyebrow">Public cover ledger</span><span className="cover-current"><span className="status-dot" /> CURRENT</span></div>
+        <h2 id="cover-title">See the exact-amount evidence before connecting.</h2>
+        <p>Cutout compares the amount at the public STRK20 edge with recent same-token traffic. A count is useful only when it is distributed and durable.</p>
+        <div className="cover-proof-line"><strong>{Math.round(coverAction.unmatchedExactShare * 100)}%</strong><span>of observed {action === "shield" ? "deposits" : "withdrawals"} for {token.symbol} have no earlier exact match in the 30-day window.</span></div>
+      </div>
+      <div className="cover-ledger-panel" data-motion-item>
+        <div className="cover-controls" role="group" aria-label="Cover ledger filters">
+          <div className="segmented-control" aria-label="Public edge">
+            <button type="button" className={action === "shield" ? "is-selected" : ""} aria-pressed={action === "shield"} onClick={() => onAction("shield")}><ArrowDownToLine size={14} /> Deposit edge</button>
+            <button type="button" className={action === "withdraw" ? "is-selected" : ""} aria-pressed={action === "withdraw"} onClick={() => onAction("withdraw")}><ArrowUpFromLine size={14} /> Withdrawal edge</button>
+          </div>
+          <label className="cover-token-select"><span className="sr-only">Cover token</span><select value={token.address} onChange={(event) => onToken(event.target.value)}><option value={token.address}>{token.symbol}</option>{bootstrap.cover.tokens.filter((candidate) => candidate.address !== token.address).map((candidate) => <option key={candidate.address} value={candidate.address}>{candidate.symbol}</option>)}</select></label>
+        </div>
+        <div className="cover-ledger-meta"><span>Trailing 24h cohorts</span><span>{coverAction.trailingEvents.toLocaleString()} events</span><span>{coverAction.distinctAddresses.toLocaleString()} public actors</span><span>Block {bootstrap.cover.indexedThroughBlock.toLocaleString()}</span></div>
+        <div className="cover-table-wrap" data-lenis-prevent>
+          {rows.length === 0 ? <div className="cover-empty"><BarChart3 size={18} /><strong>No current cohort rows</strong><span>Cutout will not manufacture a cover recommendation from an empty public edge.</span></div> : (
+            <table className="cover-table"><caption className="sr-only">Top exact-amount public cohorts for {token.symbol} {action}</caption><thead><tr><th scope="col">Exact amount</th><th scope="col">Cohort</th><th scope="col">Actors</th><th scope="col">Durability</th><th scope="col">Band</th><th scope="col"><span className="sr-only">Choose amount</span></th></tr></thead><tbody>{rows.map((row) => <tr key={row.amount} data-cover-row><th scope="row"><strong>{formatTokenAmount(row.amount, token.decimals)} {token.symbol}</strong><small>{row.existingMatches} trailing matches</small></th><td>{row.projectedCohort}</td><td>{row.distinctAddresses}</td><td>{row.activeDays} days</td><td><span className={`cover-band cover-band-${row.band.toLowerCase()}`}>{row.band}</span></td><td><button className="icon-button cover-use" type="button" aria-label={`Use ${formatTokenAmount(row.amount, token.decimals)} ${token.symbol}`} title="Use this exact amount" onClick={() => onChooseAmount({ action, token: token.address, amount: row.amount })}><ArrowRight size={15} /></button></td></tr>)}</tbody></table>
+          )}
+        </div>
+        <div className="cover-ledger-foot"><span>Snapshot {shortHash(bootstrap.cover.snapshotHash)}</span><span>Source age {bootstrap.cover.freshness.sourceAgeSeconds}s</span><span>Model {bootstrap.cover.engineVersion}</span></div>
+      </div>
+    </section>
+  );
+}
+
+function AmountLadder({
+  bootstrap,
+  action,
+  tokenAddress,
+  onChoose,
+}: {
+  readonly bootstrap: AvailableWebBootstrap;
+  readonly action: AnalysisAction;
+  readonly tokenAddress: string;
+  readonly onChoose: (amount: string) => void;
+}) {
+  const token = bootstrap.cover.tokens.find((candidate) => candidate.address === tokenAddress);
+  const options = token?.actions.find((candidate) => candidate.action === action)?.suggestions ?? [];
+  if (options.length === 0) return null;
+  return <div className="amount-ladder" aria-label="Current healthy cover amounts"><div><span className="field-label">Live amount ladder</span><small>Suggestions from current healthy LOW cohorts. Selecting one remains your decision.</small></div><div className="amount-ladder-options">{options.map((amount) => <button key={amount} type="button" onClick={() => onChoose(amount)}>{formatTokenAmount(amount, token?.decimals ?? 0)} {token?.symbol}</button>)}</div></div>;
 }
 
 function SnapshotStamp({
@@ -811,11 +1042,13 @@ function WorkflowProgressPanel({
 function RecommendationBlock({
   response,
   token,
+  action,
   onChoose,
 }: {
   readonly response: Extract<PreflightApiResponse, { status: "AVAILABLE" }>;
   readonly token: AvailableWebBootstrap["config"]["tokens"][number] | undefined;
-  readonly onChoose: (selection: ExecutionSelection) => void;
+  readonly action: AnalysisAction;
+  readonly onChoose: (selection: AmountChoice) => void;
 }) {
   const recommendation = response.recommendation;
   if (recommendation === null || recommendation.kind !== "CHANGE_AMOUNT" || token === undefined) return null;
@@ -823,7 +1056,7 @@ function RecommendationBlock({
   return (
     <div className="recommendation" data-state-reveal>
       <div className="recommendation-header"><span className="section-kicker">Within your permitted range</span><span className="recommendation-badge"><CheckCircle2 size={13} /> Deterministic</span></div>
-      <h3>Safer permitted amount</h3>
+      <h3>{action === "shield" ? "Healthier permitted amount" : "Lower-linkage permitted amount"}</h3>
       <div className="recommendation-comparison" aria-label="Current proposal compared with Cutout recommendation">
         <div className="comparison-side comparison-current" data-motion-item><span>Current proposal</span><strong>{formatTokenAmount(recommendation.from, decimals)} {token.symbol}</strong><small>Evaluated against current public evidence</small></div>
         <div className="comparison-arrow" aria-hidden="true"><ArrowRight size={18} /></div>
@@ -836,11 +1069,36 @@ function RecommendationBlock({
         <div><strong>{recommendation.cohort.activeDays}</strong><span>active days</span></div>
       </div>
       <div className="button-row" data-motion-item>
-        <button className="button button-primary" type="button" onClick={() => onChoose({ source: "RECOMMENDATION", action: "shield", token: token.address, amount: recommendation.to })}>Use recommendation <ArrowRight size={15} /></button>
-        <button className="button button-secondary" type="button" onClick={() => onChoose({ source: "ORIGINAL", action: "shield", token: token.address, amount: recommendation.from })}>Keep proposed amount</button>
+        <button className="button button-primary" type="button" onClick={() => onChoose({ source: "RECOMMENDATION", amount: recommendation.to })}>Use recommendation <ArrowRight size={15} /></button>
+        <button className="button button-secondary" type="button" onClick={() => onChoose({ source: "ORIGINAL", amount: recommendation.from })}>Keep proposed amount</button>
       </div>
     </div>
   );
+}
+
+function RecommendationAdvisory({
+  response,
+  action,
+  onContinue,
+}: {
+  readonly response: Extract<PreflightApiResponse, { status: "AVAILABLE" }>;
+  readonly action: AnalysisAction;
+  readonly onContinue: (() => void) | undefined;
+}) {
+  const recommendation = response.recommendation;
+  const title = recommendation?.kind === "WAIT"
+    ? "Wait before another check"
+    : response.decision === "DENY"
+      ? "No permitted continuation"
+      : "Review the exact amount";
+  const detail = recommendation?.kind === "WAIT"
+    ? `${recommendation.reason} Suggested horizon: ${Math.round(recommendation.suggestedHorizonSeconds / 60)} minutes.`
+    : recommendation?.kind === "NO_SAFER_EXECUTION"
+      ? recommendation.reason
+      : action === "shield"
+        ? "The exact amount can now be bound to a final preflight before wallet simulation."
+        : "The exact amount can now be bound to a second public-data analysis. Withdrawal execution remains disabled.";
+  return <div className="recommendation recommendation-neutral"><h3>{title}</h3><p>{detail}</p>{onContinue === undefined ? <span className="recommendation-stop"><LockKeyhole size={15} /> A denied decision cannot advance to a wallet action.</span> : <button className="button button-secondary" type="button" onClick={onContinue}>{action === "shield" ? "Review exact amount" : "Revalidate withdrawal analysis"} <ArrowRight size={15} /></button>}</div>;
 }
 
 function ReviewPanel({
@@ -869,9 +1127,71 @@ function ReviewPanel({
         </dl>
         <div className="freshness-line"><span>decision {shortHash(plan.decisionId)}</span><span>model {plan.modelVersion}</span><span>policy {plan.guardPolicyVersion}</span></div>
       </div>
-      <details className="action-disclosure"><summary>View exact base-unit action <ChevronDown size={15} /></summary><pre>{JSON.stringify(plan.action, null, 2)}</pre></details>
+      <details className="action-disclosure" data-lenis-prevent><summary>View exact base-unit action <ChevronDown size={15} /></summary><pre>{JSON.stringify(plan.action, null, 2)}</pre></details>
       <div className="review-boundary" data-motion-item><LockKeyhole size={16} /><div><strong>Cutout does not sign or broadcast this transaction.</strong><span>The next step asks the connected wallet to simulate this exact action.</span></div></div>
       <div className="review-actions"><button className="button button-primary" type="button" onClick={onSimulate}><ClipboardCheck size={16} /> Simulate in wallet</button><span className="action-note"><LockKeyhole size={14} /> Simulation only. The wallet still controls confirmation.</span></div>
+    </section>
+  );
+}
+
+function WithdrawBoundaryPanel({
+  intent,
+  response,
+  selection,
+  token,
+  snapshotHash,
+}: {
+  readonly intent: WireWithdrawIntent;
+  readonly response: Extract<PreflightApiResponse, { status: "AVAILABLE" }>;
+  readonly selection: AmountChoice;
+  readonly token: AvailableWebBootstrap["config"]["tokens"][number] | undefined;
+  readonly snapshotHash: string;
+}) {
+  const displayedAmount = token === undefined
+    ? selection.amount
+    : `${formatTokenAmount(selection.amount, token.decimals)} ${token.symbol}`;
+
+  return (
+    <section className="surface withdraw-boundary-surface" aria-labelledby="withdraw-boundary-title" data-state-reveal>
+      <SurfaceHeader
+        id="withdraw-boundary-title"
+        index="Public-edge result"
+        title="Withdrawal analysis complete"
+        description="Cutout has rechecked this exact public withdrawal edge. This build stops at analysis."
+        badge="ANALYSIS ONLY"
+      />
+      <div className="withdraw-boundary-hero" data-motion-item>
+        <div>
+          <span className="section-kicker">Exact amount</span>
+          <strong>{displayedAmount}</strong>
+        </div>
+        <div className="review-decision">
+          <span className={`decision-band ${bandClass(response.riskBand)}`}>{response.riskBand}</span>
+          <span className="review-decision-label">{response.decision} | {response.riskBand}</span>
+        </div>
+      </div>
+      <div className="review-block" data-motion-item>
+        <dl className="review-list">
+          <dt>Action</dt><dd>Withdraw · public-edge analysis</dd>
+          <dt>Token</dt><dd>{token === undefined ? intent.token : `${token.symbol} · ${intent.token}`}</dd>
+          <dt>Account</dt><dd>{intent.account}</dd>
+          <dt>Recipient</dt><dd>{intent.recipient}</dd>
+          <dt>Snapshot</dt><dd>{shortHash(snapshotHash)}</dd>
+          <dt>Decision</dt><dd>{response.decision} under {response.guardPolicyVersion}</dd>
+          <dt>Freshness</dt><dd>{response.freshness.sourceAgeSeconds}s source age · {response.freshness.indexLagSeconds}s index lag</dd>
+        </dl>
+      </div>
+      <div className="review-boundary withdraw-boundary-note" data-motion-item>
+        <LockKeyhole size={16} />
+        <div>
+          <strong>No wallet simulation or transaction has been requested.</strong>
+          <span>Cutout does not construct, simulate, confirm, or submit withdrawal actions in this build.</span>
+        </div>
+      </div>
+      <details className="action-disclosure" data-lenis-prevent>
+        <summary>View exact public analysis intent <ChevronDown size={15} /></summary>
+        <pre>{JSON.stringify({ action: intent.action, token: intent.token, amount: selection.amount, recipient: intent.recipient }, null, 2)}</pre>
+      </details>
     </section>
   );
 }

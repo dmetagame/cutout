@@ -25,6 +25,7 @@ export interface ReplayFixture {
   readonly poolAddress: string;
   readonly classHash: string;
   readonly depositSelector: string;
+  readonly withdrawalSelector: string;
   readonly viewingKeySetSelector: string;
   readonly token: string;
   readonly account: string;
