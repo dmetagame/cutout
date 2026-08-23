@@ -340,6 +340,7 @@ test("malformed amount produces no preflight and no wallet action", async ({ pag
 test("withdrawal analysis stops before wallet simulation or submission", async ({ page }) => {
   await installWalletHarness(page);
   await page.goto("/");
+  await page.clock.setFixedTime(await page.evaluate(() => Date.now()));
 
   await page.locator(".action-selector button").filter({ hasText: "Withdraw" }).click();
   await connectWallet(page);
