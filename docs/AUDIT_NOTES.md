@@ -4,90 +4,102 @@ Audit date: 2026-08-20
 
 This is the required pre-implementation record for the v0.2 sprint. Findings are based on the current repository, direct production HTTP checks, and read-only inspection of the production host. No wallet transaction was requested or submitted during this audit.
 
-## Operational recheck: 2026-08-21
+## Release and deployment completion: 2026-08-23
 
-- Branch: `main` at `636e81d` (`fix: keep fresh snapshots available during sync`), matching `origin/main` at the start of this continuation.
-- Latest immutable release remains `v0.1.4` at `315f61a1a55fa771337eb633ecd564b2097aee1a`.
-- The CUTOUT-v1.4 depth candidate is local and uncommitted. Its reviewed scope is public Withdrawal ingestion, typed withdraw preflight, S7, and deterministic WAIT support; CUTOUT-v1.3 remains separately evaluatable.
-- `GET https://cutout.rouma.online/` returned HTTP `200` and rendered an available signing instrument at 2026-08-21 22:11:35 UTC.
-- `GET https://cutout.rouma.online/api/preflight` returned HTTP `405`, preserving the POST-only analysis boundary.
-- `GET https://cutout.rouma.online/api/health` returned HTTP `200` at 2026-08-21 22:08:38 UTC.
-- Health reported `ready=true`, API `HEALTHY`, database `HEALTHY`, and snapshot `CURRENT_COMPLETE_SNAPSHOT` at block `13,659,840`, hash `0x232db38d277562ae1c62afbee514e3c74ffb4538d19ed0f6ceb655d3ace4caac`.
-- Source age was `27s` and index lag was `7s`, both inside `FRESHNESS_POLICY-v1`; both configured RPC providers were healthy.
-- The indexer was transiently `SYNCING`/`DEGRADED` after `RPC_UNAVAILABLE`, while the last complete snapshot remained active and current. This is the intended availability fix: ordinary catch-up or a transient provider failure does not withdraw still-valid evidence; reorg, schema, corruption, or expired freshness still fails closed.
-- Production continues to report `CUTOUT-v1.3`; CUTOUT-v1.4 has not been committed, deployed, or presented as live.
+- Branch `main` and `origin/main` both resolved to
+  `3bba285fa52bbe01cbaa676337b0111c3e2ef180` at the start of this evidence
+  update.
+- The immutable `v0.2.0` tag resolves to release commit
+  `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; its annotated tag object is
+  `e7de0eb860ecf3ed027a7299471275b34db7c063`.
+- Production runs the reviewed post-release recovery commit `3bba285`, and the
+  GitHub release remains `https://github.com/dmetagame/cutout/releases/tag/v0.2.0`.
+- GitHub Actions passed for the deployed commit:
+  `https://github.com/dmetagame/cutout/actions/runs/32633508257`.
+- At `2026-08-23T11:08:49Z`, health returned HTTP `200`, `HEALTHY`,
+  `ready: true`, and `CURRENT_COMPLETE_SNAPSHOT` at block `13,738,142`, hash
+  `0x6aa680d9e86bd5b4e774c72d4e1e6a2f38d0e0e900dc8afe8e3a449143b308f1`.
+- Source age was `26s` at health and `25s` at the matched preflight; index lag
+  was `10s`. Exact `0.01 STRK` returned `AVAILABLE / ALLOW / LOW`, decision ID
+  `0xdf9db0ae15423ea211bf8d46ded65ae7526cdcd991053a181d51ca188b0df745`.
+- Production reports `CUTOUT-v1.4`, `GUARD_POLICY-v1`, and
+  `FRESHNESS_POLICY-v1`. CUTOUT-v1.3 remains available for fixture replay.
+- Browser checks passed at 1440, 1024, 768, 430, and 390px plus reduced motion
+  and historical receipt states, with no overflow, console errors, page errors,
+  or failed requests.
+- The simulation-only wallet fixture reached `READY_FOR_CONFIRMATION` with
+  `connectCalls=1`, `prepareCalls=1`, and `invokeCalls=0`. It produced no hash,
+  confirmation, broadcast, or submitted transaction.
+- The browser smoke encountered a real canonical-snapshot advance. The UI
+  cleared the superseded result, exposed no decision, required an explicit
+  refresh, and ran a fresh preflight before recovering. No uncertain snapshot
+  produced `ALLOW`.
+- Production retains one persistent SQLite volume, one indexer writer, a
+  read-only/query-only API, localhost-only port `3000`, unprivileged containers,
+  `CapDrop=ALL`, and `no-new-privileges`. The deployed containers had zero
+  restarts at verification.
 
-## Operational recheck: 2026-08-22
+## Historical operational rechecks
 
-- Live root returned HTTP `200` with an available signing instrument.
-- `GET /api/health` returned HTTP `200`, `HEALTHY`, `ready: true`, and
-  `CURRENT_COMPLETE_SNAPSHOT` at block `13,662,900`, hash
-  `0x04becf67908370bfe524cf82d88e92dd433dd910dc35a7f3ae3daf299373f1b4`.
-- Source age was `24s` and index lag was `0s`; both configured RPC providers
-  agreed at the same head and active-path database integrity was `ok`.
-- The indexer had recovered from a transient `RPC_UNAVAILABLE` and was
-  `COMPLETE` at the final check. This confirms the availability fix without
-  changing the deployed model or policies.
-- `GET /api/preflight` returned HTTP `405`, preserving the POST-only boundary.
+The 2026-08-21 and 2026-08-22 samples below record the pre-v0.2.0 production
+state. They are retained as chronology, not as current deployment claims.
 
-This live sample is production v0.1.4 / CUTOUT-v1.3 evidence. The local v1.4
-candidate remains uncommitted, undeployed, and separately labeled.
+- On 2026-08-21, production v0.1.4 returned HTTP `200` with a
+  `CURRENT_COMPLETE_SNAPSHOT` at block `13,659,840`, source age `27s`, and index
+  lag `7s`. A transient `RPC_UNAVAILABLE` left the still-current complete
+  snapshot active while routine synchronization recovered.
+- On 2026-08-22, production v0.1.4 again returned HTTP `200`, `HEALTHY`, and a
+  complete snapshot at block `13,662,900`, source age `24s`, and index lag `0s`.
+  `GET /api/preflight` returned HTTP `405`, preserving the POST-only boundary.
 
-### Current candidate disposition
+## Release disposition
 
-- Resolved in the candidate: bounded snapshot retention, cheap request-time health integrity reporting, retention of a still-current complete snapshot during routine catch-up/transient RPC failure, localhost-only port `3000`, neutral proposal defaults, five-stage flow copy, withdrawal ingestion/analysis, S7, deterministic `WAIT`, a wallet-free cover ledger, amount ladder, package evidence surface, and Lenis/GSAP lag-smoothing and interaction exclusions.
-- Model/database identity is now explicit. Schema version `4` persists `indexer_state.model_version`; a writable v1.3-to-v1.4 transition clears observations, blocks, batches, snapshots, and cursor state before replay. A read-only mismatch fails closed with `MODEL_VERSION_MISMATCH`.
-- Remaining review: the workflow file remains large (1,240 lines) and should
-  be decomposed in a later maintainability pass if the candidate becomes a
-  release. Documentation is being brought into candidate/production alignment
-  now. No P0/P1 availability or wallet-boundary blocker remains in the current
-  candidate.
-
-### Candidate disposition update
-
-- P0 snapshot retention, request-time health integrity, and routine sync
-  availability are fixed in the candidate. The active snapshot is retained
-  through ordinary catch-up and transient RPC failure while freshness remains
-  valid; unsafe recovery still withdraws it.
-- P1 localhost-only application binding, typed Withdrawal ingestion, named
-  v1.4 model identity/replay isolation, wallet-free cover evidence, amount
-  defaults/ladder, evidence-only package surface, and Lenis/GSAP interaction
-  handling are implemented and covered by tests.
-- P2 flow-rail clarity and reduced-motion behavior are implemented. The trust
-  marquee remains a residual presentation concern and is not a release blocker.
-- The live production deployment remains v0.1.4/v1.3. `strk20.json` stays
-  unchanged because the v1.4 candidate is not deployed.
+- The P0 snapshot-retention, request-time health, and routine synchronization
+  availability findings are fixed and deployed. Unsafe recovery, corruption,
+  model mismatch, reorg uncertainty, and expired freshness remain fail-closed.
+- The P1 localhost binding, typed Withdrawal analysis, named CUTOUT-v1.4 model
+  identity, replay isolation, cover evidence, neutral amount entry and ladder,
+  evidence-only package surface, and Lenis/GSAP interaction handling are
+  released and covered by tests.
+- Schema version `4` persists `indexer_state.model_version`. A writable
+  v1.3-to-v1.4 transition clears incompatible read-model state before replay;
+  a read-only mismatch fails closed with `MODEL_VERSION_MISMATCH`.
+- The five-stage flow and reduced-motion behavior are released. The large
+  workflow component remains a later maintainability opportunity, not a
+  security or submission blocker.
 
 ## Current tree and release facts
 
 - Branch: `main`
-- Current `main` commit: `636e81d1686e701c6c9e10f9c192289979e1ebbe` (`fix: keep fresh snapshots available during sync`), matching `origin/main` before the local candidate changes
-- Latest immutable release tag: `v0.1.4` at `315f61a1a55fa771337eb633ecd564b2097aee1a`
-- Package metadata: root and `@cutout/guard` are `0.1.4`
+- Current deployed `main` commit: `3bba285fa52bbe01cbaa676337b0111c3e2ef180` (`fix: recover from snapshot advances during preflight`)
+- Latest immutable release tag: `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`
+- Package metadata: root and `@cutout/guard` are `0.2.0`
 - Runtime: Node `>=22.5 <23`, Next.js `16.3.1`, Starknet.js `10.4.0`
 - Motion: Lenis `1.3.26`, GSAP `3.15.0`, and `@gsap/react` `2.1.2` are already integrated. The provider owns Lenis/GSAP ticker synchronization and ScrollTrigger updates; the workflow has intro, section, rail, state-panel, and receipt reveals.
-- Frozen analysis path: `CUTOUT-v1.3`, `GUARD_POLICY-v1`, and `FRESHNESS_POLICY-v1`
-- Released/production transaction intent: one typed STRK20 shield/deposit. The local CUTOUT-v1.4 candidate additionally analyzes a typed withdrawal, but intentionally exposes no withdrawal wallet invocation path. Private transfer, swap, mixed actions, and arbitrary calldata still fail closed.
-- Released/production public observations: `Deposit` plus the public fact of `ViewingKeySet`. The local candidate adds the public `Withdrawal` edge. Encrypted viewing-key payloads are never retained.
+- Analysis identity: production uses `CUTOUT-v1.4`; frozen CUTOUT-v1.3 replay remains available. `GUARD_POLICY-v1` and `FRESHNESS_POLICY-v1` remain frozen.
+- Production transaction intent remains one typed STRK20 shield/deposit. CUTOUT-v1.4 additionally analyzes a typed withdrawal but intentionally exposes no withdrawal wallet invocation path. Private transfer, swap, mixed actions, and arbitrary calldata still fail closed.
+- Production public observations are `Deposit`, `Withdrawal`, and the public fact of `ViewingKeySet`. Encrypted viewing-key payloads are never retained.
 - Wallet boundary: the browser performs final exact preflight, simulation through `strk20PrepareInvoke(..., true)`, explicit approval, and wallet-owned submission. The package and backend do not export submission authority.
 - Receipt boundary: success requires independent public inclusion plus exactly one reviewed STRK20 `Deposit` event bound to pool, account, token, and amount. The browser also recomputes the receipt ID before rendering verified evidence.
 
 ## Engineering summary of the implementation specs
 
 - `S1` detects an exact `(token, amount)` that has no prior occurrence in the 30-day observation window before the proposed action.
-- `S2` is exact-amount reconciliation against the counterpart public edge. It is not applicable to a future deposit in v1.3.
-- `S3` is deposit-to-withdraw proximity at or below 3,600 seconds. It is not applicable to shield preflight in v1.3.
+- `S2` is exact-amount reconciliation against the counterpart public edge. It is applicable to typed withdrawal analysis in v1.4 and remains not applicable to a future deposit or v1.3 shield replay.
+- `S3` is deposit-to-withdraw proximity at or below 3,600 seconds. It is applicable to typed withdrawal analysis in v1.4 and remains not applicable to shield preflight.
 - `S4` detects a public `ViewingKeySet`/channel-open observation for the same account in the preceding 1,800 seconds.
 - `S5` fires when the trailing 24-hour exact-amount candidate cohort is at most five or fails address diversity, top-address concentration, active-day durability, or burst-concentration checks.
+- `S7` identifies round or unusually precise public amount fingerprints in the named v1.4 model; it does not replace cohort evidence.
 - User flexibility is an authorization bound, not a search hint. Any accepted recommendation becomes a new exact intent and receives another preflight before wallet simulation.
+- A v1.4 `WAIT` recommendation is evidence-only bounded advice. It schedules nothing and creates no signing or submission authority.
 - Freshness is fail-closed at a maximum source age of 120 seconds and maximum index lag of 120 seconds.
 - `LOW`, `MEDIUM`, and `HIGH` map to `ALLOW`, `WARN`, and `DENY`; none is a privacy guarantee.
 
-## Production evidence
+## Initial production evidence before fixes
 
 Production URL: `https://cutout.rouma.online`
 
-Direct checks during this audit:
+Direct checks during the initial audit:
 
 - `GET /api/preflight`: HTTP `405`, as expected for the POST-only interface.
 - `GET /api/health`: HTTP `503` after `44.33s`.
@@ -110,7 +122,7 @@ Database evidence from the production volume:
 - Public events: `874`; canonical blocks: `101,836`; ingestion batches: `6,559`.
 - A snapshot-count/size query took about `25.8s`; the authoritative health request took about `44.3s` because it runs `PRAGMA quick_check` over the entire database.
 
-## Prioritized findings
+## Prioritized findings from the initial audit
 
 ### P0
 
@@ -219,16 +231,19 @@ Database evidence from the production volume:
 - S6 remains post-execution conservation-of-value only and does not enter a preflight band.
 - No private key, seed phrase, viewing-key payload, note, proof, private balance, or arbitrary calldata enters Cutout.
 
-## STRK20 integration-depth gaps
+## STRK20 integration-depth disposition
 
-- No `Withdrawal` ingestion, typed intent, S2/S3 evidence, simulation boundary, or receipt artifact.
-- No live per-token exact-amount cover map from the canonical snapshot.
-- No live unmatched-amount statistic or healthy-cover amount ladder.
-- No S7 round/unique-decimal fingerprint.
-- No deterministic `WAIT` recommendation.
-- ViewingKeySet is used only for account-proximity S4; pool-level public registration density is not surfaced.
-- `@cutout/guard` has no React hook/evidence panel for another STRK20 application.
-- AVNU has not been reviewed for an honest public exact-amount edge; no score should be invented.
+- Resolved in v0.2.0: public Withdrawal ingestion, typed withdrawal analysis,
+  withdrawal-only S2/S3 evidence, per-token cover maps, unmatched-amount
+  context, a healthy-cover amount ladder, S7, deterministic `WAIT`, and the
+  evidence-only React package surface.
+- Intentionally unchanged: withdrawal remains analysis-only. There is no
+  withdrawal wallet simulation, invocation, submission, or receipt artifact.
+  Deposit remains the only executable wallet path.
+- Remaining non-blocking depth limits: `ViewingKeySet` is used for
+  account-proximity S4 rather than a pool-level registration-density score, and
+  AVNU has no score because no reviewed honest public exact-amount edge has
+  been established.
 
 ## Explicit non-goals
 

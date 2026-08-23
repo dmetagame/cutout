@@ -4,15 +4,17 @@
 **Target:** hackathon/demo mainnet deployment package
 **Execution authority:** browser wallet only
 
-**v0.2.0 deployment status:** pending the separate production smoke recorded
-below.
+**v0.2.0 deployment status:** deployed and verified. The immutable release tag
+resolves to `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production includes the
+reviewed post-release synchronization-race fix at
+`3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
 
 Production endpoint: [`https://cutout.rouma.online`](https://cutout.rouma.online)
 
-The endpoint is the production target for the `v0.2.0` application release
+The endpoint serves the `v0.2.0` application release
 behind HTTPS termination. The deployment uses one supervised indexer writer
 and one read-only Next.js/API process sharing a persistent SQLite volume. The
-post-deployment record must confirm HTTP-to-HTTPS redirect behavior,
+post-deployment record below confirms HTTP-to-HTTPS redirect behavior,
 `GET /api/health` readiness, a current complete snapshot, a successful
 non-submitting preflight, and no externally reachable application port `3000`.
 
@@ -112,17 +114,41 @@ runtime image prunes development dependencies.
 
 ## v0.2.0 production verification record
 
-The current v0.2.0 deployment record is completed after the release host has
-been rebuilt and the live smoke has passed. It must record the deployed commit,
-model-matched snapshot, preflight evidence, browser smoke, and zero-invoke
-wallet fixture. The historical v0.1.4 record follows unchanged.
+The release host was rebuilt without deleting the persistent volume. The live
+smoke passed against the deployed post-release recovery commit. The historical
+v0.1.4 record follows unchanged.
 
 | Check | Result |
 |---|---|
 | URL | `https://cutout.rouma.online` |
-| Release | `v0.2.0` / deployed commit recorded after deployment |
+| Verification timestamp | `2026-08-23T11:08:49Z` |
+| Release | `v0.2.0` / `f34655b7b2f19b47b7fcdeec832fce39a455a6a7` |
+| Annotated tag | tag object `e7de0eb860ecf3ed027a7299471275b34db7c063` |
+| Deployed commit | `3bba285fa52bbe01cbaa676337b0111c3e2ef180` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.2.0` |
+| Deployed-commit CI | passed: `https://github.com/dmetagame/cutout/actions/runs/32633508257` |
 | Engine | `CUTOUT-v1.4` |
-| Wallet boundary | deposit simulation only; no confirmation or submission |
+| HTTPS / redirect | valid certificate; HTTP returns `308` to HTTPS |
+| Health | HTTP `200`, `HEALTHY`, `ready: true`, complete snapshot |
+| Snapshot block/hash | `13,738,142` / `0x6aa680d9e86bd5b4e774c72d4e1e6a2f38d0e0e900dc8afe8e3a449143b308f1` |
+| Source age / index lag | `26s` / `10s` at health; `25s` / `10s` at preflight |
+| Preflight | exact `0.01 STRK`, `AVAILABLE / ALLOW / LOW` |
+| Decision ID | `0xdf9db0ae15423ea211bf8d46ded65ae7526cdcd991053a181d51ca188b0df745` |
+| Browser UI smoke | 1440, 1024, 768, 430, and 390px plus reduced motion and receipt |
+| Browser result | no overflow, console errors, page errors, or failed requests |
+| Wallet boundary | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0`; no hash, confirmation, broadcast, or submission |
+| Runtime boundary | API binds `127.0.0.1:3000`; external port `3000` closed |
+| Containers | unprivileged `node`, `CapDrop=ALL`, `no-new-privileges`, zero restarts |
+| Storage | one persistent SQLite volume, one indexer writer, read-only/query-only API |
+| Pre-deployment backup | `/var/lib/cutout/backups/pre-3bba285-20260823T103704Z.sqlite`, schema `4`, `quick_check: ok` |
+
+Immediately after restart, a brief `DEGRADED`/`SYNCING` interval was expected
+while the single writer caught up. A current complete snapshot remained usable
+when it was still inside policy. The production browser smoke also encountered
+a snapshot advance between analysis steps: the UI exposed no superseded
+decision, cleared the stale result, required an explicit refresh, and ran a new
+preflight. Once the canonical snapshot stabilized, health and preflight
+recovered to the result above. Uncertainty did not produce `ALLOW`.
 
 ## Historical v0.1.4 production verification record
 

@@ -83,12 +83,13 @@ remain true and preflight still performs its own request-time validation.
 Unsafe recovery states such as reorg uncertainty, schema mismatch, corruption,
 or expired freshness withdraw the snapshot and must remain fail-closed.
 
-The current live v0.2.0 endpoint was rechecked on 2026-08-22 UTC
-(2026-08-22 JST) after a transient synchronization error: HTTP `200`,
-`HEALTHY`, `ready: true`,
-`CURRENT_COMPLETE_SNAPSHOT`, block `13,662,900`, source age `24s`, index lag
-`0s`, both configured RPC providers healthy, and active-path database integrity
-`ok`. This is a time-bound operational sample, not a permanent guarantee.
+The current live v0.2.0 endpoint was rechecked at
+`2026-08-23T11:08:49Z`: HTTP `200`, `HEALTHY`, `ready: true`,
+`CURRENT_COMPLETE_SNAPSHOT`, block `13,738,142`, snapshot hash
+`0x6aa680d9e86bd5b4e774c72d4e1e6a2f38d0e0e900dc8afe8e3a449143b308f1`,
+source age `26s`, index lag `10s`, both configured RPC providers healthy, and
+active-path database integrity `ok`. This is a time-bound operational sample,
+not a permanent guarantee.
 
 ## Readiness rules
 

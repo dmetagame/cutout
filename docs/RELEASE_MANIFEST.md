@@ -7,9 +7,13 @@
 | Field | Value |
 |---|---|
 | Release | `v0.2.0` |
-| Release commit | recorded after the release commit is created |
+| Release commit | `f34655b7b2f19b47b7fcdeec832fce39a455a6a7` |
+| Annotated tag object | `e7de0eb860ecf3ed027a7299471275b34db7c063` |
+| Deployed post-release commit | `3bba285fa52bbe01cbaa676337b0111c3e2ef180` |
 | Package | `@cutout/guard@0.2.0` |
 | Production | `https://cutout.rouma.online` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.2.0` |
+| Deployed-commit CI | `https://github.com/dmetagame/cutout/actions/runs/32633508257` / passed |
 | Engine/policies | `CUTOUT-v1.4` / `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1` |
 | npm publication | Not claimed; owner authorization remains required |
 
@@ -18,8 +22,31 @@ ingestion and analysis, withdrawal-only S2/S3, S7 round-amount detection,
 deterministic WAIT advice, a wallet-free cover ledger and amount ladder, and an
 evidence-only React package surface. CUTOUT-v1.3 remains replayable. Deposit
 wallet execution, receipt verification, and the wallet authority boundary are
-unchanged. Production evidence is recorded after deployment in
+unchanged. Production evidence is recorded in
 `docs/RELEASE_EVIDENCE.md`.
+
+The annotated tag remains on the release commit. Production additionally runs
+the reviewed post-release recovery fix that clears a superseded preflight when
+the canonical snapshot advances and requires an explicit refresh plus a new
+check. It changes neither model/policy output nor wallet authority.
+
+### v0.2.0 production smoke
+
+| Check | Result |
+|---|---|
+| Verification timestamp | `2026-08-23T11:08:49Z` |
+| Health | HTTP `200`, `HEALTHY`, `CURRENT_COMPLETE_SNAPSHOT` |
+| Snapshot block/hash | `13,738,142` / `0x6aa680d9e86bd5b4e774c72d4e1e6a2f38d0e0e900dc8afe8e3a449143b308f1` |
+| Source age / index lag | `26s` / `10s` at health; `25s` / `10s` at preflight |
+| Exact action | `0.01 STRK` |
+| Preflight | `AVAILABLE / ALLOW / LOW` |
+| Decision ID | `0xdf9db0ae15423ea211bf8d46ded65ae7526cdcd991053a181d51ca188b0df745` |
+| Browser smoke | 1440, 1024, 768, 430, 390px, reduced motion, and historical receipt passed |
+| Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| Transaction | No hash, confirmation, broadcast, or submission |
+
+The historical Milestone 3 transaction remains separate evidence and is not a
+v0.2.0 deployment transaction.
 
 ## Historical release: v0.1.4
 

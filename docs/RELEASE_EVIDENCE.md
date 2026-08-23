@@ -2,18 +2,48 @@
 
 ## v0.2.0 production verification
 
-This section is completed after the v0.2.0 deployment smoke. It must retain the
-separate distinction between live non-submitting evidence and the historical
-Milestone 3 transaction.
+The immutable v0.2.0 release and the reviewed post-release synchronization-race
+fix are deployed on the existing production host. Verification remained
+non-submitting and is separate from the historical Milestone 3 transaction.
 
 | Item | Observed value |
 |---|---|
 | Verification URL | `https://cutout.rouma.online` |
-| Release | `v0.2.0` |
-| Deployed commit | recorded after deployment |
+| Verification timestamp | `2026-08-23T11:08:49Z` |
+| Release | `v0.2.0` / release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7` |
+| Annotated tag | `v0.2.0` / tag object `e7de0eb860ecf3ed027a7299471275b34db7c063` |
+| Deployed commit | `3bba285fa52bbe01cbaa676337b0111c3e2ef180` |
+| GitHub release | `https://github.com/dmetagame/cutout/releases/tag/v0.2.0` |
+| CI | passed for deployed commit: `https://github.com/dmetagame/cutout/actions/runs/32633508257` |
 | Engine | `CUTOUT-v1.4` |
 | Policies | `GUARD_POLICY-v1` / `FRESHNESS_POLICY-v1` |
-| Transaction state | no new transaction submitted |
+| HTTPS / redirect | valid certificate; HTTP returns `308` to HTTPS |
+| Stable health sample | HTTP `200`, `HEALTHY`, `ready: true`, `CURRENT_COMPLETE_SNAPSHOT` at block `13,738,142` |
+| Snapshot hash | `0x6aa680d9e86bd5b4e774c72d4e1e6a2f38d0e0e900dc8afe8e3a449143b308f1` |
+| Freshness | source age `26s` at health and `25s` at preflight; index lag `10s` |
+| Exact preflight | `0.01 STRK`, `AVAILABLE / ALLOW / LOW` |
+| Decision ID | `0xdf9db0ae15423ea211bf8d46ded65ae7526cdcd991053a181d51ca188b0df745` |
+| Browser smoke | 1440, 1024, 768, 430, and 390px plus reduced motion and historical receipt |
+| Browser result | no horizontal overflow, console errors, page errors, or failed requests |
+| Motion result | Lenis active normally and disabled for reduced motion; state transitions remained readable |
+| Wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0`; stopped at `READY_FOR_CONFIRMATION` |
+| Transaction state | no transaction hash, confirmation, broadcast, or submission |
+| Public port `3000` | externally closed; API bound to `127.0.0.1:3000` |
+| Runtime security | unprivileged `node`, `CapDrop=ALL`, `no-new-privileges`, one writer, read-only/query-only API |
+
+The annotated tag still resolves to the original release commit. The deployed
+commit is a later reviewed two-file recovery fix: when the canonical snapshot
+advances during preflight, the browser clears the superseded result, exposes no
+decision, and requires an explicit refresh followed by a fresh preflight. The
+production browser smoke encountered this real synchronization race, failed
+closed, recovered through that path, and then reached the stable result above.
+No uncertain or superseded snapshot produced `ALLOW`.
+
+The deployment retained the persistent SQLite volume and its single indexer
+writer. API and indexer containers had zero restarts after deployment. A
+validated pre-deployment online backup is retained at
+`/var/lib/cutout/backups/pre-3bba285-20260823T103704Z.sqlite`; its schema is `4`
+and `PRAGMA quick_check` returned `ok`.
 
 The v0.1.4 record below is historical and remains unchanged.
 
@@ -234,15 +264,15 @@ public RPC without invoking a wallet or submitting a transaction.
 
 | Verification | Result |
 |---|---|
-| Root regression suite | `135 passed, 0 failed` |
-| Milestone 4 focused suite | `18 passed, 0 failed` |
+| Root regression suite | `155 passed, 0 failed` |
+| Milestone 4 focused suite | `21 passed, 0 failed` |
 | Milestone 5 focused suite | `5 passed, 0 failed` |
-| Package public-API suite | `3 passed, 0 failed` |
-| Browser E2E suite | `12 passed, 0 failed` |
+| Package public-API suite | `4 passed, 0 failed` |
+| Browser E2E suite | `15 passed, 0 failed` |
 | Root and web TypeScript checks | passed |
 | Next.js production build | passed |
 | Packed-tarball consumer install/typecheck/run | passed |
-| Package dry run | `34 files`, `17,653 bytes` |
+| Package dry run | `36 files`, `20,604 bytes` |
 | Prior v0.1.1 Docker image evidence | `sha256:21386c74b373176f1c45472bf90aad87493a997976f9b808a331379e6950845b` |
 | Container runtime | UID `1000(node)`, all capabilities dropped, `no-new-privileges:true` |
 | Production dependency inspection | TypeScript/Playwright absent; Next/React runtime present |
@@ -262,7 +292,9 @@ public RPC without invoking a wallet or submitting a transaction.
 | v0.1.4 production UI smoke | passed at 1440, 1024, 768, 430, and 390px |
 | v0.1.4 Lenis/GSAP and reduced-motion smoke | passed |
 | v0.1.4 wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
-| GitHub Actions for release commit | passed: `Cutout CI` |
+| v0.2.0 production UI smoke | passed at 1440, 1024, 768, 430, and 390px plus reduced motion and historical receipt |
+| v0.2.0 wallet fixture | `connectCalls=1`, `prepareCalls=1`, `invokeCalls=0` |
+| GitHub Actions for deployed commit | passed: `https://github.com/dmetagame/cutout/actions/runs/32633508257` |
 
 ## v0.1.3 production verification
 
