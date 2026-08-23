@@ -73,6 +73,7 @@ test("a recommended deposit reaches ready-for-confirmation without broadcasting"
   await installWalletHarness(page);
   await page.goto("/");
   await expectCurrentEntry(page);
+  await page.clock.setFixedTime(await page.evaluate(() => Date.now()));
 
   await prepareFlexibleDeposit(page);
   await chooseDepositRecommendation(page);
@@ -229,6 +230,52 @@ test("preflight transport failure remains unavailable and never exposes a decisi
   await expect(decisionPanel.getByText("LOW", { exact: true })).toHaveCount(0);
   await expect(decisionPanel.getByText("MEDIUM", { exact: true })).toHaveCount(0);
   await expect(decisionPanel.getByText("HIGH", { exact: true })).toHaveCount(0);
+  const harness = await walletHarnessState(page);
+  expect(harness.prepareCalls).toBe(0);
+  expect(harness.invokeCalls).toBe(0);
+});
+
+test("snapshot advance clears the discarded result before a fresh preflight", async ({ page }) => {
+  let attempts = 0;
+  await page.route("**/api/preflight", async (route) => {
+    attempts += 1;
+    if (attempts !== 1) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "NO_CONFIDENT_RECOMMENDATION",
+        modelVersion: "CUTOUT-v1.4",
+        guardPolicyVersion: "GUARD_POLICY-v1",
+        error: {
+          code: "INDEX_CORRUPT",
+          message: "Intent evaluation block does not match the snapshot.",
+        },
+        snapshotHash: null,
+        decisionId: `0x${"11".repeat(32)}`,
+        nonClaims: ["Candidate cohorts are public evidence only."],
+      }),
+    });
+  });
+  await installWalletHarness(page);
+  await page.goto("/");
+
+  await connectWallet(page);
+  await page.getByLabel("Target amount").fill("4700");
+  await page.getByRole("button", { name: "Check deposit" }).click();
+
+  const unavailableAlert = page.locator(".alert-wide[role='alert']");
+  await expect(unavailableAlert).toContainText("Snapshot changed during check");
+  await expect(page.getByRole("button", { name: "Confirm in wallet" })).toHaveCount(0);
+  await unavailableAlert.getByRole("button", { name: "Check snapshot" }).click();
+  await expect(page.getByRole("button", { name: "Check deposit" })).toBeEnabled();
+  await page.getByRole("button", { name: "Check deposit" }).click();
+  await expect(page.getByRole("heading", { name: "Evidence and decision" })).toBeVisible();
+  await expect.poll(() => attempts).toBe(2);
+
   const harness = await walletHarnessState(page);
   expect(harness.prepareCalls).toBe(0);
   expect(harness.invokeCalls).toBe(0);

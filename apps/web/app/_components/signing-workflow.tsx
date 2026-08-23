@@ -138,6 +138,10 @@ function errorDetails(error: unknown): UiError {
   };
 }
 
+function isSnapshotAdvance(error: UiError | null): boolean {
+  return error?.code === "INDEX_CORRUPT" && /evaluation block does not match the snapshot/i.test(error.message);
+}
+
 function clientFailure(error: PreflightClientFailure): UiError {
   return { code: error.code, message: error.message };
 }
@@ -315,8 +319,9 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   }, [capability]);
 
   const refreshSnapshot = useCallback(() => {
+    clearDecision();
     startRefresh(() => router.refresh());
-  }, [router]);
+  }, [clearDecision, router]);
 
   const selectAction = useCallback((nextAction: AnalysisAction) => {
     if (nextAction === action) return;
@@ -812,7 +817,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
 
         {state === "PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode={selection === null ? "preflight" : "final"} /> : null}
         {state === "FINAL_PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode="final" /> : null}
-        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert" data-state-reveal><AlertTriangle size={17} /><span><strong>Evidence unavailable: {error.code}</strong><br />Cutout cannot safely make this decision from the current public state.<br />{error.message}</span><button className="button button-quiet" type="button" onClick={refreshSnapshot} disabled={isRefreshing}>{isRefreshing ? "Checking" : "Check snapshot"}</button></div> : null}
+        {state === "PREFLIGHT_UNAVAILABLE" && error !== null ? <div className="alert alert-error alert-wide" role="alert" data-state-reveal><AlertTriangle size={17} /><span><strong>{isSnapshotAdvance(error) ? "Snapshot changed during check" : `Evidence unavailable: ${error.code}`}</strong><br />Cutout cannot safely make this decision from the current public state.<br />{isSnapshotAdvance(error) ? "The public snapshot advanced before this result completed. Refresh it, then run a new check." : error.message}</span><button className="button button-quiet" type="button" onClick={refreshSnapshot} disabled={isRefreshing}>{isRefreshing ? "Checking" : "Check snapshot"}</button></div> : null}
         {state === "FINAL_REVIEW" && plan !== null && finalResponse?.status === "AVAILABLE" ? <ReviewPanel plan={plan} response={finalResponse} token={selectedToken} onSimulate={() => void simulate()} /> : null}
         {state === "WITHDRAW_ANALYSIS_COMPLETE" && initialIntent?.action === "withdraw" && finalResponse?.status === "AVAILABLE" && withdrawSelection !== null ? <WithdrawBoundaryPanel intent={initialIntent} response={finalResponse} selection={withdrawSelection} token={selectedToken} snapshotHash={bootstrap.snapshot.snapshotHash} /> : null}
         {state === "SIMULATING" ? <WorkflowProgressPanel mode="simulation" /> : null}
