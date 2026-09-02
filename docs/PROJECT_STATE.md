@@ -3,18 +3,18 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-02T19:50:13Z`
-Status: `READY_FOR_CHECKPOINT`
+Last updated: `2026-09-02T20:06:05Z`
+Status: `COMPLETE`
 Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection, motion, accessibility, and 390px responsiveness without changing transaction or evidence semantics.
 
 ## Workspace
 
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
-- Branch: `main` (aligned with `origin/main` before this handoff file was added)
-- Commit: `327717bcf2ab6640377b4efd46bb8b1370c105da`
-- Worktree state: the scoped UI/UX files and README are modified; `docs/PROJECT_STATE.md` is new. No unrelated or pre-existing changes were found.
-- GitHub connection: `gh auth status` passed for `dmetagame`; the HTTPS `origin` remote is configured for fetch and push. No remote backup of this UI checkpoint exists yet.
+- Branch: `main`
+- Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
+- Worktree state at implementation checkpoint: clean and synchronized with `origin/main`; this state-only handoff update is the direct follow-up.
+- GitHub connection: `gh auth status` passed for `dmetagame`; HTTPS `origin` is configured; a fresh `git fetch origin main` showed no remote divergence; the checkpoint push was verified.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production runtime was last documented at reviewed commit `3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
 
 ## Constraints
@@ -44,6 +44,15 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 - Reworked `signing-workflow.tsx` presentation semantics: compact product explanation, first-class unmatched-share metric, native full-row cohort selection, selected-row state, connected exact-mode auto-preflight, explicit analysis-only withdrawal framing, proposal form submission on Enter, skip link, and Escape-close disclosures.
 - Extended the existing motion system with restrained intro/row/state timelines, desktop-only rail pinning, interpolated rail state, one-shot fired-signal treatment, integer evidence counts, risk-band morphing, amount Flip, receipt stillness, and live-region-safe reveals.
 - Brought the receipt presentation under the same motion/focus/skip-link and disclosure behavior without changing receipt validation.
+- Added UI Playwright coverage for full-row cover selection, connected auto-preflight, Enter/Escape behavior, 390px cards, reduced motion, and receipt disclosures.
+- Added the requested README note and pushed the verified implementation checkpoint to `origin/main`.
+
+## Decisions And Rejected Alternatives
+
+- Extended the existing light paper/ink system as a compact notary-desk/terminal instrument; rejected a new dashboard theme, gradients, glass surfaces, and ornamental marketing treatment.
+- Kept one semantic cover table and restyled its rows as mobile cards; rejected a separate mobile-only data component that could drift from the public evidence.
+- Made disconnected cover selection fill the proposal and focus Connect; connected exact-mode selection runs the same existing preflight. Wallet and transaction semantics remain unchanged.
+- Used native form/details/table/button semantics plus the pinned GSAP/Lenis stack; rejected Framer Motion, a new CSS framework, and custom div controls.
 
 ## Verification
 
@@ -68,15 +77,15 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 
 ## Next Actions
 
-1. Commit the scoped UI checkpoint, push `main` to `origin`, verify the upstream commit, and record it here.
-2. If requested, deploy the already verified presentation commit as a separate operational action; no deployment is authorized by this UI task.
+1. No implementation action remains for this UI/UX pass.
+2. Deployment is optional and was not part of this session; if requested, deploy the reviewed `main` checkpoint through the existing procedure and recheck `/api/health` plus the non-submitting public flow.
 
 ## Session Handoff
 
 - Start with `AGENTS.md`, `docs/PROJECT_STATE.md`, `docs/AUDIT_NOTES.md`, and `docs/DEPLOYMENT.md`.
 - The original session began from `/home/rouma`, then performed the Cutout work in `/home/rouma/Starknet`; directory metadata alone is therefore insufficient to identify it.
 - The session-memory MCP tools documented by the installed handoff skills were unavailable, so the authoritative local JSONL archive was inspected directly.
-- No code, deployment, release tag, or production state was changed during this discovery turn.
+- UI presentation code and tests changed; engine/policy/API/wallet semantics, deployment, release tags, and production state did not change.
 
 ## Change Log
 
@@ -88,3 +97,4 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 | 2026-09-02T19:39:28Z | Codex `/root` | Reconciled Git/GitHub under the updated durability rules and recorded focused regression verification | `main` remains at `327717b`/`origin/main`; GitHub auth passes; four focused Playwright regressions pass; scoped work is not yet committed or pushed |
 | 2026-09-02T19:44:19Z | Codex `/root` | Completed the full UI Playwright verification after the responsive-pin and Flip fallback fixes | `npm run test:e2e` passed all 18 tests; full CI remains |
 | 2026-09-02T19:50:13Z | Codex `/root` | Completed the repository-wide verification and cleaned the disposable Playwright run marker | `npm run ci:verify` passed; scoped diff is whitespace-clean; ignored `test-results/` created by this task was removed |
+| 2026-09-02T20:06:05Z | Codex `/root` | Created and remotely backed up the implementation checkpoint | Commit `2d829460809006582294bdc8bdfc81d2e82c4c5f` pushed to `origin/main`; GitHub auth/fetch/push verified; no branch protection was configured |
