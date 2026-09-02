@@ -11,7 +11,7 @@ const MINIMUM_AMOUNT = "4600";
 const MAXIMUM_AMOUNT = "4800";
 
 async function expectCurrentEntry(page: Page): Promise<void> {
-  await expect(page.getByRole("heading", { name: "Cutout decides. Your wallet signs." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check the amount before Ready X." })).toBeVisible();
   await expect(page.getByText("Current public snapshot", { exact: true })).toBeVisible();
   await expect(page.getByText("Public cover ledger", { exact: true })).toBeVisible();
   await expect(page.locator(".cover-ledger-foot")).toContainText("Model CUTOUT-v1.4");
@@ -52,12 +52,86 @@ test("the entry surface exposes current cover evidence without wallet authority"
   await expect(page.getByText("Choose an amount", { exact: true })).toBeVisible();
   await expect(page.getByText("Connection is not authorization.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "4700 USDC", exact: true })).toBeVisible();
+  const coverRow = page.getByRole("button", { name: "Select 4700 USDC", exact: true });
+  await expect(coverRow).toBeVisible();
+  await coverRow.click();
+  await expect(page.getByLabel("Target amount")).toHaveValue("4700");
+  await expect(coverRow).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Connect wallet" })).toBeFocused();
 
   const harness = await walletHarnessState(page);
   expect(harness.connectCalls).toBe(0);
   expect(harness.prepareCalls).toBe(0);
   expect(harness.invokeCalls).toBe(0);
+});
+
+test("a connected cover row fills the exact amount and runs one preflight", async ({ page }) => {
+  await installWalletHarness(page);
+  await page.goto("/");
+  await connectWallet(page);
+
+  const preflightRequest = page.waitForRequest((request) =>
+    request.url().includes("/api/preflight") && request.method() === "POST",
+  );
+  const coverRow = page.getByRole("button", { name: "Use and check 4700 USDC", exact: true });
+  await coverRow.click();
+  const request = await preflightRequest;
+  expect(request.postDataJSON()).toMatchObject({ action: "shield", amount: "4700000000" });
+  await expect(page.getByLabel("Target amount")).toHaveValue("4700");
+  await expect(coverRow).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".decision-hero")).toBeVisible();
+
+  const harness = await walletHarnessState(page);
+  expect(harness.prepareCalls).toBe(0);
+  expect(harness.invokeCalls).toBe(0);
+});
+
+test("Enter checks only the proposal and Escape closes its disclosure", async ({ page }) => {
+  await installWalletHarness(page);
+  await page.goto("/");
+  await connectWallet(page);
+  await page.getByLabel("Target amount").fill("4700");
+  await page.getByLabel("Target amount").press("Enter");
+
+  await expect(page.locator(".decision-hero")).toBeVisible();
+  const disclosure = page.locator(".evidence-disclosure").first();
+  await expect(disclosure).toHaveAttribute("open", "");
+  const summary = disclosure.locator("summary");
+  await summary.focus();
+  await page.keyboard.press("Escape");
+  await expect(disclosure).not.toHaveAttribute("open", "");
+  await expect(summary).toBeFocused();
+
+  const harness = await walletHarnessState(page);
+  expect(harness.prepareCalls).toBe(0);
+  expect(harness.invokeCalls).toBe(0);
+});
+
+test("390px cover rows are readable cards without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installWalletHarness(page);
+  await page.goto("/");
+  const rows = page.locator("[data-cover-row]");
+  await rows.first().scrollIntoViewIfNeeded();
+  await expect(rows).toHaveCount(2);
+
+  const layout = await page.evaluate(() => {
+    const row = document.querySelector<HTMLElement>("[data-cover-row]");
+    const cell = row?.querySelector<HTMLElement>("td");
+    return {
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      rowDisplay: row === null ? null : getComputedStyle(row).display,
+      cellFontSize: cell === null || cell === undefined
+        ? 0
+        : Number.parseFloat(getComputedStyle(cell).fontSize),
+      rowRight: row?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
+    };
+  });
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+  expect(layout.rowDisplay).toBe("grid");
+  expect(layout.cellFontSize).toBeGreaterThanOrEqual(12);
+  expect(layout.rowRight).toBeLessThanOrEqual(390);
 });
 
 test("a recommended deposit reaches ready-for-confirmation without broadcasting", async ({ page }) => {
@@ -205,7 +279,7 @@ test("motion preference changes cleanly switch the scrolling and reveal systems"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
-  await expect(page.getByRole("heading", { name: "Cutout decides. Your wallet signs." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check the amount before Ready X." })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");
@@ -287,7 +361,7 @@ test("wrong-network wallet fails closed before preflight or simulation", async (
 
   await page.getByRole("button", { name: "Connect wallet" }).click();
   await expect(page.getByText("WALLET_NETWORK_MISMATCH", { exact: true })).toBeVisible();
-  await expect(page.locator(".form-actions .button-primary")).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
 
   const harness = await walletHarnessState(page);
   expect(harness.prepareCalls).toBe(0);
@@ -300,7 +374,7 @@ test("unsupported Wallet API fails closed", async ({ page }) => {
 
   await page.getByRole("button", { name: "Connect wallet" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "UNSUPPORTED_WALLET_API" })).toBeVisible();
-  await expect(page.locator(".form-actions .button-primary")).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
 
   const harness = await walletHarnessState(page);
   expect(harness.connectCalls).toBe(0);

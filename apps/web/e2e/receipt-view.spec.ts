@@ -51,9 +51,13 @@ test("verified receipt evidence remains usable across responsive viewports", asy
   expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
 
   const disclosure = page.locator("summary");
-  await page.keyboard.press("Tab");
+  await disclosure.focus();
   await expect(disclosure).toBeFocused();
   expect(await disclosure.evaluate((element) => getComputedStyle(element).outlineWidth)).not.toBe("0px");
+  await expect(page.locator("details")).toHaveAttribute("open", "");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("details")).not.toHaveAttribute("open", "");
+  await expect(disclosure).toBeFocused();
 
   for (const viewport of [
     { width: 768, height: 1024 },

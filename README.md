@@ -17,6 +17,10 @@ The current release is `v0.2.0` with `CUTOUT-v1.4` at
 `v0.1.4` release remains available as the prior motion-only release, and
 `CUTOUT-v1.3` remains replayable.
 
+The v0.2.0 presentation pass makes the public cover cohorts selectable, clarifies
+the deposit and analysis-only withdrawal paths, and adds reduced-motion,
+keyboard, and 390px layouts without changing transaction behavior.
+
 Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon),
 14 to 31 August 2026.
 
