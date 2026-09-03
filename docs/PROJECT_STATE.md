@@ -3,15 +3,16 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-02T20:06:05Z`
+Last updated: `2026-09-03T08:06:48Z`
 Status: `COMPLETE`
-Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection, motion, accessibility, and 390px responsiveness without changing transaction or evidence semantics.
+Active objective: Redeploy the reviewed presentation checkpoint and verify the live desktop, mobile, motion, accessibility, and simulation-only paths without changing transaction or evidence semantics.
 
 ## Workspace
 
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
 - Branch: `main`
+- Reviewed/deployed checkpoint: `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; production checkout `/srv/cutout` is detached at this exact commit.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Worktree state at implementation checkpoint: clean and synchronized with `origin/main`; this state-only handoff update is the direct follow-up.
 - GitHub connection: `gh auth status` passed for `dmetagame`; HTTPS `origin` is configured; a fresh `git fetch origin main` showed no remote divergence; the checkpoint push was verified.
@@ -29,6 +30,7 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 ## Current Context
 
 - Cutout v0.2.0 is complete. Production uses `CUTOUT-v1.4`; the v1.3 path remains replayable.
+- Production was rebuilt from `39a49e1` on 2026-09-03 with the existing Compose project, `.env`, host-only override, and `cutout_cutout-data` volume preserved.
 - Deposit is the only executable wallet path. Withdrawal support is intentionally analysis-only.
 - The most recent archived project session ended with no unanswered implementation question and reported a clean, synchronized repository plus passing CI.
 - Authoritative archived session ID: `019ffd5c-be70-71a0-96ff-fff52dc9b25e`.
@@ -46,6 +48,10 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 - Brought the receipt presentation under the same motion/focus/skip-link and disclosure behavior without changing receipt validation.
 - Added UI Playwright coverage for full-row cover selection, connected auto-preflight, Enter/Escape behavior, 390px cards, reduced motion, and receipt disclosures.
 - Added the requested README note and pushed the verified implementation checkpoint to `origin/main`.
+- Took a consistent pre-deployment backup after stopping the writer/API and checkpointing WAL because the host lacked space for another in-volume copy. The verified copy is `/home/rouma/cutout-backups/pre-39a49e1-20260902T205118Z.sqlite` (`4,872,781,824` bytes; SHA-256 `f6abee372a2dcdf1df4e92bd07d3df7150bb26059afe27c0608b3d9155e027d7`; schema `4`; model `CUTOUT-v1.4`; `quick_check: ok`).
+- Rebuilt and recreated only the `indexer` and `api` containers with `docker compose up --build -d`; retained the named SQLite volume and its prior backups.
+- Ran live Playwright QA at 1280x800 and 390x844 with enhanced and reduced motion. The connected simulation-only harness stopped at `READY_FOR_CONFIRMATION` with `connectCalls=1`, `prepareCalls=1`, and `invokeCalls=0`.
+- No product source, engine, policy, indexer logic, API, wallet adapter, or guard-package export changed during deployment/QA.
 
 ## Decisions And Rejected Alternatives
 
@@ -60,7 +66,7 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 | --- | --- | --- |
 | Repository identity | passed | `git rev-parse --show-toplevel`; `git remote -v`; 2026-09-02 |
 | Branch and upstream | passed | `main`, aligned with `origin/main` before state-file creation; 2026-09-02 |
-| Commit | passed | `327717bcf2ab6640377b4efd46bb8b1370c105da`; 2026-09-02 |
+| Commit deployed | passed | Production `/srv/cutout` detached at `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; 2026-09-03 |
 | Pre-handoff worktree | clean | `git status --short --branch`; 2026-09-02 |
 | Release evidence | previously passed | Final archived handoff records GitHub Actions run `32637764286`; 2026-08-23 |
 | Live production health | passed | `curl https://cutout.rouma.online/api/health` returned `HEALTHY`; 2026-09-02 |
@@ -68,24 +74,37 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 | Focused Playwright regression rerun | passed | Four formerly failing recommendation/Flip/responsive/simulation cases, `4 passed (1.1m)`; 2026-09-02 |
 | Full Playwright rerun | passed | `npm run test:e2e`: `18 passed (2.7m)`; 2026-09-02T19:44Z |
 | Full CI | passed | `npm run ci:verify`: 155 core tests, 21 milestone-4 tests, 5 milestone-5 tests, 4 package tests, package consumer, typechecks, production web build, 18 Playwright tests, and diff check passed; 2026-09-02T19:50Z |
+| Pre-deployment backup | passed | Exact byte/hash match; schema `4`; `CUTOUT-v1.4`; `STRK20_POOL_ABI-v2`; `PRAGMA quick_check = ok`; 2026-09-03 |
+| Compose rebuild | passed | `docker compose config --quiet`; `docker compose up --build -d`; retained `cutout_cutout-data`; containers run as `node`, `CapDrop=ALL`, `no-new-privileges`, zero restarts; 2026-09-03 |
+| Live deployment gate | passed | New hero and full-row cover controls served; active CSS has one `:root`; analysis-only withdrawal and responsive/reduced-motion rules present; 2026-09-03 |
+| Live Playwright QA | passed | 1280x800 and 390x844, enhanced/reduced motion, no overflow or browser errors, cover auto-preflight, keyboard/focus/disclosure, simulation-only Ready state, zero invoke calls; 2026-09-03 |
+| Web TypeScript rerun | passed | `npm run web:typecheck`; 2026-09-03 |
+| Full Playwright rerun | passed | `npm run test:e2e`: `18 passed (1.8m)`; 2026-09-03 |
+| Final production health | passed | `HEALTHY`, ready, current complete snapshot, model `CUTOUT-v1.4`, source age `26s`, index lag `3s`; 2026-09-03T08:06Z |
 
 ## Risks And Blockers
 
 - No current implementation blocker is recorded.
+- Production root storage was 89% used with about 4.5 GB free before rebuild; the named Cutout volume reported about 21 GB, including retained historical backups. No volume or backup data was deleted. Capacity remains an operational risk.
+- The new verified pre-deployment backup currently resides on the operator workspace rather than the production host because the host could not hold another 4.87 GB copy. Move it to durable off-host storage without deleting the retained production volume.
+- The production clone has no `origin/main` remote-tracking ref; deployment used a verified `FETCH_HEAD` and detached checkout at the exact requested commit.
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
 
 ## Next Actions
 
-1. No implementation action remains for this UI/UX pass.
-2. Deployment is optional and was not part of this session; if requested, deploy the reviewed `main` checkpoint through the existing procedure and recheck `/api/health` plus the non-submitting public flow.
+1. No implementation or deployment action remains for this presentation pass.
+2. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
+3. Continue monitoring `/api/health`; transient `DEGRADED`/`SYNCING` during an indexer cycle is acceptable only while a current complete snapshot remains freshness-valid.
 
 ## Session Handoff
 
 - Start with `AGENTS.md`, `docs/PROJECT_STATE.md`, `docs/AUDIT_NOTES.md`, and `docs/DEPLOYMENT.md`.
 - The original session began from `/home/rouma`, then performed the Cutout work in `/home/rouma/Starknet`; directory metadata alone is therefore insufficient to identify it.
 - The session-memory MCP tools documented by the installed handoff skills were unavailable, so the authoritative local JSONL archive was inspected directly.
-- UI presentation code and tests changed; engine/policy/API/wallet semantics, deployment, release tags, and production state did not change.
+- In the 2026-09-02 implementation session, UI presentation code and tests changed while engine/policy/API/wallet semantics, deployment, release tags, and production state did not change.
+- The 2026-09-03 deployment changed production presentation only: remote checkout `39a49e1`, Compose project `cutout`, containers `cutout-indexer-1` and `cutout-api-1`, shared volume `cutout_cutout-data`.
+- Post-deploy public QA made public preflight requests and one simulated wallet preparation only. It did not call `wallet_strk20InvokeTransaction`, confirm, broadcast, or create a transaction hash.
 
 ## Change Log
 
@@ -98,3 +117,4 @@ Active objective: Improve Cutout v0.2.0 presentation hierarchy, cover selection,
 | 2026-09-02T19:44:19Z | Codex `/root` | Completed the full UI Playwright verification after the responsive-pin and Flip fallback fixes | `npm run test:e2e` passed all 18 tests; full CI remains |
 | 2026-09-02T19:50:13Z | Codex `/root` | Completed the repository-wide verification and cleaned the disposable Playwright run marker | `npm run ci:verify` passed; scoped diff is whitespace-clean; ignored `test-results/` created by this task was removed |
 | 2026-09-02T20:06:05Z | Codex `/root` | Created and remotely backed up the implementation checkpoint | Commit `2d829460809006582294bdc8bdfc81d2e82c4c5f` pushed to `origin/main`; GitHub auth/fetch/push verified; no branch protection was configured |
+| 2026-09-03T08:06:48Z | Codex `/root` | Backed up the live database, redeployed presentation checkpoint `39a49e1`, and completed production visual QA | Backup hash/integrity passed; Compose retained the SQLite volume; live health and all browser gates passed; simulation stopped at Ready with zero invoke calls |
