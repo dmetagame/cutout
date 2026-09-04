@@ -3,8 +3,8 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T00:08:00Z`
-Status: `IMPLEMENTED — CHECKPOINT PENDING`
+Last updated: `2026-09-04T09:06:32Z`
+Status: `COMPLETE`
 Active objective: Remove presentation-pass chrome so the signing instrument reads as a clerk's ledger, while preserving public-evidence, wallet, and transaction semantics.
 
 ## Workspace
@@ -14,8 +14,9 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 - Branch: `main`
 - Reviewed/deployed checkpoint: `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; production checkout `/srv/cutout` is detached at this exact commit.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
-- Worktree state at implementation checkpoint: clean and synchronized with `origin/main`; this state-only handoff update is the direct follow-up.
-- GitHub connection: `gh auth status` passed for `dmetagame`; HTTPS `origin` is configured; a fresh `git fetch origin main` showed no remote divergence; the checkpoint push was verified.
+- Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
+- Worktree state at subtractive checkpoint: clean and synchronized with `origin/main`; this state-only handoff update is the direct follow-up.
+- GitHub connection: HTTPS fetch and push succeed and the checkpoint is present on `origin/main`; `gh auth status` separately reports an expired GitHub CLI token.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production runtime was last documented at reviewed commit `3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
 
 ## Constraints
@@ -101,12 +102,12 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 - The production clone has no `origin/main` remote-tracking ref; deployment used a verified `FETCH_HEAD` and detached checkout at the exact requested commit.
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
-- `gh auth status` reports an expired GitHub CLI token. `git fetch origin main` still succeeds through Git credentials; commit/push verification remains the next checkpoint action.
+- `gh auth status` reports an expired GitHub CLI token. Git fetch and push succeed through the configured Git credential path, so this did not block the checkpoint; re-authentication is still advisable for future `gh` operations.
 
 ## Next Actions
 
-1. Commit the scoped UI/test/state changes, push `main`, and verify the upstream commit. If Git push cannot use the configured credential helper, re-authenticate GitHub CLI without exposing credentials.
-2. Redeploy only if the new subtractive checkpoint is approved; production remains on `39a49e1` until then.
+1. Redeploy `91d6ced` only if the new subtractive checkpoint is approved; production remains on `39a49e1` until then.
+2. Re-authenticate GitHub CLI before a workflow that requires `gh`; do not expose the token in logs or state.
 3. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
 
 ## Session Handoff
@@ -131,3 +132,4 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 | 2026-09-02T20:06:05Z | Codex `/root` | Created and remotely backed up the implementation checkpoint | Commit `2d829460809006582294bdc8bdfc81d2e82c4c5f` pushed to `origin/main`; GitHub auth/fetch/push verified; no branch protection was configured |
 | 2026-09-03T08:06:48Z | Codex `/root` | Backed up the live database, redeployed presentation checkpoint `39a49e1`, and completed production visual QA | Backup hash/integrity passed; Compose retained the SQLite volume; live health and all browser gates passed; simulation stopped at Ready with zero invoke calls |
 | 2026-09-04T00:08:00Z | Codex `/root` | Completed the subtractive ledger implementation and local production visual QA | Removed generated chrome without changing workflow semantics; typecheck, optimized build, and 18 Playwright tests pass; checkpoint commit/push pending |
+| 2026-09-04T09:06:32Z | Codex `/root` | Created and remotely backed up the subtractive UI checkpoint | Commit `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` pushed to `origin/main`; local and upstream refs match; production was not redeployed |
