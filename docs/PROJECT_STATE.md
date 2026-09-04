@@ -3,7 +3,7 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T14:04:07Z`
+Last updated: `2026-09-04T14:05:22Z`
 Status: `COMPLETE`
 Active objective: Make the public cover ledger the product hero and adapt one quiet, data-native tile-flip mechanic without changing public-evidence, wallet, or transaction semantics.
 
@@ -16,7 +16,8 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
 - Session base: `ced20ce5bd070d7ba4cf87d437ff8a8b2c842231`, clean and synchronized with freshly fetched `origin/main` before the tile-ledger work.
-- Current tile-ledger implementation is verified locally; checkpoint commit/push is pending this state update.
+- Current tile-ledger checkpoint: `c7ede4c2d43ac9beabba9775da2142f7c44590c0` (`ui: turn public cover into tile ledger`), verified and pushed to `origin/main`.
+- Worktree was clean and synchronized with `origin/main` immediately after the implementation push; this state-only handoff update records that remote checkpoint.
 - GitHub connection: HTTPS fetch and push succeed and the checkpoint is present on `origin/main`; `gh auth status` separately reports an expired GitHub CLI token.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production runtime was last documented at reviewed commit `3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
 
@@ -119,7 +120,7 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 
 ## Next Actions
 
-1. Create and push the verified tile-ledger checkpoint, then redeploy that new commit only if the presentation is approved; production remains on `39a49e1` until then.
+1. Redeploy `c7ede4c` only if the tile-ledger presentation is approved; production remains on `39a49e1` until then.
 2. Re-authenticate GitHub CLI before a workflow that requires `gh`; do not expose the token in logs or state.
 3. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
 
@@ -146,4 +147,5 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 | 2026-09-03T08:06:48Z | Codex `/root` | Backed up the live database, redeployed presentation checkpoint `39a49e1`, and completed production visual QA | Backup hash/integrity passed; Compose retained the SQLite volume; live health and all browser gates passed; simulation stopped at Ready with zero invoke calls |
 | 2026-09-04T00:08:00Z | Codex `/root` | Completed the subtractive ledger implementation and local production visual QA | Removed generated chrome without changing workflow semantics; typecheck, optimized build, and 18 Playwright tests pass; checkpoint commit/push pending |
 | 2026-09-04T09:06:32Z | Codex `/root` | Created and remotely backed up the subtractive UI checkpoint | Commit `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` pushed to `origin/main`; local and upstream refs match; production was not redeployed |
-| 2026-09-04T14:04:07Z | Codex `/root` | Completed the data-native tile-ledger mechanic and local visual QA | Four corner facts replace idle chrome; real cohort cells flip once, selections Flip into the form, result evidence enters as a second plate; typecheck and all 18 E2E tests pass; commit/push pending |
+| 2026-09-04T14:04:07Z | Codex `/root` | Completed the data-native tile-ledger mechanic and local visual QA | Four corner facts replace idle chrome; real cohort cells flip once, selections Flip into the form, result evidence enters as a second plate; typecheck and all 18 E2E tests pass |
+| 2026-09-04T14:05:22Z | Codex `/root` | Created and remotely backed up the tile-ledger checkpoint | Commit `c7ede4c2d43ac9beabba9775da2142f7c44590c0` pushed to `origin/main`; local and upstream refs matched immediately after push; production was not redeployed |
