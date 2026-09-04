@@ -11,20 +11,20 @@ const MINIMUM_AMOUNT = "4600";
 const MAXIMUM_AMOUNT = "4800";
 
 async function expectCurrentEntry(page: Page): Promise<void> {
-  await expect(page.getByRole("heading", { name: "Check the amount before Ready X." })).toBeVisible();
-  await expect(page.getByText("Current public snapshot", { exact: true })).toBeVisible();
-  await expect(page.getByText("Public cover ledger", { exact: true })).toBeVisible();
-  await expect(page.locator(".cover-ledger-foot")).toContainText("Model CUTOUT-v1.4");
+  await expect(page.getByRole("heading", { name: "Check an exact amount against current public STRK20 traffic, then stop at Ready X." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Current public cover" })).toBeVisible();
+  await expect(page.locator(".cover-ledger-meta")).toContainText("Current snapshot");
+  await expect(page.locator(".cover-ledger-foot")).toContainText("CUTOUT-v1.4");
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(true);
-  await expect(page.locator(".flow-step")).toHaveCount(5);
-  await expect(page.locator(".flow-step[aria-current='step']")).toHaveCount(1);
+  await expect(page.locator(".flow-rail-shell")).toHaveCount(0);
+  await expect(page.locator(".evidence-surface")).toHaveCount(0);
 }
 
 async function connectWallet(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Connect wallet" }).click();
   await expect(page.getByText("Wallet connected", { exact: true })).toBeVisible();
-  await expect(page.getByText("Cutout E2E Wallet | API 0.10.3", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cutout E2E Wallet", { exact: true })).toBeVisible();
 }
 
 async function prepareFlexibleDeposit(page: Page): Promise<void> {
@@ -49,8 +49,9 @@ test("the entry surface exposes current cover evidence without wallet authority"
   await page.goto("/");
   await expectCurrentEntry(page);
 
-  await expect(page.getByText("Choose an amount", { exact: true })).toBeVisible();
   await expect(page.getByText("Connection is not authorization.", { exact: true })).toBeVisible();
+  await expect(page.locator(".action-selector button").filter({ hasText: "Withdraw" })).toContainText("Analysis only · no wallet call");
+  await expect(page.locator(".evidence-surface")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
   const coverRow = page.getByRole("button", { name: "Select 4700 USDC", exact: true });
   await expect(coverRow).toBeVisible();
@@ -118,6 +119,8 @@ test("390px cover rows are readable cards without horizontal overflow", async ({
   const layout = await page.evaluate(() => {
     const row = document.querySelector<HTMLElement>("[data-cover-row]");
     const cell = row?.querySelector<HTMLElement>("td");
+    const connect = document.querySelector<HTMLElement>("#connect-wallet");
+    const check = document.querySelector<HTMLElement>(".form-actions button[type='submit']");
     return {
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -126,12 +129,16 @@ test("390px cover rows are readable cards without horizontal overflow", async ({
         ? 0
         : Number.parseFloat(getComputedStyle(cell).fontSize),
       rowRight: row?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
+      connectHeight: connect?.getBoundingClientRect().height ?? 0,
+      checkHeight: check?.getBoundingClientRect().height ?? 0,
     };
   });
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   expect(layout.rowDisplay).toBe("grid");
   expect(layout.cellFontSize).toBeGreaterThanOrEqual(12);
   expect(layout.rowRight).toBeLessThanOrEqual(390);
+  expect(layout.connectHeight).toBeGreaterThanOrEqual(44);
+  expect(layout.checkHeight).toBeGreaterThanOrEqual(44);
 });
 
 test("a recommended deposit reaches ready-for-confirmation without broadcasting", async ({ page }) => {
@@ -229,9 +236,7 @@ test("the final review remains stable across desktop, tablet, and mobile widths"
       scrollWidth: document.documentElement.scrollWidth,
     }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
-    const rail = await page.locator(".flow-rail-shell").boundingBox();
-    expect(rail?.width ?? 0).toBeLessThanOrEqual(viewport.width);
-    await expect(page.locator(".flow-step")).toHaveCount(5);
+    await expect(page.locator(".flow-rail-shell")).toHaveCount(0);
     await expect(finalReview).toBeVisible();
     await expect(page.getByRole("button", { name: "Simulate in wallet" })).toBeVisible();
   }
@@ -257,12 +262,10 @@ test("reduced motion preserves keyboard access and all signing information", asy
   await expect(page.getByRole("heading", { name: "Evidence and decision" })).toBeVisible();
 
   const motionState = await page.evaluate(() => ({
-    railTransform: getComputedStyle(document.querySelector(".flow-rail") as Element).transform,
     hiddenMotionItems: Array.from(document.querySelectorAll<HTMLElement>("[data-motion-intro], [data-motion-section]"))
       .filter((element) => getComputedStyle(element).visibility === "hidden" || getComputedStyle(element).opacity === "0")
       .length,
   }));
-  expect(motionState.railTransform).toBe("none");
   expect(motionState.hiddenMotionItems).toBe(0);
   const harness = await walletHarnessState(page);
   expect(harness.prepareCalls).toBe(0);
@@ -279,12 +282,12 @@ test("motion preference changes cleanly switch the scrolling and reveal systems"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
-  await expect(page.getByRole("heading", { name: "Check the amount before Ready X." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check an exact amount against current public STRK20 traffic, then stop at Ready X." })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(true);
-  await expect(page.locator(".flow-step[aria-current='step']")).toHaveCount(1);
+  await expect(page.locator(".flow-rail-shell")).toHaveCount(0);
 });
 
 test("preflight transport failure remains unavailable and never exposes a decision", async ({ page }) => {

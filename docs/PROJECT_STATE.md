@@ -3,9 +3,9 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-03T08:06:48Z`
-Status: `COMPLETE`
-Active objective: Redeploy the reviewed presentation checkpoint and verify the live desktop, mobile, motion, accessibility, and simulation-only paths without changing transaction or evidence semantics.
+Last updated: `2026-09-04T00:08:00Z`
+Status: `IMPLEMENTED — CHECKPOINT PENDING`
+Active objective: Remove presentation-pass chrome so the signing instrument reads as a clerk's ledger, while preserving public-evidence, wallet, and transaction semantics.
 
 ## Workspace
 
@@ -52,6 +52,11 @@ Active objective: Redeploy the reviewed presentation checkpoint and verify the l
 - Rebuilt and recreated only the `indexer` and `api` containers with `docker compose up --build -d`; retained the named SQLite volume and its prior backups.
 - Ran live Playwright QA at 1280x800 and 390x844 with enhanced and reduced motion. The connected simulation-only harness stopped at `READY_FOR_CONFIRMATION` with `connectCalls=1`, `prepareCalls=1`, and `invokeCalls=0`.
 - No product source, engine, policy, indexer logic, API, wallet adapter, or guard-package export changed during deployment/QA.
+- Subtractive UI work is based on `eb8703a827b5c5a7c06634ec2929445a5c88dae4`, which matched freshly fetched `origin/main` at the 2026-09-04 checkpoint.
+- Removed the always-visible flow rail, authority strip, duplicated hero proposal, snapshot stamp, disconnected evidence theater, decorative wallet/shield/activity icons, pill styling, and paper-card shadows.
+- Reframed the entry as a flat ledger: plain CUTOUT/Mainnet/wallet header, one 22–28px sentence, the sole large unmatched-share metric, clickable cover table, compact proposal, and evidence mounted only after a real decision.
+- Reduced workflow motion to one title reveal, one-time cover-row entry, amount Flip, and result-state timelines; eliminated rail animation/pinning while retaining Lenis ownership, reduced-motion behavior, and state-layout refreshes.
+- Updated Playwright assertions for absent pre-decision evidence/rail, explicit withdrawal analysis-only copy, and 44px mobile Connect/Check targets.
 
 ## Decisions And Rejected Alternatives
 
@@ -81,6 +86,12 @@ Active objective: Redeploy the reviewed presentation checkpoint and verify the l
 | Web TypeScript rerun | passed | `npm run web:typecheck`; 2026-09-03 |
 | Full Playwright rerun | passed | `npm run test:e2e`: `18 passed (1.8m)`; 2026-09-03 |
 | Final production health | passed | `HEALTHY`, ready, current complete snapshot, model `CUTOUT-v1.4`, source age `26s`, index lag `3s`; 2026-09-03T08:06Z |
+| Current live health | passed | `HEALTHY`, current complete snapshot, `CUTOUT-v1.4`; 2026-09-04 |
+| Subtractive web typecheck | passed | `npm run web:typecheck`; 2026-09-04 |
+| Subtractive Playwright suite | passed | `npm run test:e2e`: 18 passed; the simulation harness still stops before invoke; 2026-09-04 |
+| Optimized web build | passed | `npm run web:build`; production Next.js compilation and route generation passed; 2026-09-04 |
+| Rendered visual measurements | passed | 1280/390: title 28/23.2px, metric 48/42.4px, Connect and Check 44px, `scrollWidth == clientWidth`, no rail, no initial evidence surface, no surface shadow; reduced mode had no Lenis or hidden motion targets; 2026-09-04 |
+| Before/after captures | passed | Live before and local fixture after captured at 1280x800 and 390x844 under `/tmp/cutout-{before,after}-*.png`; 2026-09-04 |
 
 ## Risks And Blockers
 
@@ -90,12 +101,13 @@ Active objective: Redeploy the reviewed presentation checkpoint and verify the l
 - The production clone has no `origin/main` remote-tracking ref; deployment used a verified `FETCH_HEAD` and detached checkout at the exact requested commit.
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
+- `gh auth status` reports an expired GitHub CLI token. `git fetch origin main` still succeeds through Git credentials; commit/push verification remains the next checkpoint action.
 
 ## Next Actions
 
-1. No implementation or deployment action remains for this presentation pass.
-2. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
-3. Continue monitoring `/api/health`; transient `DEGRADED`/`SYNCING` during an indexer cycle is acceptable only while a current complete snapshot remains freshness-valid.
+1. Commit the scoped UI/test/state changes, push `main`, and verify the upstream commit. If Git push cannot use the configured credential helper, re-authenticate GitHub CLI without exposing credentials.
+2. Redeploy only if the new subtractive checkpoint is approved; production remains on `39a49e1` until then.
+3. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
 
 ## Session Handoff
 
@@ -118,3 +130,4 @@ Active objective: Redeploy the reviewed presentation checkpoint and verify the l
 | 2026-09-02T19:50:13Z | Codex `/root` | Completed the repository-wide verification and cleaned the disposable Playwright run marker | `npm run ci:verify` passed; scoped diff is whitespace-clean; ignored `test-results/` created by this task was removed |
 | 2026-09-02T20:06:05Z | Codex `/root` | Created and remotely backed up the implementation checkpoint | Commit `2d829460809006582294bdc8bdfc81d2e82c4c5f` pushed to `origin/main`; GitHub auth/fetch/push verified; no branch protection was configured |
 | 2026-09-03T08:06:48Z | Codex `/root` | Backed up the live database, redeployed presentation checkpoint `39a49e1`, and completed production visual QA | Backup hash/integrity passed; Compose retained the SQLite volume; live health and all browser gates passed; simulation stopped at Ready with zero invoke calls |
+| 2026-09-04T00:08:00Z | Codex `/root` | Completed the subtractive ledger implementation and local production visual QA | Removed generated chrome without changing workflow semantics; typecheck, optimized build, and 18 Playwright tests pass; checkpoint commit/push pending |

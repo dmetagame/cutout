@@ -149,48 +149,6 @@ function countEvidenceIntegers(root: HTMLElement): void {
   });
 }
 
-function animateFlowMarker(root: HTMLElement): void {
-  const activeMarker = root.querySelector<HTMLElement>(".flow-step.is-active .flow-step-marker");
-  if (activeMarker === null) return;
-
-  const nextIndex = Number(activeMarker.dataset.flowIndex);
-  const previousIndex = Number(root.dataset.motionStep ?? nextIndex);
-  const markers = gsap.utils.toArray<HTMLElement>(".flow-step-marker", root);
-  const previousMarker = markers.find((marker) => Number(marker.dataset.flowIndex) === previousIndex);
-  const offset = previousMarker === undefined || previousIndex === nextIndex
-    ? 0
-    : previousMarker.getBoundingClientRect().left - activeMarker.getBoundingClientRect().left;
-
-  gsap.fromTo(
-    activeMarker,
-    { x: offset, scale: 0.94 },
-    {
-      x: 0,
-      scale: 1,
-      duration: offset === 0 ? 0.28 : 0.46,
-      ease: ENTER_EASE,
-      overwrite: "auto",
-      clearProps: "transform",
-    },
-  );
-  root.dataset.motionStep = String(nextIndex);
-
-  const activeLine = root.querySelector<HTMLElement>(".flow-step.is-active .flow-step-progress");
-  if (activeLine !== null) {
-    gsap.fromTo(
-      activeLine,
-      { scaleX: 0 },
-      {
-        scaleX: 1,
-        duration: 0.44,
-        ease: ENTER_EASE,
-        transformOrigin: "left center",
-        clearProps: "transform",
-      },
-    );
-  }
-}
-
 export function animateAmountFlip(
   scope: RefObject<HTMLElement | null>,
   updateAmount: () => void,
@@ -248,41 +206,15 @@ export function useWorkflowMotion(
       const intro = gsap.utils.toArray<HTMLElement>("[data-motion-intro]", root);
       gsap.fromTo(
         intro,
-        { opacity: 0, y: 12 },
+        { opacity: 0, y: 8 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.56,
-          stagger: 0.055,
+          duration: 0.46,
           ease: ENTER_EASE,
           clearProps: "opacity,transform",
         },
       );
-
-      const sections = gsap.utils
-        .toArray<HTMLElement>("[data-motion-section]", root)
-        .filter((section) => !section.hasAttribute("data-motion-intro"));
-      sections.forEach((section) => {
-        ScrollTrigger.create({
-          trigger: section,
-          start: "clamp(top 90%)",
-          once: true,
-          onEnter: () => {
-            gsap.fromTo(
-              section,
-              containsLiveRegion(section) ? { y: 12 } : { opacity: 0.86, y: 12 },
-              {
-                opacity: 1,
-                y: 0,
-                duration: 0.42,
-                ease: ENTER_EASE,
-                overwrite: "auto",
-                clearProps: "opacity,transform",
-              },
-            );
-          },
-        });
-      });
 
       const coverRows = gsap.utils.toArray<HTMLElement>("[data-cover-row]", root);
       if (coverRows.length > 0) {
@@ -308,47 +240,7 @@ export function useWorkflowMotion(
       }
     });
 
-    const stage = root.querySelector<HTMLElement>(".workflow-stage");
-    const rail = root.querySelector<HTMLElement>(".flow-rail-shell");
-    const desktopMotion = window.matchMedia(`(min-width: 1024px) and ${ENHANCED_MOTION_QUERY}`);
-    let pin: ScrollTrigger | null = null;
-
-    const clearPin = () => {
-      pin?.kill();
-      pin = null;
-      if (rail !== null) gsap.set(rail, { clearProps: "all" });
-    };
-
-    const configurePin = () => {
-      clearPin();
-      if (!desktopMotion.matches || stage === null || rail === null) return;
-
-      pin = ScrollTrigger.create({
-        trigger: stage,
-        endTrigger: stage,
-        start: "top 76px",
-        end: "bottom top+=170",
-        pin: rail,
-        pinSpacing: false,
-        anticipatePin: 1,
-      });
-      ScrollTrigger.refresh();
-    };
-
-    configurePin();
-    desktopMotion.addEventListener("change", configurePin);
-    let resizeFrame = 0;
-    const refreshPinWidth = () => {
-      window.cancelAnimationFrame(resizeFrame);
-      resizeFrame = window.requestAnimationFrame(configurePin);
-    };
-    window.addEventListener("resize", refreshPinWidth);
-
     return () => {
-      desktopMotion.removeEventListener("change", configurePin);
-      window.removeEventListener("resize", refreshPinWidth);
-      window.cancelAnimationFrame(resizeFrame);
-      clearPin();
       media.revert();
     };
   }, { scope });
@@ -360,7 +252,6 @@ export function useWorkflowMotion(
     const media = gsap.matchMedia();
     let refreshFrame = 0;
     media.add(ENHANCED_MOTION_QUERY, () => {
-      animateFlowMarker(root);
       revealStatePanel(root);
       animateBand(root);
       countEvidenceIntegers(root);
