@@ -3,9 +3,9 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T09:06:32Z`
+Last updated: `2026-09-04T14:04:07Z`
 Status: `COMPLETE`
-Active objective: Remove presentation-pass chrome so the signing instrument reads as a clerk's ledger, while preserving public-evidence, wallet, and transaction semantics.
+Active objective: Make the public cover ledger the product hero and adapt one quiet, data-native tile-flip mechanic without changing public-evidence, wallet, or transaction semantics.
 
 ## Workspace
 
@@ -15,7 +15,8 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 - Reviewed/deployed checkpoint: `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; production checkout `/srv/cutout` is detached at this exact commit.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
-- Worktree state at subtractive checkpoint: clean and synchronized with `origin/main`; this state-only handoff update is the direct follow-up.
+- Session base: `ced20ce5bd070d7ba4cf87d437ff8a8b2c842231`, clean and synchronized with freshly fetched `origin/main` before the tile-ledger work.
+- Current tile-ledger implementation is verified locally; checkpoint commit/push is pending this state update.
 - GitHub connection: HTTPS fetch and push succeed and the checkpoint is present on `origin/main`; `gh auth status` separately reports an expired GitHub CLI token.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production runtime was last documented at reviewed commit `3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
 
@@ -55,16 +56,23 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 - No product source, engine, policy, indexer logic, API, wallet adapter, or guard-package export changed during deployment/QA.
 - Subtractive UI work is based on `eb8703a827b5c5a7c06634ec2929445a5c88dae4`, which matched freshly fetched `origin/main` at the 2026-09-04 checkpoint.
 - Removed the always-visible flow rail, authority strip, duplicated hero proposal, snapshot stamp, disconnected evidence theater, decorative wallet/shield/activity icons, pill styling, and paper-card shadows.
-- Reframed the entry as a flat ledger: plain CUTOUT/Mainnet/wallet header, one 22–28px sentence, the sole large unmatched-share metric, clickable cover table, compact proposal, and evidence mounted only after a real decision.
-- Reduced workflow motion to one title reveal, one-time cover-row entry, amount Flip, and result-state timelines; eliminated rail animation/pinning while retaining Lenis ownership, reduced-motion behavior, and state-layout refreshes.
+- Reframed the entry as a flat ledger: four corner facts, one 15px sentence, the sole large unmatched-share metric, exact-amount cells, a compact proposal, and evidence mounted only after a real decision.
+- Reduced entry motion to the one-time cover-cell hinge and amount Flip; eliminated rail/title sequences while retaining Lenis ownership, reduced-motion behavior, and state-layout refreshes.
 - Updated Playwright assertions for absent pre-decision evidence/rail, explicit withdrawal analysis-only copy, and 44px mobile Connect/Check targets.
+- Replaced the healthy-state header, intro, table chrome, and duplicated proposal controls with four corner facts, one 15px sentence, the unmatched-share metric, and exact-amount ledger cells.
+- Mapped each real cover cohort to a keyboard-operable cell showing amount, projected cohort, public actors, active days, and band; hover/focus/selection dims the other cells without changing the selection or preflight path.
+- Added a one-time GSAP cell-face hinge (`0.34s`, `0.04s` stagger; seven-row maximum completes in `0.58s`), a Flip transfer from a chosen amount into the proposal field, and a single entering result plate after a real decision.
+- Kept reduced motion static and complete: tile faces render immediately, result plates do not translate, Lenis remains disabled, and no `aria-live` content is hidden.
+- Removed decorative Lucide marks from the signing workflow while retaining functional loading, refresh, and disclosure indicators.
 
 ## Decisions And Rejected Alternatives
 
 - Extended the existing light paper/ink system as a compact notary-desk/terminal instrument; rejected a new dashboard theme, gradients, glass surfaces, and ornamental marketing treatment.
-- Kept one semantic cover table and restyled its rows as mobile cards; rejected a separate mobile-only data component that could drift from the public evidence.
+- Kept one semantic cover dataset and rendered each row as one native button-cell at every viewport; rejected a separate mobile component that could drift from the public evidence.
 - Made disconnected cover selection fill the proposal and focus Connect; connected exact-mode selection runs the same existing preflight. Wallet and transaction semantics remain unchanged.
-- Used native form/details/table/button semantics plus the pinned GSAP/Lenis stack; rejected Framer Motion, a new CSS framework, and custom div controls.
+- Used native form/details/button semantics plus the pinned GSAP/Lenis stack; rejected Framer Motion, a new CSS framework, and custom div controls.
+- Rejected a portfolio/photo-grid treatment and a fake countdown; the only animation reveals current snapshot data and then stops.
+- Reused the ledger action/token controls as the proposal source of truth and removed their duplicate form controls; transaction meaning and typed intent construction are unchanged.
 
 ## Verification
 
@@ -93,6 +101,10 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 | Optimized web build | passed | `npm run web:build`; production Next.js compilation and route generation passed; 2026-09-04 |
 | Rendered visual measurements | passed | 1280/390: title 28/23.2px, metric 48/42.4px, Connect and Check 44px, `scrollWidth == clientWidth`, no rail, no initial evidence surface, no surface shadow; reduced mode had no Lenis or hidden motion targets; 2026-09-04 |
 | Before/after captures | passed | Live before and local fixture after captured at 1280x800 and 390x844 under `/tmp/cutout-{before,after}-*.png`; 2026-09-04 |
+| Tile-ledger web typecheck | passed | `npm run web:typecheck`; 2026-09-04T14:04Z |
+| Tile-ledger Playwright suite | passed | `npm run test:e2e`: 18 passed in 2.9m, including 390px, reduced motion, analysis-only withdrawal, and simulation stopping before invoke; 2026-09-04T14:04Z |
+| Tile-ledger visual QA | passed | Playwright CLI live baseline at 1280x800/390x844 plus local enhanced, result-plate, and reduced-motion captures; no horizontal overflow or hidden reduced-motion content; 2026-09-04 |
+| Live health during tile-ledger session | passed | Public `/api/health`: `HEALTHY`, current complete snapshot, `CUTOUT-v1.4`; 2026-09-04 |
 
 ## Risks And Blockers
 
@@ -103,10 +115,11 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
 - `gh auth status` reports an expired GitHub CLI token. Git fetch and push succeed through the configured Git credential path, so this did not block the checkpoint; re-authentication is still advisable for future `gh` operations.
+- Production remains on `39a49e1`; neither the subtractive `91d6ced` checkpoint nor this tile-ledger presentation work is live until a separate authorized redeploy.
 
 ## Next Actions
 
-1. Redeploy `91d6ced` only if the new subtractive checkpoint is approved; production remains on `39a49e1` until then.
+1. Create and push the verified tile-ledger checkpoint, then redeploy that new commit only if the presentation is approved; production remains on `39a49e1` until then.
 2. Re-authenticate GitHub CLI before a workflow that requires `gh`; do not expose the token in logs or state.
 3. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
 
@@ -133,3 +146,4 @@ Active objective: Remove presentation-pass chrome so the signing instrument read
 | 2026-09-03T08:06:48Z | Codex `/root` | Backed up the live database, redeployed presentation checkpoint `39a49e1`, and completed production visual QA | Backup hash/integrity passed; Compose retained the SQLite volume; live health and all browser gates passed; simulation stopped at Ready with zero invoke calls |
 | 2026-09-04T00:08:00Z | Codex `/root` | Completed the subtractive ledger implementation and local production visual QA | Removed generated chrome without changing workflow semantics; typecheck, optimized build, and 18 Playwright tests pass; checkpoint commit/push pending |
 | 2026-09-04T09:06:32Z | Codex `/root` | Created and remotely backed up the subtractive UI checkpoint | Commit `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` pushed to `origin/main`; local and upstream refs match; production was not redeployed |
+| 2026-09-04T14:04:07Z | Codex `/root` | Completed the data-native tile-ledger mechanic and local visual QA | Four corner facts replace idle chrome; real cohort cells flip once, selections Flip into the form, result evidence enters as a second plate; typecheck and all 18 E2E tests pass; commit/push pending |

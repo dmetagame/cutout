@@ -12,9 +12,12 @@ const MAXIMUM_AMOUNT = "4800";
 
 async function expectCurrentEntry(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Check an exact amount against current public STRK20 traffic, then stop at Ready X." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Current public cover" })).toBeVisible();
-  await expect(page.locator(".cover-ledger-meta")).toContainText("Current snapshot");
-  await expect(page.locator(".cover-ledger-foot")).toContainText("CUTOUT-v1.4");
+  await expect(page.locator(".cover-ledger-label")).toHaveText("Current public cover · trailing 24h");
+  await expect(page.locator(".corner-meta")).toHaveCount(4);
+  await expect(page.locator(".corner-meta-top-left")).toHaveText("CUTOUT");
+  await expect(page.locator(".corner-meta-top-right")).toHaveText("Fixture");
+  await expect(page.locator("[data-cover-cell]")).toHaveCount(2);
+  await expect(page.locator("[data-cover-cell]").first()).toHaveAttribute("data-motion-revealed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enhanced");
   await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(true);
   await expect(page.locator(".flow-rail-shell")).toHaveCount(0);
@@ -50,14 +53,17 @@ test("the entry surface exposes current cover evidence without wallet authority"
   await expectCurrentEntry(page);
 
   await expect(page.getByText("Connection is not authorization.", { exact: true })).toBeVisible();
-  await expect(page.locator(".action-selector button").filter({ hasText: "Withdraw" })).toContainText("Analysis only · no wallet call");
+  await expect(page.locator(".segmented-control button").filter({ hasText: "Withdraw" })).toContainText("analysis only");
   await expect(page.locator(".evidence-surface")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
   const coverRow = page.getByRole("button", { name: "Select 4700 USDC", exact: true });
   await expect(coverRow).toBeVisible();
+  await coverRow.hover();
+  await expect.poll(() => page.locator("[data-cover-cell]").nth(1).evaluate((element) => Number(getComputedStyle(element).opacity))).toBeLessThan(0.6);
   await coverRow.click();
   await expect(page.getByLabel("Target amount")).toHaveValue("4700");
   await expect(coverRow).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".amount-transfer")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Connect wallet" })).toBeFocused();
 
   const harness = await walletHarnessState(page);
@@ -81,6 +87,7 @@ test("a connected cover row fills the exact amount and runs one preflight", asyn
   await expect(page.getByLabel("Target amount")).toHaveValue("4700");
   await expect(coverRow).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".decision-hero")).toBeVisible();
+  await expect(page.locator("[data-decision-plate]")).toHaveAttribute("data-motion-plate", "true");
 
   const harness = await walletHarnessState(page);
   expect(harness.prepareCalls).toBe(0);
@@ -108,35 +115,39 @@ test("Enter checks only the proposal and Escape closes its disclosure", async ({
   expect(harness.invokeCalls).toBe(0);
 });
 
-test("390px cover rows are readable cards without horizontal overflow", async ({ page }) => {
+test("390px cover cells stack without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installWalletHarness(page);
   await page.goto("/");
-  const rows = page.locator("[data-cover-row]");
-  await rows.first().scrollIntoViewIfNeeded();
-  await expect(rows).toHaveCount(2);
+  const cells = page.locator("[data-cover-cell]");
+  await cells.first().scrollIntoViewIfNeeded();
+  await expect(cells).toHaveCount(2);
 
   const layout = await page.evaluate(() => {
-    const row = document.querySelector<HTMLElement>("[data-cover-row]");
-    const cell = row?.querySelector<HTMLElement>("td");
+    const coverCells = Array.from(document.querySelectorAll<HTMLElement>("[data-cover-cell]"));
+    const first = coverCells[0];
+    const second = coverCells[1];
+    const cellMeta = first?.querySelector<HTMLElement>(".cover-cell-stats");
     const connect = document.querySelector<HTMLElement>("#connect-wallet");
     const check = document.querySelector<HTMLElement>(".form-actions button[type='submit']");
     return {
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
-      rowDisplay: row === null ? null : getComputedStyle(row).display,
-      cellFontSize: cell === null || cell === undefined
+      stacked: first !== undefined && second !== undefined
+        ? second.getBoundingClientRect().top >= first.getBoundingClientRect().bottom
+        : false,
+      cellFontSize: cellMeta === null || cellMeta === undefined
         ? 0
-        : Number.parseFloat(getComputedStyle(cell).fontSize),
-      rowRight: row?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
+        : Number.parseFloat(getComputedStyle(cellMeta).fontSize),
+      cellRight: first?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
       connectHeight: connect?.getBoundingClientRect().height ?? 0,
       checkHeight: check?.getBoundingClientRect().height ?? 0,
     };
   });
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
-  expect(layout.rowDisplay).toBe("grid");
-  expect(layout.cellFontSize).toBeGreaterThanOrEqual(12);
-  expect(layout.rowRight).toBeLessThanOrEqual(390);
+  expect(layout.stacked).toBe(true);
+  expect(layout.cellFontSize).toBeGreaterThanOrEqual(11);
+  expect(layout.cellRight).toBeLessThanOrEqual(390);
   expect(layout.connectHeight).toBeGreaterThanOrEqual(44);
   expect(layout.checkHeight).toBeGreaterThanOrEqual(44);
 });
@@ -265,8 +276,14 @@ test("reduced motion preserves keyboard access and all signing information", asy
     hiddenMotionItems: Array.from(document.querySelectorAll<HTMLElement>("[data-motion-intro], [data-motion-section]"))
       .filter((element) => getComputedStyle(element).visibility === "hidden" || getComputedStyle(element).opacity === "0")
       .length,
+    transformedCoverCells: Array.from(document.querySelectorAll<HTMLElement>("[data-cover-cell-face]"))
+      .filter((element) => getComputedStyle(element).transform !== "none")
+      .length,
+    transformedPlate: getComputedStyle(document.querySelector<HTMLElement>("[data-decision-plate]")!).transform,
   }));
   expect(motionState.hiddenMotionItems).toBe(0);
+  expect(motionState.transformedCoverCells).toBe(0);
+  expect(motionState.transformedPlate).toBe("none");
   const harness = await walletHarnessState(page);
   expect(harness.prepareCalls).toBe(0);
   expect(harness.invokeCalls).toBe(0);
@@ -419,7 +436,7 @@ test("withdrawal analysis stops before wallet simulation or submission", async (
   await page.goto("/");
   await page.clock.setFixedTime(await page.evaluate(() => Date.now()));
 
-  await page.locator(".action-selector button").filter({ hasText: "Withdraw" }).click();
+  await page.locator(".segmented-control button").filter({ hasText: "Withdraw" }).click();
   await connectWallet(page);
   await page.getByLabel("Target amount").fill("4700");
   await page.locator(".workflow-surface input[type='checkbox']").check();

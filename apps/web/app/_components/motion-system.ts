@@ -77,6 +77,73 @@ function revealStatePanel(scope: HTMLElement): void {
   }
 }
 
+function revealDecisionPlate(scope: HTMLElement): void {
+  const plates = gsap.utils
+    .toArray<HTMLElement>("[data-decision-plate]", scope)
+    .filter((plate) => plate.dataset.motionPlate !== "true" && plate.dataset.motionPlate !== "playing");
+  const plate = plates.at(-1);
+  if (plate === undefined) return;
+
+  plate.dataset.motionPlate = "playing";
+  const entersFromSide = window.matchMedia("(min-width: 901px)").matches;
+  gsap.fromTo(
+    plate,
+    {
+      opacity: 0.9,
+      x: entersFromSide ? 28 : 0,
+      y: entersFromSide ? 0 : 18,
+    },
+    {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      duration: 0.42,
+      ease: ENTER_EASE,
+      overwrite: "auto",
+      clearProps: "opacity,transform",
+      onComplete: () => {
+        plate.dataset.motionPlate = "true";
+      },
+    },
+  );
+}
+
+function revealCoverCells(root: HTMLElement, enhanced: boolean): void {
+  const cells = gsap.utils.toArray<HTMLElement>("[data-cover-cell]", root);
+  const faces = cells
+    .map((cell) => cell.querySelector<HTMLElement>("[data-cover-cell-face]"))
+    .filter((face): face is HTMLElement => face !== null);
+  if (faces.length === 0) return;
+
+  const hasPlayed = root.dataset.coverMotionPlayed === "true";
+  cells.forEach((cell) => {
+    cell.dataset.motionRevealed = "true";
+  });
+  if (!enhanced || hasPlayed) {
+    gsap.set(faces, { clearProps: "opacity,transform,transformOrigin" });
+    root.dataset.coverMotionPlayed = "true";
+    return;
+  }
+
+  root.dataset.coverMotionPlayed = "true";
+  gsap.fromTo(
+    faces,
+    {
+      opacity: 0,
+      rotationX: -88,
+      transformOrigin: "50% 100%",
+    },
+    {
+      opacity: 1,
+      rotationX: 0,
+      duration: 0.34,
+      stagger: 0.04,
+      ease: ENTER_EASE,
+      clearProps: "opacity,transform,transformOrigin",
+    },
+  );
+}
+
 function animateBand(root: HTMLElement): void {
   const band = root.querySelector<HTMLElement>("[data-decision-band]");
   const label = root.querySelector<HTMLElement>("[data-decision-label]");
@@ -153,6 +220,7 @@ export function animateAmountFlip(
   scope: RefObject<HTMLElement | null>,
   updateAmount: () => void,
   afterFlip: () => void,
+  source?: HTMLElement,
 ): void {
   const root = scope.current;
   const target = root?.querySelector<HTMLElement>("[data-proposal-amount]") ?? null;
@@ -163,6 +231,53 @@ export function animateAmountFlip(
   ) {
     updateAmount();
     afterFlip();
+    return;
+  }
+
+  const sourceAmount = source?.querySelector<HTMLElement>("[data-cover-amount]") ?? null;
+  const sourceRect = sourceAmount?.getBoundingClientRect();
+  if (sourceAmount !== null && sourceRect !== undefined) {
+    const ghost = document.createElement("span");
+    ghost.className = "amount-transfer";
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.textContent = sourceAmount.textContent;
+    Object.assign(ghost.style, {
+      height: `${sourceRect.height}px`,
+      left: `${sourceRect.left}px`,
+      top: `${sourceRect.top}px`,
+      width: `${sourceRect.width}px`,
+    });
+    document.body.append(ghost);
+    updateAmount();
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("proposal")?.scrollIntoView({ block: "nearest" });
+      window.requestAnimationFrame(() => {
+        if (!target.isConnected || !ghost.isConnected) {
+          ghost.remove();
+          afterFlip();
+          return;
+        }
+        let completed = false;
+        let fallbackTimer: number | null = null;
+        const finish = () => {
+          if (completed) return;
+          completed = true;
+          if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+          gsap.killTweensOf(ghost);
+          ghost.remove();
+          afterFlip();
+        };
+        fallbackTimer = window.setTimeout(finish, 560);
+        Flip.fit(ghost, target, {
+          duration: 0.4,
+          ease: ENTER_EASE,
+          scale: true,
+          onComplete: finish,
+          onInterrupt: finish,
+        });
+      });
+    });
     return;
   }
 
@@ -196,54 +311,24 @@ export function animateAmountFlip(
 export function useWorkflowMotion(
   scope: RefObject<HTMLElement | null>,
   state: string,
+  coverKey: string,
 ): void {
   useGSAP(() => {
     const root = scope.current;
     if (root === null) return;
 
     const media = gsap.matchMedia();
-    media.add(ENHANCED_MOTION_QUERY, () => {
-      const intro = gsap.utils.toArray<HTMLElement>("[data-motion-intro]", root);
-      gsap.fromTo(
-        intro,
-        { opacity: 0, y: 8 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.46,
-          ease: ENTER_EASE,
-          clearProps: "opacity,transform",
-        },
-      );
-
-      const coverRows = gsap.utils.toArray<HTMLElement>("[data-cover-row]", root);
-      if (coverRows.length > 0) {
-        ScrollTrigger.create({
-          trigger: root.querySelector(".cover-table-wrap"),
-          start: "clamp(top 90%)",
-          once: true,
-          onEnter: () => {
-            gsap.fromTo(
-              coverRows,
-              { opacity: 0, y: 7 },
-              {
-                opacity: 1,
-                y: 0,
-                duration: 0.34,
-                stagger: 0.045,
-                ease: ENTER_EASE,
-                clearProps: "opacity,transform",
-              },
-            );
-          },
-        });
-      }
+    media.add({
+      enhanced: ENHANCED_MOTION_QUERY,
+      reduced: "(prefers-reduced-motion: reduce)",
+    }, (context) => {
+      revealCoverCells(root, context.conditions?.enhanced === true);
     });
 
     return () => {
       media.revert();
     };
-  }, { scope });
+  }, { scope, dependencies: [coverKey], revertOnUpdate: true });
 
   useGSAP(() => {
     const root = scope.current;
@@ -252,6 +337,7 @@ export function useWorkflowMotion(
     const media = gsap.matchMedia();
     let refreshFrame = 0;
     media.add(ENHANCED_MOTION_QUERY, () => {
+      revealDecisionPlate(root);
       revealStatePanel(root);
       animateBand(root);
       countEvidenceIntegers(root);
