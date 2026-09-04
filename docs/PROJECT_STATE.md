@@ -3,7 +3,7 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T20:34:15Z`
+Last updated: `2026-09-04T20:36:23Z`
 Status: `COMPLETE`
 Active objective: Deploy the verified tile-ledger presentation checkpoint and complete production visual/API QA without changing public-evidence, wallet, or transaction semantics.
 
@@ -17,6 +17,7 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
 - Session base: `ced20ce5bd070d7ba4cf87d437ff8a8b2c842231`, clean and synchronized with freshly fetched `origin/main` before the tile-ledger work.
 - Current tile-ledger checkpoint: `c7ede4c2d43ac9beabba9775da2142f7c44590c0` (`ui: turn public cover into tile ledger`), verified and pushed to `origin/main`.
+- Deployment handoff checkpoint: `39a1b17b38cbe2392a916dd15493e9d060d5d0f3` (`docs: record tile ledger production deploy`), verified on `origin/main`; production intentionally remains at the exact application/state target `015f6d8` because this later commit only records the completed deployment.
 - Worktree was clean and synchronized with `origin/main` immediately after the implementation push; this state-only handoff update records that remote checkpoint.
 - GitHub connection: HTTPS fetch/push and `gh auth status` succeed as `dmetagame`; the deployment target was freshly fetched and matched local `HEAD`/`origin/main` before deployment.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` remains at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production adds later reviewed recovery and presentation-only commits without moving that tag.
@@ -116,6 +117,7 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 | Tile-ledger public browser QA | passed | 1280x800 and 390x844 enhanced plus 390x844 reduced; seven cells visible, click selects one cell, evidence absent before decision, 44px Connect, no overflow/console/page/request errors; 2026-09-04 |
 | Tile-ledger public API smoke | passed | Unsupported token failed closed; configured USDC returned `200 AVAILABLE / ALLOW / LOW` on the health snapshot; no wallet or transaction call; 2026-09-04 |
 | Tile-ledger final live gate | passed | HTTP redirects 308 to HTTPS; `/api/health` returned `200 HEALTHY`, current complete snapshot, `CUTOUT-v1.4`, source age `30s`, index lag `12s`; active CSS has one `:root`; 2026-09-04T20:34Z |
+| Deployment handoff remote backup | passed | Commit `39a1b17b38cbe2392a916dd15493e9d060d5d0f3` pushed to and read directly from `origin/main`; production recovered from a normal brief `SYNCING` sample to `HEALTHY / COMPLETE`, source age `28s`, index lag `9s`; 2026-09-04T20:36Z |
 
 ## Risks And Blockers
 
@@ -160,3 +162,4 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 | 2026-09-04T14:04:07Z | Codex `/root` | Completed the data-native tile-ledger mechanic and local visual QA | Four corner facts replace idle chrome; real cohort cells flip once, selections Flip into the form, result evidence enters as a second plate; typecheck and all 18 E2E tests pass |
 | 2026-09-04T14:05:22Z | Codex `/root` | Created and remotely backed up the tile-ledger checkpoint | Commit `c7ede4c2d43ac9beabba9775da2142f7c44590c0` pushed to `origin/main`; local and upstream refs matched immediately after push; production was not redeployed |
 | 2026-09-04T20:34:15Z | Codex `/root` | Backed up the production read model, deployed the tile-ledger checkpoint, and completed public production QA | Backup byte/hash/identity/integrity passed; production is detached at `015f6d8`; Compose retained `cutout_cutout-data`; health, API, desktop/mobile/reduced-motion, security, and no-transaction gates passed |
+| 2026-09-04T20:36:23Z | Codex `/root` | Created and remotely backed up the deployment handoff | Commit `39a1b17b38cbe2392a916dd15493e9d060d5d0f3` pushed to `origin/main` and verified with `git ls-remote`; production stayed on exact deployed target `015f6d8` and returned to `HEALTHY / COMPLETE` after one normal `SYNCING` observation |
