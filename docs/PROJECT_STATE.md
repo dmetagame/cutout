@@ -3,23 +3,23 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T14:05:22Z`
+Last updated: `2026-09-04T20:34:15Z`
 Status: `COMPLETE`
-Active objective: Make the public cover ledger the product hero and adapt one quiet, data-native tile-flip mechanic without changing public-evidence, wallet, or transaction semantics.
+Active objective: Deploy the verified tile-ledger presentation checkpoint and complete production visual/API QA without changing public-evidence, wallet, or transaction semantics.
 
 ## Workspace
 
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
 - Branch: `main`
-- Reviewed/deployed checkpoint: `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; production checkout `/srv/cutout` is detached at this exact commit.
+- Reviewed/deployed checkpoint: `015f6d8a339385d3c734dfda805cbe4b70a73b81`; production checkout `/srv/cutout` is detached at this exact commit. The presentation implementation is `c7ede4c2d43ac9beabba9775da2142f7c44590c0`; `015f6d8` adds its state-only handoff.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
 - Session base: `ced20ce5bd070d7ba4cf87d437ff8a8b2c842231`, clean and synchronized with freshly fetched `origin/main` before the tile-ledger work.
 - Current tile-ledger checkpoint: `c7ede4c2d43ac9beabba9775da2142f7c44590c0` (`ui: turn public cover into tile ledger`), verified and pushed to `origin/main`.
 - Worktree was clean and synchronized with `origin/main` immediately after the implementation push; this state-only handoff update records that remote checkpoint.
-- GitHub connection: HTTPS fetch and push succeed and the checkpoint is present on `origin/main`; `gh auth status` separately reports an expired GitHub CLI token.
-- Protected releases/artifacts: immutable annotated tag `v0.2.0` at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production runtime was last documented at reviewed commit `3bba285fa52bbe01cbaa676337b0111c3e2ef180`.
+- GitHub connection: HTTPS fetch/push and `gh auth status` succeed as `dmetagame`; the deployment target was freshly fetched and matched local `HEAD`/`origin/main` before deployment.
+- Protected releases/artifacts: immutable annotated tag `v0.2.0` remains at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production adds later reviewed recovery and presentation-only commits without moving that tag.
 
 ## Constraints
 
@@ -33,7 +33,7 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 ## Current Context
 
 - Cutout v0.2.0 is complete. Production uses `CUTOUT-v1.4`; the v1.3 path remains replayable.
-- Production was rebuilt from `39a49e1` on 2026-09-03 with the existing Compose project, `.env`, host-only override, and `cutout_cutout-data` volume preserved.
+- Production was rebuilt from `015f6d8` on 2026-09-04 with the existing Compose project, `.env`, host-only override, and `cutout_cutout-data` volume preserved.
 - Deposit is the only executable wallet path. Withdrawal support is intentionally analysis-only.
 - The most recent archived project session ended with no unanswered implementation question and reported a clean, synchronized repository plus passing CI.
 - Authoritative archived session ID: `019ffd5c-be70-71a0-96ff-fff52dc9b25e`.
@@ -65,6 +65,11 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 - Added a one-time GSAP cell-face hinge (`0.34s`, `0.04s` stagger; seven-row maximum completes in `0.58s`), a Flip transfer from a chosen amount into the proposal field, and a single entering result plate after a real decision.
 - Kept reduced motion static and complete: tile faces render immediately, result plates do not translate, Lenis remains disabled, and no `aria-live` content is hidden.
 - Removed decorative Lucide marks from the signing workflow while retaining functional loading, refresh, and disclosure indicators.
+- Stopped the single production writer and read-only API, checkpointed WAL, and streamed a consistent pre-deployment copy to `/mnt/c/Users/predator triton/Documents/cutout-backups/pre-015f6d8-20260904T145210Z.sqlite` because neither the host nor Linux workspace had enough safe headroom for another 4.87 GB copy.
+- Verified the new rollback copy against the stopped source: exact size `4,872,781,824` bytes; matching SHA-256 `fc56a513535ca2dad988eb0b07211e24884e883d128f78d03cf3348eec0d7de1`; schema `4`; mainnet/pool identity; `STRK20_POOL_ABI-v2`; `CUTOUT-v1.4`; `PRAGMA quick_check = ok`.
+- Fetched and detached production `/srv/cutout` at exact commit `015f6d8`, retained the existing untracked host healthcheck override, validated Compose, and rebuilt/recreated only `indexer` and `api` with the named SQLite volume intact.
+- Completed public post-deploy QA: current healthy snapshot/model/policies, one active `:root`, tile-ledger markers, HTTP 308 redirect, 1280 and 390 renders, reduced motion, zero overflow, seven revealed cells, clickable selection, unmounted idle evidence, 44px Connect target, and no browser errors.
+- Ran public-data-only API smokes: an unsupported token failed closed, and configured USDC returned `AVAILABLE / ALLOW / LOW` against the same snapshot. No wallet API was connected or invoked and no transaction was prepared, signed, broadcast, or submitted.
 
 ## Decisions And Rejected Alternatives
 
@@ -81,7 +86,7 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 | --- | --- | --- |
 | Repository identity | passed | `git rev-parse --show-toplevel`; `git remote -v`; 2026-09-02 |
 | Branch and upstream | passed | `main`, aligned with `origin/main` before state-file creation; 2026-09-02 |
-| Commit deployed | passed | Production `/srv/cutout` detached at `39a49e1a4c1b4a1ae00b312aed04ba4501e68201`; 2026-09-03 |
+| Commit deployed | passed | Production `/srv/cutout` detached at `015f6d8a339385d3c734dfda805cbe4b70a73b81`; 2026-09-04 |
 | Pre-handoff worktree | clean | `git status --short --branch`; 2026-09-02 |
 | Release evidence | previously passed | Final archived handoff records GitHub Actions run `32637764286`; 2026-08-23 |
 | Live production health | passed | `curl https://cutout.rouma.online/api/health` returned `HEALTHY`; 2026-09-02 |
@@ -106,23 +111,28 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 | Tile-ledger Playwright suite | passed | `npm run test:e2e`: 18 passed in 2.9m, including 390px, reduced motion, analysis-only withdrawal, and simulation stopping before invoke; 2026-09-04T14:04Z |
 | Tile-ledger visual QA | passed | Playwright CLI live baseline at 1280x800/390x844 plus local enhanced, result-plate, and reduced-motion captures; no horizontal overflow or hidden reduced-motion content; 2026-09-04 |
 | Live health during tile-ledger session | passed | Public `/api/health`: `HEALTHY`, current complete snapshot, `CUTOUT-v1.4`; 2026-09-04 |
+| Tile-ledger pre-deployment backup | passed | `4,872,781,824` bytes; source/copy SHA-256 `fc56a513535ca2dad988eb0b07211e24884e883d128f78d03cf3348eec0d7de1`; schema `4`; ABI v2; model v1.4; `quick_check: ok`; 2026-09-04 |
+| Tile-ledger Compose deploy | passed | Exact `015f6d8` checkout; existing `.env`, host override, and `cutout_cutout-data` retained; build/typecheck/routes passed; both containers healthy with zero restarts; 2026-09-04 |
+| Tile-ledger public browser QA | passed | 1280x800 and 390x844 enhanced plus 390x844 reduced; seven cells visible, click selects one cell, evidence absent before decision, 44px Connect, no overflow/console/page/request errors; 2026-09-04 |
+| Tile-ledger public API smoke | passed | Unsupported token failed closed; configured USDC returned `200 AVAILABLE / ALLOW / LOW` on the health snapshot; no wallet or transaction call; 2026-09-04 |
+| Tile-ledger final live gate | passed | HTTP redirects 308 to HTTPS; `/api/health` returned `200 HEALTHY`, current complete snapshot, `CUTOUT-v1.4`, source age `30s`, index lag `12s`; active CSS has one `:root`; 2026-09-04T20:34Z |
 
 ## Risks And Blockers
 
 - No current implementation blocker is recorded.
-- Production root storage was 89% used with about 4.5 GB free before rebuild; the named Cutout volume reported about 21 GB, including retained historical backups. No volume or backup data was deleted. Capacity remains an operational risk.
-- The new verified pre-deployment backup currently resides on the operator workspace rather than the production host because the host could not hold another 4.87 GB copy. Move it to durable off-host storage without deleting the retained production volume.
+- Production root storage is 91% used with about 3.7 GB free after rebuild; the named Cutout volume remains about 21 GB, including retained historical backups. No volume or backup data was deleted. Capacity remains an operational risk.
+- The verified pre-`39a49e1` backup remains in `/home/rouma/cutout-backups` rather than on the production host because the host could not hold another 4.87 GB copy. Move it to managed durable storage without deleting the retained production volume.
 - The production clone has no `origin/main` remote-tracking ref; deployment used a verified `FETCH_HEAD` and detached checkout at the exact requested commit.
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
-- `gh auth status` reports an expired GitHub CLI token. Git fetch and push succeed through the configured Git credential path, so this did not block the checkpoint; re-authentication is still advisable for future `gh` operations.
-- Production remains on `39a49e1`; neither the subtractive `91d6ced` checkpoint nor this tile-ledger presentation work is live until a separate authorized redeploy.
+- Production is now on `015f6d8`; the tile-ledger presentation is live and verified.
+- The new pre-`015f6d8` backup is on the operator workstation's Windows-mounted disk. It is verified and independent of the production host, but should also be moved to managed durable backup storage.
 
 ## Next Actions
 
-1. Redeploy `c7ede4c` only if the tile-ledger presentation is approved; production remains on `39a49e1` until then.
-2. Re-authenticate GitHub CLI before a workflow that requires `gh`; do not expose the token in logs or state.
-3. Retain or move the verified pre-`39a49e1` backup to durable off-host storage and plan production disk-capacity maintenance without deleting the active SQLite volume.
+1. Monitor the deployed `015f6d8` presentation and current snapshot health; no further code or deployment action is pending.
+2. Move the verified pre-`015f6d8` backup to managed durable storage while retaining the active SQLite volume and at least one known-good rollback copy.
+3. Plan production disk-capacity maintenance without deleting the active SQLite volume or unreviewed retained backups.
 
 ## Session Handoff
 
@@ -130,7 +140,7 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 - The original session began from `/home/rouma`, then performed the Cutout work in `/home/rouma/Starknet`; directory metadata alone is therefore insufficient to identify it.
 - The session-memory MCP tools documented by the installed handoff skills were unavailable, so the authoritative local JSONL archive was inspected directly.
 - In the 2026-09-02 implementation session, UI presentation code and tests changed while engine/policy/API/wallet semantics, deployment, release tags, and production state did not change.
-- The 2026-09-03 deployment changed production presentation only: remote checkout `39a49e1`, Compose project `cutout`, containers `cutout-indexer-1` and `cutout-api-1`, shared volume `cutout_cutout-data`.
+- The 2026-09-04 deployment changed production presentation only: remote checkout `015f6d8`, Compose project `cutout`, containers `cutout-indexer-1` and `cutout-api-1`, shared volume `cutout_cutout-data`.
 - Post-deploy public QA made public preflight requests and one simulated wallet preparation only. It did not call `wallet_strk20InvokeTransaction`, confirm, broadcast, or create a transaction hash.
 
 ## Change Log
@@ -149,3 +159,4 @@ Active objective: Make the public cover ledger the product hero and adapt one qu
 | 2026-09-04T09:06:32Z | Codex `/root` | Created and remotely backed up the subtractive UI checkpoint | Commit `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` pushed to `origin/main`; local and upstream refs match; production was not redeployed |
 | 2026-09-04T14:04:07Z | Codex `/root` | Completed the data-native tile-ledger mechanic and local visual QA | Four corner facts replace idle chrome; real cohort cells flip once, selections Flip into the form, result evidence enters as a second plate; typecheck and all 18 E2E tests pass |
 | 2026-09-04T14:05:22Z | Codex `/root` | Created and remotely backed up the tile-ledger checkpoint | Commit `c7ede4c2d43ac9beabba9775da2142f7c44590c0` pushed to `origin/main`; local and upstream refs matched immediately after push; production was not redeployed |
+| 2026-09-04T20:34:15Z | Codex `/root` | Backed up the production read model, deployed the tile-ledger checkpoint, and completed public production QA | Backup byte/hash/identity/integrity passed; production is detached at `015f6d8`; Compose retained `cutout_cutout-data`; health, API, desktop/mobile/reduced-motion, security, and no-transaction gates passed |
