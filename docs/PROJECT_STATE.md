@@ -3,7 +3,7 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-07T15:39:55Z`
+Last updated: `2026-09-07T15:51:22Z`
 Status: `DEPLOYMENT IN PROGRESS`
 Active objective: Deploy the user-reviewed cover-board presentation at exact checkpoint `22cc97eb6076f98a434d23e2938793cfdb41d3ae`, then verify public health and browser behavior. Preserve SQLite and all engine/policy/API/wallet boundaries; no transaction submission.
 
@@ -34,6 +34,7 @@ Active objective: Deploy the user-reviewed cover-board presentation at exact che
 
 ## Current Context
 
+- The pre-deployment backup is verified at `/mnt/c/Users/predator triton/Documents/cutout-backups/pre-22cc97e-20260907.sqlite`: exact `4,872,781,824` bytes, source/copy SHA-256 `27fa56e00690fdce415c1f9e67da21573d8eb0183a2ba9b6c08f603e33d74674` (also independently read by Windows), `quick_check: ok`, schema 4, mainnet/pool identity, STRK20 ABI v2, CUTOUT-v1.4. No volume or prior backup was deleted. The existing Compose rebuild of exact reviewed target `22cc97e` is now starting.
 - Deployment authorized after the user reviewed the preview. Local `main` starts clean at `22cc97e`, matching freshly fetched `origin/main`; GitHub auth works. The deployment target includes presentation `54dbf34` plus its state-only handoff.
 - Verified production SSH target is `ubuntu@13.63.160.246`, key path `/home/rouma/cutout-mainnet.pem.pem` (never expose key contents), checkout `/srv/cutout` at `015f6d8`. Its only untracked file is the existing `compose.override.yaml`; preserve it. The separately known `13.48.131.137` host has no `/srv/cutout` and is not this deployment target.
 - Pre-deploy public health: `DEGRADED / ready: true / CURRENT_COMPLETE_SNAPSHOT`, model v1.4, source age 24s, lag 7s; primary RPC unavailable, secondary healthy. This is a pre-existing redundancy issue, not authorization to change providers or policies.
