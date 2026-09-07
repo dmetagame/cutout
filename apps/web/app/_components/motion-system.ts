@@ -323,6 +323,18 @@ export function useWorkflowMotion(
       reduced: "(prefers-reduced-motion: reduce)",
     }, (context) => {
       revealCoverCells(root, context.conditions?.enhanced === true);
+      if (context.conditions?.enhanced !== true) return;
+
+      let refreshFrame = 0;
+      const observer = new ResizeObserver(() => {
+        window.cancelAnimationFrame(refreshFrame);
+        refreshFrame = window.requestAnimationFrame(() => ScrollTrigger.refresh());
+      });
+      observer.observe(root);
+      return () => {
+        observer.disconnect();
+        window.cancelAnimationFrame(refreshFrame);
+      };
     });
 
     return () => {

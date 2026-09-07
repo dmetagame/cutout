@@ -653,7 +653,8 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
   return (
     <div ref={motionScope} className="app-frame motion-root">
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <main id="main-content" className="page-shell" aria-labelledby="page-title" data-workflow-state={state}>
+      <main id="main-content" className="page-shell signing-desk" aria-labelledby="page-title" data-workflow-state={state}>
+        <div className="instrument-layout">
         <CoverLedger
           bootstrap={bootstrap}
           action={action}
@@ -668,8 +669,17 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
         <div className="workflow-stage">
           <div className={`workflow-grid ${currentDecision === null ? "workflow-grid-single" : ""}`}>
           <section id="proposal" className="surface workflow-surface" aria-labelledby="intent-title">
-            <SurfaceHeader id="intent-title" index="Proposal" title={`${action === "shield" ? "Deposit" : "Withdraw"} · ${selectedToken?.symbol ?? "token"}`} description={action === "shield" ? "Check one exact amount before wallet simulation." : "Analysis only · no wallet call."} />
+            <SurfaceHeader id="intent-title" index="Your proposal" title={`${action === "shield" ? "Deposit" : "Withdraw"} · ${selectedToken?.symbol ?? "token"}`} description={action === "shield" ? "Choose a cell or enter an exact amount." : "Analysis only · no wallet call."} />
             <form className="surface-body" onSubmit={submitProposal}>
+              <div className="field-stack form-fields" data-motion-item>
+                <label className="field amount-field">
+                  <span className="field-label">Target amount</span>
+                  <div className="amount-control" data-proposal-amount>
+                    <input className="input amount-input" name="amount" autoComplete="off" inputMode="decimal" spellCheck={false} value={amountInput} onChange={(event) => { setAmountInput(event.target.value); clearDecision(); }} placeholder="0.00" data-lenis-prevent />
+                    <span className="amount-token" aria-label={`Token symbol ${selectedToken?.symbol ?? ""}`}>{selectedToken?.symbol ?? ""}</span>
+                  </div>
+                </label>
+              </div>
               <div className={`wallet-row ${capability === null ? "wallet-row-disconnected" : "wallet-row-connected"}`} data-motion-item>
                 <div className="wallet-copy">
                   <strong>{capability === null ? "No wallet connected" : "Wallet connected"}</strong>
@@ -683,16 +693,6 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                 ) : (
                   <span className="wallet-network">Mainnet</span>
                 )}
-              </div>
-
-              <div className="field-stack form-fields" data-motion-item>
-                <label className="field amount-field">
-                  <span className="field-label"><span>Target amount</span><span className="field-hint">Base-unit safe input</span></span>
-                  <div className="amount-control" data-proposal-amount>
-                    <input className="input amount-input" name="amount" autoComplete="off" inputMode="decimal" value={amountInput} onChange={(event) => { setAmountInput(event.target.value); clearDecision(); }} placeholder="Enter exact amount…" data-lenis-prevent />
-                    <span className="amount-token" aria-label={`Token symbol ${selectedToken?.symbol ?? ""}`}>{selectedToken?.symbol ?? ""}</span>
-                  </div>
-                </label>
               </div>
 
               {error !== null && state !== "PREFLIGHT_UNAVAILABLE" ? (
@@ -712,7 +712,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                   <input type="checkbox" name="flexible" checked={flexible} onChange={(event) => { setFlexible(event.target.checked); clearDecision(); }} />
                   <span className="toggle-copy">
                     <strong>Permit amount flexibility</strong>
-                    <span>Your range is authorization; Cutout will not widen it.</span>
+                    <span>Only within a range you set.</span>
                   </span>
                 </label>
 
@@ -723,18 +723,17 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
                   </div>
                 ) : null}
               </div>
-              <div className="form-footnote"><span>{action === "shield" ? "The wallet path begins only after final preflight and simulation." : "This path ends after analysis; no wallet call is possible."}</span></div>
+              <div className="form-footnote"><span>{action === "shield" ? "Check → review → simulate in Ready X." : "This path ends after analysis; no wallet call is possible."}</span></div>
             </form>
           </section>
 
           {currentDecision === null ? null : <section className="surface evidence-surface" aria-labelledby="evidence-title" data-decision-plate>
-            <SurfaceHeader id="evidence-title" index="Deterministic result" title="Evidence and decision" description="Decision first, then the evidence and provenance that produced it." badge={<StateBadge state={state} />} />
+            <SurfaceHeader id="evidence-title" index="Checked against public traffic" title="Evidence and decision" description="Exact-amount evidence from the checked snapshot." badge={<StateBadge state={state} />} />
               <div data-state-reveal>
                 <div className={`decision-hero ${bandClass(currentDecision.riskBand)}`} role="status" aria-live="polite" data-motion-item>
                   <div className="decision-hero-top"><span className="decision-kicker">{currentAction === "shield" ? "Deposit preflight" : "Withdrawal analysis"}</span><span className="decision-model">{currentDecision.modelVersion}</span></div>
                   <div className="decision-mainline"><span className={`decision-band ${bandClass(currentDecision.riskBand)}`} data-decision-band={currentDecision.riskBand}>{currentDecision.riskBand}</span><div className="decision-copy"><strong data-decision-label>{currentDecision.decision}</strong><span>Operational guard decision under GUARD_POLICY-v1</span></div></div>
                 </div>
-                <div className="decision-why" data-motion-item><p><strong>Why this result?</strong><span>The decision is bound to the exact amount, current snapshot, freshness thresholds, and published guard policy.</span></p></div>
                 <div className="evidence-grid grid-flow-dense" data-motion-item>
                   <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Exact matches</span><strong className="evidence-value" data-count-value={currentDecision.candidateCohort.existingMatches}>{currentDecision.candidateCohort.existingMatches}</strong><span className="evidence-subvalue">trailing 24h</span></div>
                   <div className="evidence-cell evidence-cell-span-6"><span className="section-kicker">Projected cohort</span><strong className="evidence-value" data-count-value={currentDecision.candidateCohort.projectedCohort}>{currentDecision.candidateCohort.projectedCohort}</strong><span className="evidence-subvalue">after this {currentAction === "shield" ? "deposit" : "withdrawal"}</span></div>
@@ -763,6 +762,7 @@ export function SigningWorkflow({ bootstrap }: SigningWorkflowProps) {
               </div>
           </section>}
           </div>
+        </div>
         </div>
 
         {state === "PREFLIGHT_LOADING" ? <WorkflowProgressPanel mode={selection === null ? "preflight" : "final"} /> : null}
@@ -799,6 +799,7 @@ function CoverLedger({
   readonly onToken: (token: string) => void;
   readonly onChooseAmount: (input: { readonly action: AnalysisAction; readonly token: string; readonly amount: string }, source: HTMLElement) => void;
 }) {
+  const [showAllAmounts, setShowAllAmounts] = useState(false);
   const token = bootstrap.cover.tokens.find((candidate) => candidate.address === tokenAddress) ?? bootstrap.cover.tokens[0];
   const coverAction = token?.actions.find((candidate) => candidate.action === action);
   const rows = coverAction?.cohorts ?? [];
@@ -816,7 +817,6 @@ function CoverLedger({
           <h1 id="page-title">Check an exact amount against current public STRK20 traffic, then stop at Ready X.</h1>
           <span className="cover-ledger-label">Current public cover · trailing 24h</span>
         </div>
-        <div className="cover-proof-line" aria-label={`${Math.round(coverAction.unmatchedExactShare * 100)} percent of amounts have no prior exact match`}><strong>{Math.round(coverAction.unmatchedExactShare * 100)}%</strong><span>of observed {token.symbol} {action === "shield" ? "deposits" : "withdrawals"} had no prior exact match in 30 days.</span></div>
       </div>
       <div className="cover-ledger-panel">
         <div className="cover-controls" role="group" aria-label="Cover ledger filters">
@@ -826,14 +826,29 @@ function CoverLedger({
           </div>
           <label className="cover-token-select"><span className="sr-only">Cover token</span><select name="cover-token" autoComplete="off" value={token.address} onChange={(event) => onToken(event.target.value)} data-lenis-prevent><option value={token.address}>{token.symbol}</option>{bootstrap.cover.tokens.filter((candidate) => candidate.address !== token.address).map((candidate) => <option key={candidate.address} value={candidate.address}>{candidate.symbol}</option>)}</select></label>
         </div>
-        <div className="cover-grid" role="group" aria-label={`Top exact-amount public cohorts for ${token.symbol} ${action}`} data-lenis-prevent>
+        <div id="cover-amounts" className={`cover-grid ${showAllAmounts ? "cover-grid-expanded" : ""}`} role="group" aria-label={`Top exact-amount public cohorts for ${token.symbol} ${action}`} data-lenis-prevent>
+          <div className="cover-proof-line" aria-label={`${Math.round(coverAction.unmatchedExactShare * 100)} percent of amounts have no prior exact match`}>
+            <span className="cover-proof-label">No prior exact match</span>
+            <strong>{Math.round(coverAction.unmatchedExactShare * 100)}<small>%</small></strong>
+            <span>of observed {token.symbol} {action === "shield" ? "deposits" : "withdrawals"} in 30 days.</span>
+          </div>
           {rows.length === 0 ? <div className="cover-empty"><strong>No current cohort rows</strong><span>Cutout will not manufacture a recommendation from an empty public edge.</span></div> : rows.map((row) => {
               const isSelected = selectedAmount === row.amount;
               const displayAmount = formatTokenAmount(row.amount, token.decimals);
               const actionLabel = walletConnected ? "Use and check" : "Select";
-              return <button className={`cover-cell ${isSelected ? "is-selected" : ""}`} type="button" aria-pressed={isSelected} aria-label={`${actionLabel} ${displayAmount} ${token.symbol}`} key={row.amount} data-cover-cell data-selected={isSelected ? "true" : undefined} onClick={(event) => onChooseAmount({ action, token: token.address, amount: row.amount }, event.currentTarget)}><span className="cover-cell-face" data-cover-cell-face><span className="cover-cell-top"><strong data-cover-amount>{displayAmount} <small>{token.symbol}</small></strong><span className={`cover-band cover-band-${row.band.toLowerCase()}`}>{row.band}</span></span><span className="cover-cell-stats"><span><b>{row.projectedCohort}</b> cohort</span><span><b>{row.distinctAddresses}</b> actors</span><span><b>{row.activeDays}</b> days</span></span><span className="cover-cell-foot"><span>{row.existingMatches} prior exact matches</span><span>{isSelected ? "Selected" : actionLabel}</span></span></span></button>;
+              return (
+                <button className={`cover-cell ${isSelected ? "is-selected" : ""}`} type="button" aria-pressed={isSelected} aria-label={`${actionLabel} ${displayAmount} ${token.symbol}`} key={row.amount} data-cover-cell data-selected={isSelected ? "true" : undefined} onClick={(event) => onChooseAmount({ action, token: token.address, amount: row.amount }, event.currentTarget)}>
+                  <span className="cover-cell-face" data-cover-cell-face>
+                    <span className="cover-cell-top"><strong data-cover-amount>{displayAmount} <small>{token.symbol}</small></strong><span className="cover-cell-select" aria-hidden="true">{isSelected ? "✓" : "↗"}</span></span>
+                    <span className="cover-cell-matches"><span><b>{row.existingMatches}</b> prior exact {row.existingMatches === 1 ? "match" : "matches"}</span><span>{row.projectedCohort} cohort</span></span>
+                    <span className="cover-cell-foot"><span className="cover-cell-stats"><span>{row.distinctAddresses} {row.distinctAddresses === 1 ? "actor" : "actors"}</span><span>{row.activeDays} {row.activeDays === 1 ? "day" : "days"}</span></span><span className={`cover-band cover-band-${row.band.toLowerCase()}`}>{row.band}</span></span>
+                    <span className="sr-only">{isSelected ? "Selected" : actionLabel}.</span>
+                  </span>
+                </button>
+              );
             })}
         </div>
+        {rows.length > 3 ? <div className="cover-mobile-actions"><button type="button" aria-expanded={showAllAmounts} aria-controls="cover-amounts" onClick={() => setShowAllAmounts(!showAllAmounts)}>{showAllAmounts ? "Show fewer amounts" : `Show all ${rows.length} amounts`}</button><a href="#proposal">Enter an amount ↓</a></div> : null}
       </div>
     </section>
   );

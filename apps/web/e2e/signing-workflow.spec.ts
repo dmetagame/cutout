@@ -94,6 +94,47 @@ test("a connected cover row fills the exact amount and runs one preflight", asyn
   expect(harness.invokeCalls).toBe(0);
 });
 
+test("desktop keeps the amount form beside the public cover board", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expectCurrentEntry(page);
+  const layout = await page.evaluate(() => {
+    const board = document.querySelector<HTMLElement>(".cover-grid")!;
+    const proposal = document.querySelector<HTMLElement>("#proposal")!;
+    const metric = document.querySelector<HTMLElement>(".cover-proof-line")!;
+    return {
+      adjacent: proposal.getBoundingClientRect().left > board.getBoundingClientRect().right,
+      metricInBoard: metric.parentElement === board,
+      connectBottom: document.querySelector("#connect-wallet")!.getBoundingClientRect().bottom,
+      titleSize: Number.parseFloat(getComputedStyle(document.querySelector("h1")!).fontSize),
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
+  expect(layout.adjacent).toBe(true);
+  expect(layout.metricInBoard).toBe(true);
+  expect(layout.connectBottom).toBeLessThan(800);
+  expect(layout.titleSize).toBeLessThanOrEqual(16);
+  expect(layout.scrollWidth).toBeLessThanOrEqual(1280);
+});
+
+test("public cover remains readable when JavaScript cannot initialize", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(test.info().project.use.baseURL!);
+    const faces = page.locator("[data-cover-cell-face]");
+    await expect(faces).toHaveCount(2);
+    for (const face of await faces.all()) {
+      await expect(face).toBeVisible();
+      await expect(face).toHaveCSS("opacity", "1");
+    }
+    await expect(page.locator(".evidence-surface")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Check deposit" })).toBeDisabled();
+  } finally {
+    await context.close();
+  }
+});
+
 test("Enter checks only the proposal and Escape closes its disclosure", async ({ page }) => {
   await installWalletHarness(page);
   await page.goto("/");

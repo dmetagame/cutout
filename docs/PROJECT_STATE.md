@@ -3,9 +3,9 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-04T20:36:23Z`
-Status: `COMPLETE`
-Active objective: Deploy the verified tile-ledger presentation checkpoint and complete production visual/API QA without changing public-evidence, wallet, or transaction semantics.
+Last updated: `2026-09-07T12:34:00Z`
+Status: `VERIFIED — awaiting visual review, not deployed`
+Active objective: Hand off the revised public-cover board and adjacent amount form for visual review. Implementation and local verification are complete; preserve all analysis and wallet semantics and keep deployment separate.
 
 ## Workspace
 
@@ -32,6 +32,13 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 - Do not submit a mainnet transaction without explicit user authorization.
 
 ## Current Context
+
+- Presentation implementation is now in place: two-column cover/form composition on desktop, metric within the cover board, flat form, clearer amount hierarchy, mobile cohort expansion, and a full-width real-decision sheet. Source changes are restricted to workflow presentation, CSS, motion layout refresh, and focused UI tests.
+- `npm run web:typecheck`, `git diff --check`, and all 20 tests in `npm run test:e2e` pass (2.1m). Tests include recommendation-to-`READY_FOR_CONFIRMATION` with zero invoke calls, withdrawal analysis-only, keyboard, 390px, and reduced-motion preference switching. New regressions cover the adjacent desktop form and readable public data without JavaScript. No production wallet was connected.
+- Browser previews are under `/home/rouma/cutout-qa/2026-09-07/`; their README distinguishes actual production captures from the local public-cover replay. Local preview replay deliberately substitutes client cover data and causes React regeneration; it is visual evidence only, not a hydration or motion certification. Normal fixture E2E validates behavior independently. No deployment has been performed in this session.
+- Removed the CSS rule that hid all tile content before motion initialized: a transient failed production JS request exposed the blank-grid failure. The mobile collapsed view also requires initialized JS so all public rows remain readable without it. Motion layout refresh now observes size changes and cleans up on reduced-motion/unmount.
+- 2026-09-07: session starts clean on `main` at `94394ea9fc4af8583a6f132ab5e252c75e7c5ebe`, matching freshly fetched `origin/main`; GitHub authentication succeeds. Previous state records the application deployment at `015f6d8` and the later documentation checkpoints separately.
+- Live health now reports `DEGRADED / ready: true`, with a current complete snapshot, source age 28s, lag 8s, and the secondary RPC healthy while primary reports `RPC_ERROR`. No operational changes are authorized by this visual task.
 
 - Cutout v0.2.0 is complete. Production uses `CUTOUT-v1.4`; the v1.3 path remains replayable.
 - Production was rebuilt from `015f6d8` on 2026-09-04 with the existing Compose project, `.env`, host-only override, and `cutout_cutout-data` volume preserved.
@@ -132,7 +139,7 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 
 ## Next Actions
 
-1. Monitor the deployed `015f6d8` presentation and current snapshot health; no further code or deployment action is pending.
+1. Review the 1280px and 390px presentation previews with the user. On approval to deploy, follow the existing backup/Compose procedure; preserve the SQLite volume and stop wallet QA before submission.
 2. Move the verified pre-`015f6d8` backup to managed durable storage while retaining the active SQLite volume and at least one known-good rollback copy.
 3. Plan production disk-capacity maintenance without deleting the active SQLite volume or unreviewed retained backups.
 
@@ -149,6 +156,8 @@ Active objective: Deploy the verified tile-ledger presentation checkpoint and co
 
 | Timestamp | Session/agent | Event | Result |
 | --- | --- | --- | --- |
+| 2026-09-07T12:34:00Z | Codex `/root` | Completed local UI verification and saved before/after evidence | Typecheck, whitespace check, and all 20 E2E tests pass; enhanced/reduced motion, keyboard, responsive layout, unavailable boundaries, and simulation-only paths verified; no deployment |
+| 2026-09-07T12:30:00Z | Codex `/root` | Reworked the presentation after user rejection; read design/type/GSAP/browser skills; captured before/after previews | Typecheck and whitespace checks pass; mobile public-cover expansion/selection passes; full 20-test E2E run in progress; production untouched |
 | 2026-09-02T14:09:44Z | Codex `/root` | Located Cutout repository and original archived session; reconciled release state; created durable handoff | Repository found at `/home/rouma/Starknet`; v0.2.0 remains protected; no implementation or production change |
 | 2026-09-02T16:00:05Z | Codex `/root` | Accepted a UI/UX-only pass; inventoried skills, loaded design/GSAP/a11y/Playwright guidance, and captured live desktop/mobile baselines | Scope frozen to presentation; production health read-only check returned `HEALTHY`; design direction set to a compact public-evidence docket |
 | 2026-09-02T16:23:52Z | Codex `/root` | Implemented the first UI/UX pass across workflow, receipt, motion, and the consolidated token layer | Full-row cover selection and keyboard/reduced-motion paths are wired; `npm run web:typecheck` passes; visual/e2e/CI verification remains |
