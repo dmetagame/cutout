@@ -3,7 +3,7 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-07T12:34:00Z`
+Last updated: `2026-09-07T13:18:35Z`
 Status: `VERIFIED — awaiting visual review, not deployed`
 Active objective: Hand off the revised public-cover board and adjacent amount form for visual review. Implementation and local verification are complete; preserve all analysis and wallet semantics and keep deployment separate.
 
@@ -12,6 +12,7 @@ Active objective: Hand off the revised public-cover board and adjacent amount fo
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
 - Branch: `main`
+- Current review checkpoint: `54dbf344f6e806598e30b6d2e1923ffacd31d6aa` (`ui: compose cover board beside the amount form`), pushed to `origin/main` and verified with matching HEAD/upstream/`git ls-remote` at 2026-09-07T13:18:35Z. The worktree was clean after that push; this state-only handoff records the verification. Production remains at `015f6d8`.
 - Reviewed/deployed checkpoint: `015f6d8a339385d3c734dfda805cbe4b70a73b81`; production checkout `/srv/cutout` is detached at this exact commit. The presentation implementation is `c7ede4c2d43ac9beabba9775da2142f7c44590c0`; `015f6d8` adds its state-only handoff.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
@@ -156,6 +157,7 @@ Active objective: Hand off the revised public-cover board and adjacent amount fo
 
 | Timestamp | Session/agent | Event | Result |
 | --- | --- | --- | --- |
+| 2026-09-07T13:18:35Z | Codex `/root` | Backed up the verified presentation checkpoint remotely | `54dbf34` pushed to `origin/main`; local/upstream/remote refs match; clean worktree verified; local dev/browser sessions stopped, preview evidence retained; no deployment |
 | 2026-09-07T12:34:00Z | Codex `/root` | Completed local UI verification and saved before/after evidence | Typecheck, whitespace check, and all 20 E2E tests pass; enhanced/reduced motion, keyboard, responsive layout, unavailable boundaries, and simulation-only paths verified; no deployment |
 | 2026-09-07T12:30:00Z | Codex `/root` | Reworked the presentation after user rejection; read design/type/GSAP/browser skills; captured before/after previews | Typecheck and whitespace checks pass; mobile public-cover expansion/selection passes; full 20-test E2E run in progress; production untouched |
 | 2026-09-02T14:09:44Z | Codex `/root` | Located Cutout repository and original archived session; reconciled release state; created durable handoff | Repository found at `/home/rouma/Starknet`; v0.2.0 remains protected; no implementation or production change |
