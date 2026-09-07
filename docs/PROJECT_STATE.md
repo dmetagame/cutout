@@ -3,22 +3,22 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-07T15:51:22Z`
-Status: `DEPLOYMENT IN PROGRESS`
-Active objective: Deploy the user-reviewed cover-board presentation at exact checkpoint `22cc97eb6076f98a434d23e2938793cfdb41d3ae`, then verify public health and browser behavior. Preserve SQLite and all engine/policy/API/wallet boundaries; no transaction submission.
+Last updated: `2026-09-07T19:49:25Z`
+Status: `DEPLOYED AND VERIFIED — pre-existing RPC redundancy degraded`
+Active objective: Completed deployment and production visual QA of the reviewed cover-board presentation at `22cc97eb6076f98a434d23e2938793cfdb41d3ae`. Retain rollback evidence and report the existing primary RPC outage separately. No transaction submission occurred.
 
 ## Workspace
 
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
 - Branch: `main`
-- Current review checkpoint: `54dbf344f6e806598e30b6d2e1923ffacd31d6aa` (`ui: compose cover board beside the amount form`), pushed to `origin/main` and verified with matching HEAD/upstream/`git ls-remote` at 2026-09-07T13:18:35Z. The worktree was clean after that push; this state-only handoff records the verification. Production remains at `015f6d8`.
-- Reviewed/deployed checkpoint: `015f6d8a339385d3c734dfda805cbe4b70a73b81`; production checkout `/srv/cutout` is detached at this exact commit. The presentation implementation is `c7ede4c2d43ac9beabba9775da2142f7c44590c0`; `015f6d8` adds its state-only handoff.
+- Current review checkpoint: `54dbf344f6e806598e30b6d2e1923ffacd31d6aa` (`ui: compose cover board beside the amount form`), verified and pushed to `origin/main`.
+- Reviewed/deployed checkpoint: `22cc97eb6076f98a434d23e2938793cfdb41d3ae`; production checkout `/srv/cutout` is detached at this exact commit. It includes presentation implementation `54dbf34` and its state-only handoff. Previous deployment `015f6d8a339385d3c734dfda805cbe4b70a73b81` remains the code rollback target.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
 - Current subtractive UI checkpoint: `91d6cedf8c8e43cdf05dc06f11184e32c8fe9882` (`ui: reduce signing instrument to ledger`), pushed to `origin/main`.
 - Session base: `ced20ce5bd070d7ba4cf87d437ff8a8b2c842231`, clean and synchronized with freshly fetched `origin/main` before the tile-ledger work.
 - Current tile-ledger checkpoint: `c7ede4c2d43ac9beabba9775da2142f7c44590c0` (`ui: turn public cover into tile ledger`), verified and pushed to `origin/main`.
-- Deployment handoff checkpoint: `39a1b17b38cbe2392a916dd15493e9d060d5d0f3` (`docs: record tile ledger production deploy`), verified on `origin/main`; production intentionally remains at the exact application/state target `015f6d8` because this later commit only records the completed deployment.
+- Historical deployment handoff checkpoint: `39a1b17b38cbe2392a916dd15493e9d060d5d0f3` (`docs: record tile ledger production deploy`), verified on `origin/main`; that deployment was superseded by `22cc97e` on 2026-09-07.
 - Worktree was clean and synchronized with `origin/main` immediately after the implementation push; this state-only handoff update records that remote checkpoint.
 - GitHub connection: HTTPS fetch/push and `gh auth status` succeed as `dmetagame`; the deployment target was freshly fetched and matched local `HEAD`/`origin/main` before deployment.
 - Protected releases/artifacts: immutable annotated tag `v0.2.0` remains at release commit `f34655b7b2f19b47b7fcdeec832fce39a455a6a7`; production adds later reviewed recovery and presentation-only commits without moving that tag.
@@ -34,18 +34,21 @@ Active objective: Deploy the user-reviewed cover-board presentation at exact che
 
 ## Current Context
 
-- The pre-deployment backup is verified at `/mnt/c/Users/predator triton/Documents/cutout-backups/pre-22cc97e-20260907.sqlite`: exact `4,872,781,824` bytes, source/copy SHA-256 `27fa56e00690fdce415c1f9e67da21573d8eb0183a2ba9b6c08f603e33d74674` (also independently read by Windows), `quick_check: ok`, schema 4, mainnet/pool identity, STRK20 ABI v2, CUTOUT-v1.4. No volume or prior backup was deleted. The existing Compose rebuild of exact reviewed target `22cc97e` is now starting.
+- The pre-deployment backup is verified at `/mnt/c/Users/predator triton/Documents/cutout-backups/pre-22cc97e-20260907.sqlite`: exact `4,872,781,824` bytes, source/copy SHA-256 `27fa56e00690fdce415c1f9e67da21573d8eb0183a2ba9b6c08f603e33d74674` (also independently read by Windows), `quick_check: ok`, schema 4, mainnet/pool identity, STRK20 ABI v2, CUTOUT-v1.4. No volume or prior backup was deleted.
 - Deployment authorized after the user reviewed the preview. Local `main` starts clean at `22cc97e`, matching freshly fetched `origin/main`; GitHub auth works. The deployment target includes presentation `54dbf34` plus its state-only handoff.
-- Verified production SSH target is `ubuntu@13.63.160.246`, key path `/home/rouma/cutout-mainnet.pem.pem` (never expose key contents), checkout `/srv/cutout` at `015f6d8`. Its only untracked file is the existing `compose.override.yaml`; preserve it. The separately known `13.48.131.137` host has no `/srv/cutout` and is not this deployment target.
+- Verified production SSH target is `ubuntu@13.63.160.246`, key path `/home/rouma/cutout-mainnet.pem.pem` (never expose key contents), checkout `/srv/cutout` at `22cc97e`. Its only untracked file is the existing `compose.override.yaml`; preserve it.
 - Pre-deploy public health: `DEGRADED / ready: true / CURRENT_COMPLETE_SNAPSHOT`, model v1.4, source age 24s, lag 7s; primary RPC unavailable, secondary healthy. This is a pre-existing redundancy issue, not authorization to change providers or policies.
-- Host has 3.7 GB free; local Linux has 4.6 GB free, neither enough for another 4.87 GB SQLite copy. The previously used Windows backup volume has 472 GB free. Plan: graceful stop, WAL checkpoint, consistent streamed copy to that volume, hash/identity/quick-check verification before rebuild. Full `npm run ci:verify` is running.
-- Pre-rebuild CI completed successfully: core and milestone suites, guard package/consumer, typechecks, optimized Next build, all 20 Playwright tests (2.7m), and whitespace verification. Both production services are stopped for the consistent backup. WAL checkpoint returned `busy=0, log=0, checkpointed=0`; source size `4,872,781,824` and SHA-256 `27fa56e00690fdce415c1f9e67da21573d8eb0183a2ba9b6c08f603e33d74674`. The streamed copy is still unverified and uses `.partial` until completion.
+- Backup used the previously approved Windows-mounted location because neither the host nor Linux workspace had space for another 4.87 GB copy. Both services were gracefully stopped and WAL checkpoint returned `busy=0, log=0, checkpointed=0`; transport compression preserved exact bytes. The backup was verified before rebuild.
+- Full `npm run ci:verify` passed: core and milestone suites, guard package/consumer, typechecks, optimized Next build, all 20 Playwright tests (2.7m), and whitespace verification.
+- `docker compose up --build -d` succeeded at exact `22cc97e`. Existing `.env`, host-only healthcheck override, and `cutout_cutout-data` remain intact. Both containers run as `node`, drop all capabilities, retain `no-new-privileges`, and have zero restarts; API binds only `127.0.0.1:3000`. Four hours after startup the API container is healthy. Host disk remains 91% used, about 3.5 GB free.
+- Public and loopback health recovered to current complete snapshots. Final public smoke at block `14,520,368`: HTTP 200, ready, `DEGRADED`, CUTOUT-v1.4, source age 34s, lag 9s. Non-signing exact `0.5 USDC` preflight returned `AVAILABLE / ALLOW / LOW` with matching snapshot hash `0x4ad2631b580e47a56570b85b5e86aa2643db69ed4b010a5ce4e82bea2b175713`. Primary RPC remains unavailable; secondary remains healthy. HTTP redirects 308 to HTTPS.
+- Public Playwright CLI QA passed at 1280×800 and 390×844 with enhanced and reduced motion: one root token set, four corner facts, adjacent desktop form, metric within board, seven real cells, exact selection, mobile expansion 3→7, explicit withdrawal boundary, unmounted idle evidence, 44px Connect, no overflow, no pin, no browser errors. Reduced motion has no Lenis or cell transforms. No production wallet was connected; simulation-only wallet behavior was verified by the local E2E harness, not claimed as a live-wallet test.
 - Presentation implementation is now in place: two-column cover/form composition on desktop, metric within the cover board, flat form, clearer amount hierarchy, mobile cohort expansion, and a full-width real-decision sheet. Source changes are restricted to workflow presentation, CSS, motion layout refresh, and focused UI tests.
 - `npm run web:typecheck`, `git diff --check`, and all 20 tests in `npm run test:e2e` pass (2.1m). Tests include recommendation-to-`READY_FOR_CONFIRMATION` with zero invoke calls, withdrawal analysis-only, keyboard, 390px, and reduced-motion preference switching. New regressions cover the adjacent desktop form and readable public data without JavaScript. No production wallet was connected.
-- Browser previews are under `/home/rouma/cutout-qa/2026-09-07/`; their README distinguishes actual production captures from the local public-cover replay. Local preview replay deliberately substitutes client cover data and causes React regeneration; it is visual evidence only, not a hydration or motion certification. Normal fixture E2E validates behavior independently. No deployment has been performed in this session.
+- Evidence is under `/home/rouma/cutout-qa/2026-09-07/`: `deployed-desktop.png`, `deployed-mobile.png`, and enhanced/reduced captures are real, unmodified production browser renders. Earlier `after-*` previews used a browser-only public-cover replay, as distinguished in that directory's README.
 - Removed the CSS rule that hid all tile content before motion initialized: a transient failed production JS request exposed the blank-grid failure. The mobile collapsed view also requires initialized JS so all public rows remain readable without it. Motion layout refresh now observes size changes and cleans up on reduced-motion/unmount.
 - 2026-09-07: session starts clean on `main` at `94394ea9fc4af8583a6f132ab5e252c75e7c5ebe`, matching freshly fetched `origin/main`; GitHub authentication succeeds. Previous state records the application deployment at `015f6d8` and the later documentation checkpoints separately.
-- Live health now reports `DEGRADED / ready: true`, with a current complete snapshot, source age 28s, lag 8s, and the secondary RPC healthy while primary reports `RPC_ERROR`. No operational changes are authorized by this visual task.
+- Provider changes remain outside this presentation deployment. Do not weaken freshness or policy to turn `DEGRADED` into `HEALTHY`.
 
 - Cutout v0.2.0 is complete. Production uses `CUTOUT-v1.4`; the v1.3 path remains replayable.
 - Production was rebuilt from `015f6d8` on 2026-09-04 with the existing Compose project, `.env`, host-only override, and `cutout_cutout-data` volume preserved.
@@ -99,6 +102,11 @@ Active objective: Deploy the user-reviewed cover-board presentation at exact che
 
 | Check | Result | Evidence/date |
 | --- | --- | --- |
+| Cover-board deployment | passed | Exact `22cc97e`; existing Compose rebuilt and restarted; persistent volume and host override retained; 2026-09-07 |
+| Current deployment CI | passed | Full `npm run ci:verify`, including all 20 E2E tests; 2026-09-07 |
+| Current rollback backup | passed | `pre-22cc97e-20260907.sqlite`, exact size/hash match, schema/identity checks and `quick_check: ok`; 2026-09-07 |
+| Current public browser QA | passed | Playwright CLI: desktop/mobile enhanced/reduced, seven cells, mobile expansion, exact selection, no overflow/errors/idle decision, one root palette; 2026-09-07T19:49Z |
+| Current public health/preflight | ready, degraded redundancy | Complete current v1.4 snapshot; exact non-signing preflight AVAILABLE/ALLOW/LOW; primary RPC outage predates deploy, secondary healthy; 2026-09-07T19:49Z |
 | Repository identity | passed | `git rev-parse --show-toplevel`; `git remote -v`; 2026-09-02 |
 | Branch and upstream | passed | `main`, aligned with `origin/main` before state-file creation; 2026-09-02 |
 | Commit deployed | passed | Production `/srv/cutout` detached at `015f6d8a339385d3c734dfda805cbe4b70a73b81`; 2026-09-04 |
@@ -136,22 +144,24 @@ Active objective: Deploy the user-reviewed cover-board presentation at exact che
 ## Risks And Blockers
 
 - No current implementation blocker is recorded.
-- Production root storage is 91% used with about 3.7 GB free after rebuild; the named Cutout volume remains about 21 GB, including retained historical backups. No volume or backup data was deleted. Capacity remains an operational risk.
+- Production root storage is 91% used with about 3.5 GB free after rebuild; the named Cutout volume remains about 21 GB, including retained historical backups. No volume or backup data was deleted. Capacity remains an operational risk.
+- Production is ready but RPC redundancy is degraded: primary reports RPC_ERROR; secondary is healthy and supplies complete current snapshots. This pre-existing operational dependency was not altered by deployment.
 - The verified pre-`39a49e1` backup remains in `/home/rouma/cutout-backups` rather than on the production host because the host could not hold another 4.87 GB copy. Move it to managed durable storage without deleting the retained production volume.
 - The production clone has no `origin/main` remote-tracking ref; deployment used a verified `FETCH_HEAD` and detached checkout at the exact requested commit.
 - The archived session is very large and contains historical operational context. Prefer this state file and reviewed repository docs over replaying the full transcript.
 - The current turn is presentation-only. Engine, policies, indexer, API, wallet adapter, and `@cutout/guard` exports are outside scope.
-- Production is now on `015f6d8`; the tile-ledger presentation is live and verified.
+- Production is now on `22cc97e`; the revised cover-board presentation is live and verified.
 - The new pre-`015f6d8` backup is on the operator workstation's Windows-mounted disk. It is verified and independent of the production host, but should also be moved to managed durable backup storage.
 
 ## Next Actions
 
-1. Review the 1280px and 390px presentation previews with the user. On approval to deploy, follow the existing backup/Compose procedure; preserve the SQLite volume and stop wallet QA before submission.
-2. Move the verified pre-`015f6d8` backup to managed durable storage while retaining the active SQLite volume and at least one known-good rollback copy.
+1. Deployment is complete. Monitor current-snapshot readiness and separately investigate/restore the primary RPC provider if the user authorizes that operational work; do not change policies or transaction semantics.
+2. Move the verified pre-`22cc97e` backup to managed durable storage while retaining the active SQLite volume and known-good prior rollback copies.
 3. Plan production disk-capacity maintenance without deleting the active SQLite volume or unreviewed retained backups.
 
 ## Session Handoff
 
+- 2026-09-07 deploy: `/srv/cutout` detached at `22cc97e`, production verified after four hours of uptime, no wallet connection or transaction request. Local branch `main` contains later state-only deployment checkpoints; do not redeploy just to synchronize documentation.
 - Start with `AGENTS.md`, `docs/PROJECT_STATE.md`, `docs/AUDIT_NOTES.md`, and `docs/DEPLOYMENT.md`.
 - The original session began from `/home/rouma`, then performed the Cutout work in `/home/rouma/Starknet`; directory metadata alone is therefore insufficient to identify it.
 - The session-memory MCP tools documented by the installed handoff skills were unavailable, so the authoritative local JSONL archive was inspected directly.
@@ -163,6 +173,7 @@ Active objective: Deploy the user-reviewed cover-board presentation at exact che
 
 | Timestamp | Session/agent | Event | Result |
 | --- | --- | --- | --- |
+| 2026-09-07T19:49:25Z | Codex `/root` | Completed user-authorized deployment and production QA of `22cc97e` | Verified pre-deploy backup; existing Compose rebuilt with volume/config retained; full CI and live browser/API gates pass; ready/current snapshot with pre-existing primary RPC degradation; zero wallet or transaction calls |
 | 2026-09-07T13:18:35Z | Codex `/root` | Backed up the verified presentation checkpoint remotely | `54dbf34` pushed to `origin/main`; local/upstream/remote refs match; clean worktree verified; local dev/browser sessions stopped, preview evidence retained; no deployment |
 | 2026-09-07T12:34:00Z | Codex `/root` | Completed local UI verification and saved before/after evidence | Typecheck, whitespace check, and all 20 E2E tests pass; enhanced/reduced motion, keyboard, responsive layout, unavailable boundaries, and simulation-only paths verified; no deployment |
 | 2026-09-07T12:30:00Z | Codex `/root` | Reworked the presentation after user rejection; read design/type/GSAP/browser skills; captured before/after previews | Typecheck and whitespace checks pass; mobile public-cover expansion/selection passes; full 20-test E2E run in progress; production untouched |
