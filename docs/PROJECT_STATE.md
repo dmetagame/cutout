@@ -3,7 +3,7 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-07T19:49:25Z`
+Last updated: `2026-09-07T19:52:56Z`
 Status: `DEPLOYED AND VERIFIED — pre-existing RPC redundancy degraded`
 Active objective: Completed deployment and production visual QA of the reviewed cover-board presentation at `22cc97eb6076f98a434d23e2938793cfdb41d3ae`. Retain rollback evidence and report the existing primary RPC outage separately. No transaction submission occurred.
 
@@ -12,6 +12,7 @@ Active objective: Completed deployment and production visual QA of the reviewed 
 - Repository: `https://github.com/dmetagame/cutout.git`
 - Worktree: `/home/rouma/Starknet`
 - Branch: `main`
+- Deployment handoff checkpoint: `18287b7a77508ba8f4fdb89ee845b94c6b0ad330`, verified on `origin/main` with matching local/upstream/remote refs and a clean worktree at 2026-09-07T19:52:56Z. This state-only update records that remote backup; production intentionally stays at reviewed application target `22cc97e`.
 - Current review checkpoint: `54dbf344f6e806598e30b6d2e1923ffacd31d6aa` (`ui: compose cover board beside the amount form`), verified and pushed to `origin/main`.
 - Reviewed/deployed checkpoint: `22cc97eb6076f98a434d23e2938793cfdb41d3ae`; production checkout `/srv/cutout` is detached at this exact commit. It includes presentation implementation `54dbf34` and its state-only handoff. Previous deployment `015f6d8a339385d3c734dfda805cbe4b70a73b81` remains the code rollback target.
 - Implementation checkpoint: `2d829460809006582294bdc8bdfc81d2e82c4c5f` (`feat(web): refine signing instrument UI`)
@@ -173,6 +174,7 @@ Active objective: Completed deployment and production visual QA of the reviewed 
 
 | Timestamp | Session/agent | Event | Result |
 | --- | --- | --- | --- |
+| 2026-09-07T19:52:56Z | Codex `/root` | Verified remote deployment handoff and finished cleanup | `18287b7` present on origin/main; local/upstream/remote refs match; clean worktree; QA browser closed, temporary config removed, screenshots and QA script retained outside Git |
 | 2026-09-07T19:49:25Z | Codex `/root` | Completed user-authorized deployment and production QA of `22cc97e` | Verified pre-deploy backup; existing Compose rebuilt with volume/config retained; full CI and live browser/API gates pass; ready/current snapshot with pre-existing primary RPC degradation; zero wallet or transaction calls |
 | 2026-09-07T13:18:35Z | Codex `/root` | Backed up the verified presentation checkpoint remotely | `54dbf34` pushed to `origin/main`; local/upstream/remote refs match; clean worktree verified; local dev/browser sessions stopped, preview evidence retained; no deployment |
 | 2026-09-07T12:34:00Z | Codex `/root` | Completed local UI verification and saved before/after evidence | Typecheck, whitespace check, and all 20 E2E tests pass; enhanced/reduced motion, keyboard, responsive layout, unavailable boundaries, and simulation-only paths verified; no deployment |
