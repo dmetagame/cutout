@@ -3,9 +3,9 @@
 > Living handoff for Codex sessions. Read this file before working. Do not put
 > secrets or raw credential-bearing values here.
 
-Last updated: `2026-09-07T13:18:35Z`
-Status: `VERIFIED — awaiting visual review, not deployed`
-Active objective: Hand off the revised public-cover board and adjacent amount form for visual review. Implementation and local verification are complete; preserve all analysis and wallet semantics and keep deployment separate.
+Last updated: `2026-09-07T15:39:55Z`
+Status: `DEPLOYMENT IN PROGRESS`
+Active objective: Deploy the user-reviewed cover-board presentation at exact checkpoint `22cc97eb6076f98a434d23e2938793cfdb41d3ae`, then verify public health and browser behavior. Preserve SQLite and all engine/policy/API/wallet boundaries; no transaction submission.
 
 ## Workspace
 
@@ -34,6 +34,10 @@ Active objective: Hand off the revised public-cover board and adjacent amount fo
 
 ## Current Context
 
+- Deployment authorized after the user reviewed the preview. Local `main` starts clean at `22cc97e`, matching freshly fetched `origin/main`; GitHub auth works. The deployment target includes presentation `54dbf34` plus its state-only handoff.
+- Verified production SSH target is `ubuntu@13.63.160.246`, key path `/home/rouma/cutout-mainnet.pem.pem` (never expose key contents), checkout `/srv/cutout` at `015f6d8`. Its only untracked file is the existing `compose.override.yaml`; preserve it. The separately known `13.48.131.137` host has no `/srv/cutout` and is not this deployment target.
+- Pre-deploy public health: `DEGRADED / ready: true / CURRENT_COMPLETE_SNAPSHOT`, model v1.4, source age 24s, lag 7s; primary RPC unavailable, secondary healthy. This is a pre-existing redundancy issue, not authorization to change providers or policies.
+- Host has 3.7 GB free; local Linux has 4.6 GB free, neither enough for another 4.87 GB SQLite copy. The previously used Windows backup volume has 472 GB free. Plan: graceful stop, WAL checkpoint, consistent streamed copy to that volume, hash/identity/quick-check verification before rebuild. Full `npm run ci:verify` is running.
 - Presentation implementation is now in place: two-column cover/form composition on desktop, metric within the cover board, flat form, clearer amount hierarchy, mobile cohort expansion, and a full-width real-decision sheet. Source changes are restricted to workflow presentation, CSS, motion layout refresh, and focused UI tests.
 - `npm run web:typecheck`, `git diff --check`, and all 20 tests in `npm run test:e2e` pass (2.1m). Tests include recommendation-to-`READY_FOR_CONFIRMATION` with zero invoke calls, withdrawal analysis-only, keyboard, 390px, and reduced-motion preference switching. New regressions cover the adjacent desktop form and readable public data without JavaScript. No production wallet was connected.
 - Browser previews are under `/home/rouma/cutout-qa/2026-09-07/`; their README distinguishes actual production captures from the local public-cover replay. Local preview replay deliberately substitutes client cover data and causes React regeneration; it is visual evidence only, not a hydration or motion certification. Normal fixture E2E validates behavior independently. No deployment has been performed in this session.
